@@ -17,8 +17,14 @@
     <button id="lock-btn" class="ghost" hidden>Verrouiller</button>
   </header>
 
+  <nav id="tabs" class="tabs" hidden>
+    <button data-tab="ops" class="active">Opérations</button>
+    <button data-tab="import">Importer</button>
+    <button data-tab="accounts">Comptes</button>
+  </nav>
+
   <main>
-    <!-- Écran de déverrouillage / création du coffre -->
+    <!-- ===== Écran de déverrouillage / création du coffre ===== -->
     <section id="lock-screen" class="card narrow" hidden>
       <h2 id="lock-title">Déverrouiller</h2>
       <p id="lock-intro" class="muted"></p>
@@ -49,16 +55,122 @@
       </details>
     </section>
 
-    <!-- Application (après déverrouillage) -->
-    <section id="app-screen" hidden>
+    <!-- ===== Onglet Opérations ===== -->
+    <section id="tab-ops" class="tab" hidden>
       <div class="card">
-        <h2>Coffre ouvert</h2>
-        <p class="muted">Le socle est en place. Les écrans d'import, de tableau de bord et de budgets arrivent aux étapes suivantes.</p>
-        <p class="muted small">Verrouillage automatique après <span id="autolock"></span> min d'inactivité.</p>
+        <div class="row space">
+          <h2>Opérations</h2>
+          <div class="row">
+            <select id="ops-account" aria-label="Compte"></select>
+            <input type="month" id="ops-month" aria-label="Mois">
+          </div>
+        </div>
+        <p id="ops-summary" class="muted small"></p>
+        <div class="table-wrap">
+          <table class="tx">
+            <thead><tr><th>Date</th><th>Libellé</th><th class="num">Montant</th><th></th></tr></thead>
+            <tbody id="ops-body"></tbody>
+          </table>
+        </div>
+        <p id="ops-empty" class="muted" hidden>Aucune opération pour ce filtre.</p>
+      </div>
+
+      <div class="card">
+        <h2>Saisie manuelle</h2>
+        <form id="manual-form" class="grid">
+          <label>Compte <select id="m-account" required></select></label>
+          <label>Date <input type="date" id="m-date" required></label>
+          <label class="wide">Libellé <input type="text" id="m-label" maxlength="300" required></label>
+          <label>Montant (€) <input type="text" id="m-amount" inputmode="decimal" placeholder="12,50" required></label>
+          <label>Sens
+            <select id="m-sign"><option value="-1">Dépense</option><option value="1">Revenu</option></select>
+          </label>
+          <div class="wide"><button type="submit">Ajouter</button> <span id="m-msg" class="small"></span></div>
+        </form>
+      </div>
+    </section>
+
+    <!-- ===== Onglet Importer ===== -->
+    <section id="tab-import" class="tab" hidden>
+      <div class="card">
+        <h2>Importer un relevé</h2>
+        <p class="muted small">Le fichier est lu en mémoire sur cet ordinateur, puis oublié. Rien n'est enregistré
+          avant que vous ayez vérifié et validé les opérations.</p>
+        <div class="grid">
+          <label>Compte <select id="i-account"></select></label>
+          <label>Fichier (PDF ou CSV) <input type="file" id="i-file" accept=".pdf,.csv,.txt,application/pdf,text/csv"></label>
+        </div>
+        <p id="i-error" class="error" role="alert"></p>
+      </div>
+
+      <div id="i-options" class="card" hidden>
+        <div id="i-pdf-opts" hidden>
+          <label>Modèle de relevé
+            <select id="i-parser"></select>
+          </label>
+        </div>
+        <div id="i-csv-opts" hidden>
+          <p id="i-preset" class="small"></p>
+          <p class="small muted">Indiquez quelle colonne contient chaque information :</p>
+          <div class="grid" id="i-mapping"></div>
+          <button type="button" id="i-remap" class="ghost">Relire avec ces colonnes</button>
+        </div>
+      </div>
+
+      <div id="i-review" class="card" hidden>
+        <h2>Vérification avant enregistrement</h2>
+        <div id="i-coherence"></div>
+        <div class="grid">
+          <label>Solde de début (€) <input type="text" id="i-open" inputmode="decimal" placeholder="facultatif"></label>
+          <label>Solde de fin (€) <input type="text" id="i-close" inputmode="decimal" placeholder="facultatif"></label>
+        </div>
+        <div id="i-warnings"></div>
+        <p id="i-counts" class="small muted"></p>
+        <div class="table-wrap">
+          <table class="tx">
+            <thead><tr><th><input type="checkbox" id="i-all" aria-label="Tout cocher"></th>
+              <th>Date</th><th>Libellé</th><th class="num">Montant</th><th></th></tr></thead>
+            <tbody id="i-body"></tbody>
+          </table>
+        </div>
+        <div class="row">
+          <button type="button" id="i-commit">Enregistrer</button>
+          <button type="button" id="i-cancel" class="ghost">Annuler</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Onglet Comptes ===== -->
+    <section id="tab-accounts" class="tab" hidden>
+      <div class="card">
+        <h2>Mes comptes</h2>
+        <ul id="acc-list" class="list"></ul>
+        <p id="acc-empty" class="muted" hidden>Aucun compte. Créez-en un ci-dessous pour commencer.</p>
       </div>
       <div class="card">
-        <h2>Catégories</h2>
-        <ul id="categories" class="chips"></ul>
+        <h2>Ajouter un compte</h2>
+        <form id="acc-form" class="grid">
+          <label>Nom <input type="text" id="acc-name" maxlength="60" placeholder="ex. Compte joint" required></label>
+          <label>Banque
+            <select id="acc-bank">
+              <option>LCL</option><option>Boursobank</option><option>Trade Republic</option><option>Autre</option>
+            </select>
+          </label>
+          <label>Type
+            <select id="acc-kind">
+              <option value="courant">Compte courant</option>
+              <option value="joint">Compte joint</option>
+              <option value="epargne">Épargne</option>
+              <option value="investissement">Investissement</option>
+            </select>
+          </label>
+          <div class="wide"><button type="submit">Créer le compte</button></div>
+        </form>
+      </div>
+      <div class="card danger-zone">
+        <h2>Zone sensible</h2>
+        <p class="small muted">Efface toutes les opérations, comptes, règles et budgets du coffre. Irréversible.</p>
+        <button type="button" id="wipe-btn" class="danger">Tout supprimer</button>
       </div>
     </section>
   </main>

@@ -4,8 +4,9 @@ Application de suivi de budget personnel **100 % locale**. Vos données bancaire
 quittent jamais votre ordinateur. La seule exception est celle que vous choisissez :
 le fichier **chiffré** que vous pouvez placer dans iCloud Drive.
 
-> État : **étape 1/6** (socle, coffre chiffré, protections de confidentialité).
-> L'import, le tableau de bord, les budgets et les suggestions arrivent ensuite.
+> État : **étape 2/6**. Sont en place : le coffre chiffré, les comptes, l'import PDF
+> et CSV avec vérification, la saisie manuelle et la détection des doublons.
+> La catégorisation, le tableau de bord, les budgets et les suggestions arrivent ensuite.
 
 ---
 
@@ -63,6 +64,28 @@ fenêtre du terminal pour arrêter l'app.
 **Conseil** : activez la « Protection avancée des données » d'iCloud
 (Réglages › votre nom › iCloud). Le fichier est alors chiffré une seconde fois, de
 bout en bout, par Apple.
+
+---
+
+## Importer ses relevés
+
+| Banque | Format conseillé | État |
+|---|---|---|
+| Boursobank | **CSV** (espace client › Mes opérations › icône de téléchargement) | Format CSV reconnu automatiquement |
+| LCL | PDF (ou CSV si disponible) | Lecture générique, calibrage en attente d'un extrait masqué |
+| Trade Republic | PDF | Lecture générique, calibrage en attente d'un extrait masqué |
+| Autre banque | CSV ou PDF | CSV : vous indiquez les colonnes. PDF : lecture générique |
+
+- Le fichier est envoyé à l'app locale, lu **en mémoire**, puis oublié. Aucune copie
+  n'est écrite sur le disque, ni même dans un fichier temporaire.
+- Avant d'enregistrer, un écran de vérification :
+  - **contrôle les soldes** : solde de début + opérations = solde de fin ;
+  - décoche d'office les opérations **déjà importées** et les **doublons probables**,
+    c'est-à-dire le même montant à 3 jours près avec un libellé proche, ce qui arrive
+    quand on importe le CSV puis le PDF d'un même mois ;
+  - permet d'inverser le sens d'une opération (bouton ±) si le PDF a été mal lu.
+- Pour calibrer la lecture d'un PDF sans rien dévoiler, lancez `tools/inspect_pdf.py`
+  (voir l'en-tête du script).
 
 ---
 

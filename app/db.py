@@ -12,7 +12,7 @@ from pathlib import Path
 
 from .vault import Vault
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
@@ -20,7 +20,8 @@ CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS accounts (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
-    bank TEXT
+    bank TEXT,
+    kind TEXT NOT NULL DEFAULT 'courant'   -- courant | joint | epargne | investissement
 );
 
 CREATE TABLE IF NOT EXISTS categories (
@@ -100,6 +101,10 @@ def _new_connection() -> sqlite3.Connection:
     return conn
 
 
+def _columns(conn: sqlite3.Connection, table: str) -> set[str]:
+    return {r[1] for r in conn.execute(f"PRAGMA table_info({table})")}
+
+
 def init_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(SCHEMA)
     row = conn.execute("SELECT value FROM meta WHERE key='schema_version'").fetchone()
@@ -107,7 +112,14 @@ def init_schema(conn: sqlite3.Connection) -> None:
         conn.executemany(
             "INSERT OR IGNORE INTO categories(name, kind, color) VALUES (?,?,?)", DEFAULT_CATEGORIES
         )
-        conn.execute("INSERT INTO meta(key, value) VALUES ('schema_version', ?)", (str(SCHEMA_VERSION),))
+    # Migrations : chaque étape est rejouable sans risque.
+    if "kind" not in _columns(conn, "accounts"):
+        conn.execute("ALTER TABLE accounts ADD COLUMN kind TEXT NOT NULL DEFAULT 'courant'")
+    conn.execute(
+        "INSERT INTO meta(key, value) VALUES ('schema_version', ?) "
+        "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+        (str(SCHEMA_VERSION),),
+    )
     conn.commit()
 
 
