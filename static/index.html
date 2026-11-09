@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="session-token" content="__SESSION_TOKEN__">
+  <title>Budget local</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <h1>Budget local</h1>
+    <span class="badge" title="Aucune donnée ne quitte cet ordinateur">Hors ligne</span>
+    <button id="lock-btn" class="ghost" hidden>Verrouiller</button>
+  </header>
+
+  <main>
+    <!-- Écran de déverrouillage / création du coffre -->
+    <section id="lock-screen" class="card narrow" hidden>
+      <h2 id="lock-title">Déverrouiller</h2>
+      <p id="lock-intro" class="muted"></p>
+      <div id="lock-warnings"></div>
+      <form id="lock-form" autocomplete="off">
+        <label>Mot de passe
+          <input type="password" id="pw" autocomplete="current-password" required>
+        </label>
+        <label id="pw2-wrap" hidden>Confirmer le mot de passe
+          <input type="password" id="pw2" autocomplete="new-password">
+        </label>
+        <p id="pw-help" class="muted small" hidden></p>
+        <button type="submit" id="lock-submit">Ouvrir</button>
+        <p id="lock-error" class="error" role="alert"></p>
+      </form>
+      <details class="small">
+        <summary>Emplacement du coffre</summary>
+        <p class="muted">Fichier : <code id="vault-path"></code></p>
+        <form id="location-form">
+          <label>Dossier ou fichier .vault
+            <input type="text" id="location-input" spellcheck="false">
+          </label>
+          <div class="row">
+            <button type="button" id="use-icloud" class="ghost" hidden>Utiliser iCloud Drive</button>
+            <button type="submit" class="ghost">Enregistrer l'emplacement</button>
+          </div>
+        </form>
+      </details>
+    </section>
+
+    <!-- Application (après déverrouillage) -->
+    <section id="app-screen" hidden>
+      <div class="card">
+        <h2>Coffre ouvert</h2>
+        <p class="muted">Le socle est en place. Les écrans d'import, de tableau de bord et de budgets arrivent aux étapes suivantes.</p>
+        <p class="muted small">Verrouillage automatique après <span id="autolock"></span> min d'inactivité.</p>
+      </div>
+      <div class="card">
+        <h2>Catégories</h2>
+        <ul id="categories" class="chips"></ul>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

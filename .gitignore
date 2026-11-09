@@ -1,0 +1,16 @@
+# === Données personnelles : ne JAMAIS versionner ===
+data/
+*.vault
+*.vault.*
+*.db
+*.db-journal
+*.sqlite
+*.pdf
+*.csv
+!tests/fixtures/*.csv
+
+# Environnement Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/

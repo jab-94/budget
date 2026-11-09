@@ -1,0 +1,4 @@
+-r requirements.txt
+# Uniquement pour les tests (client HTTP *en mémoire*, aucune connexion réseau)
+pytest==9.2.0
+httpx2==2.16.0

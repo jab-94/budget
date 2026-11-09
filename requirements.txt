@@ -1,0 +1,7 @@
+# Dépendances d'exécution (toutes 100 % locales, voir docs/AUDIT.md)
+fastapi==0.162.2
+uvicorn==0.54.0
+cryptography==50.0.2
+pdfplumber==0.11.10
+pypdf==7.0.0
+python-multipart==0.0.33
