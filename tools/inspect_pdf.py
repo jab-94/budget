@@ -56,6 +56,11 @@ def mask_line(line: str) -> str:
 
 
 def main() -> None:
+    # Terminal Windows : évite un plantage sur les caractères spéciaux (espaces insécables…).
+    try:
+        sys.stdout.reconfigure(errors="replace")
+    except AttributeError:
+        pass
     if len(sys.argv) != 2:
         print(__doc__)
         sys.exit(1)
