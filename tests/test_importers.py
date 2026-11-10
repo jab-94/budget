@@ -130,3 +130,53 @@ def test_bank_detection():
     assert BoursobankParser.detect("BoursoBank SA ...")
     assert TradeRepublicParser.detect("Trade Republic Bank GmbH")
     assert not LclParser.detect("BoursoBank")
+
+
+# --- LCL : calibré sur la structure d'un vrai relevé (extrait masqué) -----------------------
+from pathlib import Path  # noqa: E402
+
+from app.importers import parse_pdf  # noqa: E402
+
+LCL_PDF = Path(__file__).parent / "fixtures" / "faux_releve_lcl.pdf"
+
+
+def test_lcl_pdf_end_to_end():
+    st = parse_pdf(LCL_PDF.read_bytes())
+    assert st.parser == "lcl"  # reconnu via « Crédit Lyonnais » (le sigle LCL n'est pas dans le texte)
+    assert (st.period_start, st.period_end) == ("2026-03-01", "2026-03-31")
+    assert [(t.date, t.amount_cents) for t in st.transactions] == [
+        ("2026-03-02", -123), ("2026-03-03", 5000), ("2026-03-05", -12345),
+        ("2026-03-10", 215000), ("2026-03-12", -85000)]
+    assert (st.opening_balance_cents, st.closing_balance_cents) == (123456, 245988)
+    assert st.opening_balance_cents + sum(t.amount_cents for t in st.transactions) == st.closing_balance_cents
+    assert not st.warnings and not any(t.uncertain_sign for t in st.transactions)
+
+
+def test_lcl_labels_clean():
+    labels = [t.label for t in parse_pdf(LCL_PDF.read_bytes()).transactions]
+    joined = " ".join(labels)
+    # Références techniques, pied de page et numéros de page écartés
+    for noise in ("REF", "AB12CD34", "NATURE", "CREANCIER", "Page", "Lyonnais", "SIREN", "2026XYZ"):
+        assert noise not in joined
+    # Valeurs utiles des lignes de détail conservées
+    assert labels[2].endswith("CONTRAT HABITATION")
+    assert labels[3] == "VIREMENT SACEM SOC DES AUTEURS"
+
+
+def test_long_label_does_not_flip_debit_to_credit():
+    """Un libellé très long pousse le montant à droite dans le texte extrait :
+    la position réelle des mots doit quand même le classer en débit."""
+    prlv = parse_pdf(LCL_PDF.read_bytes()).transactions[2]
+    assert prlv.label.startswith("PRLV SEPA") and prlv.amount_cents == -12345
+
+
+def test_lcl_continuation_filter():
+    from app.importers.banks import LclParser
+
+    p = LclParser()
+    assert p.continuation_text("REF.CLIENT:AB12CD") is None
+    assert p.continuation_text("ID.CREANCIER:FR12ZZZ123456") is None
+    assert p.continuation_text("NATURE DU VIREMENT:VIR1") is None
+    assert p.continuation_text("REF.MANDAT: 2026XYZ0001") is None
+    assert p.continuation_text("DE: SOC DES AUTEURS") == "SOC DES AUTEURS"
+    assert p.continuation_text("99999999999") is None
