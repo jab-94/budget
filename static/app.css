@@ -160,3 +160,38 @@ ul.list li:last-child { border-bottom: 0; }
   table.tx { font-size: 14px; }
 }
 .tag-hint { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
+
+/* ---------- Étape 3 : catégories ---------- */
+h3 { font-size: 15px; margin: 16px 0 4px; }
+.chip {
+  font: inherit; font-size: 13px; font-weight: 500; white-space: nowrap;
+  padding: 3px 10px; border-radius: 999px; cursor: pointer;
+  background: transparent; color: var(--text); border: 1px solid var(--border);
+}
+.chip::before {
+  content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+  margin-right: 6px; background: var(--dot, var(--muted)); vertical-align: 1px;
+}
+.chip-empty { color: var(--muted); border-style: dashed; }
+.chip-empty::before { display: none; }
+.chip-locked { border-color: var(--text); }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--dot); margin-right: 8px; }
+ul.list.compact li { padding: 4px 0; }
+
+dialog {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface); color: var(--text);
+  width: min(520px, calc(100vw - 32px)); padding: 20px;
+}
+dialog::backdrop { background: rgb(0 0 0 / .45); }
+.cd-label { font-weight: 500; word-break: break-word; }
+label.check { display: flex; gap: 8px; align-items: flex-start; font-weight: 400; }
+label.check input { margin-top: 4px; }
+
+.mobile-only { display: none; }
+@media (max-width: 600px) {
+  .desktop-only { display: none; }
+  .mobile-only { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
+  .tabs { gap: 0; padding: 6px 8px 0; }
+  .tabs button { padding: 8px 9px; font-size: 15px; }
+}

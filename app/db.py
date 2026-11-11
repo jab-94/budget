@@ -12,7 +12,7 @@ from pathlib import Path
 
 from .vault import Vault
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
@@ -55,6 +55,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     category_locked INTEGER NOT NULL DEFAULT 0,  -- 1 = choisie à la main
     fingerprint TEXT NOT NULL,          -- pour détecter les doublons à la réimportation
     hint TEXT,                          -- nature connue par la source (investissement, frais…)
+    category_source TEXT,               -- regle | virement-interne | source | defaut | manuel
     note TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_tx_date ON transactions(date);
@@ -118,6 +119,16 @@ def init_schema(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE accounts ADD COLUMN kind TEXT NOT NULL DEFAULT 'courant'")
     if "hint" not in _columns(conn, "transactions"):
         conn.execute("ALTER TABLE transactions ADD COLUMN hint TEXT")
+    if "category_source" not in _columns(conn, "transactions"):
+        conn.execute("ALTER TABLE transactions ADD COLUMN category_source TEXT")
+    rule_cols = _columns(conn, "rules")
+    if "sign" not in rule_cols:
+        conn.execute("ALTER TABLE rules ADD COLUMN sign TEXT")  # '+', '-' ou NULL
+    if "origin" not in rule_cols:
+        conn.execute("ALTER TABLE rules ADD COLUMN origin TEXT NOT NULL DEFAULT 'user'")  # user|correction|default
+    from .categorize import seed_defaults  # import local : évite un cycle d'imports
+
+    seed_defaults(conn)
     conn.execute(
         "INSERT INTO meta(key, value) VALUES ('schema_version', ?) "
         "ON CONFLICT(key) DO UPDATE SET value=excluded.value",

@@ -10,6 +10,7 @@ import json
 import logging
 import platform
 import secrets
+import sqlite3
 import time
 from datetime import date
 from pathlib import Path
@@ -19,7 +20,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import config, dedup, importers
+from . import categorize, config, dedup, importers
 from .db import Database
 from .security import SESSION_TOKEN, SecurityMiddleware
 from .vault import VaultConflict, VaultError, WrongPassword, find_icloud_conflict_copies
@@ -383,6 +384,7 @@ def import_commit(body: ImportCommit):
             "VALUES (?,?,?,?,?,?,?)",
             rows,
         )
+        categorize.categorize_all(d.conn)
         save_or_conflict()
     log.info("Import enregistré : %d opération(s).", len(rows))
     return {"ok": True, "statement_id": sid, "inserted": len(rows)}
@@ -397,9 +399,11 @@ class ManualTx(BaseModel):
 
 
 @app.get("/api/transactions")
-def list_transactions(account_id: int | None = None, month: str | None = None, limit: int = 500):
+def list_transactions(account_id: int | None = None, month: str | None = None, category: str | None = None,
+                      limit: int = 500):
     d = require_unlocked()
     sql = """SELECT t.id, t.account_id, a.name AS account, t.date, t.label, t.amount_cents, t.hint,
+                    t.category_source, t.category_locked,
                     t.category_id, c.name AS category, c.color AS category_color, t.statement_id
              FROM transactions t JOIN accounts a ON a.id = t.account_id
              LEFT JOIN categories c ON c.id = t.category_id WHERE 1=1"""
@@ -410,6 +414,11 @@ def list_transactions(account_id: int | None = None, month: str | None = None, l
     if month:
         sql += " AND substr(t.date, 1, 7) = ?"
         args.append(month[:7])
+    if category == "none":
+        sql += " AND t.category_id IS NULL"
+    elif category:
+        sql += " AND t.category_id = ?"
+        args.append(int(category))
     sql += " ORDER BY t.date DESC, t.id DESC LIMIT ?"
     args.append(max(1, min(limit, 5000)))
     return [dict(r) for r in d.conn.execute(sql, args).fetchall()]
@@ -437,6 +446,7 @@ def create_transaction(body: ManualTx):
             "INSERT INTO transactions(account_id, date, label, amount_cents, fingerprint) VALUES (?,?,?,?,?)",
             (body.account_id, iso, label, body.amount_cents, fp),
         )
+        categorize.categorize_all(d.conn)
         save_or_conflict()
     return {"id": cur.lastrowid}
 
@@ -446,6 +456,231 @@ def delete_transaction(tx_id: int):
     d = require_unlocked()
     with d.lock:
         d.conn.execute("DELETE FROM transactions WHERE id=?", (tx_id,))
+        save_or_conflict()
+    return {"ok": True}
+
+
+# --- Catégorisation ------------------------------------------------------------------
+CATEGORY_KINDS = {"expense", "income", "transfer"}
+
+
+class CategoryIn(BaseModel):
+    name: str
+    kind: str = "expense"
+    color: str | None = None
+
+
+def _check_category(body: CategoryIn) -> tuple[str, str, str | None]:
+    name = body.name.strip()
+    if not name or len(name) > 40:
+        raise HTTPException(400, "Nom de catégorie invalide.")
+    if body.kind not in CATEGORY_KINDS:
+        raise HTTPException(400, "Type de catégorie invalide.")
+    color = body.color if body.color and len(body.color) == 7 and body.color.startswith("#") else None
+    return name, body.kind, color
+
+
+@app.get("/api/categories/stats")
+def categories_stats():
+    d = require_unlocked()
+    rows = d.conn.execute(
+        """SELECT c.id, c.name, c.kind, c.color,
+                  (SELECT COUNT(*) FROM transactions t WHERE t.category_id = c.id) AS tx_count,
+                  (SELECT COUNT(*) FROM rules r WHERE r.category_id = c.id) AS rule_count
+           FROM categories c ORDER BY c.kind, c.name"""
+    ).fetchall()
+    uncategorized = d.conn.execute("SELECT COUNT(*) FROM transactions WHERE category_id IS NULL").fetchone()[0]
+    return {"categories": [dict(r) for r in rows], "uncategorized": uncategorized}
+
+
+@app.post("/api/categories")
+def create_category(body: CategoryIn):
+    d = require_unlocked()
+    name, kind, color = _check_category(body)
+    with d.lock:
+        try:
+            cur = d.conn.execute("INSERT INTO categories(name, kind, color) VALUES (?,?,?)", (name, kind, color))
+        except sqlite3.IntegrityError:
+            raise HTTPException(409, "Une catégorie porte déjà ce nom.")
+        save_or_conflict()
+    return {"id": cur.lastrowid}
+
+
+@app.put("/api/categories/{cat_id}")
+def update_category(cat_id: int, body: CategoryIn):
+    d = require_unlocked()
+    name, kind, color = _check_category(body)
+    with d.lock:
+        try:
+            d.conn.execute("UPDATE categories SET name=?, kind=?, color=? WHERE id=?", (name, kind, color, cat_id))
+        except sqlite3.IntegrityError:
+            raise HTTPException(409, "Une catégorie porte déjà ce nom.")
+        save_or_conflict()
+    return {"ok": True}
+
+
+@app.delete("/api/categories/{cat_id}")
+def delete_category(cat_id: int):
+    """Supprime la catégorie et ses règles ; ses opérations redeviennent « à classer »."""
+    d = require_unlocked()
+    with d.lock:
+        d.conn.execute("UPDATE transactions SET category_locked=0 WHERE category_id=?", (cat_id,))
+        d.conn.execute("DELETE FROM categories WHERE id=?", (cat_id,))
+        categorize.categorize_all(d.conn)
+        save_or_conflict()
+    return {"ok": True}
+
+
+class RuleIn(BaseModel):
+    pattern: str
+    is_regex: bool = False
+    category_id: int
+    sign: str | None = None
+    priority: int = 10
+
+
+def _check_rule(d: Database, body: RuleIn) -> str:
+    try:
+        pattern = categorize.validate_pattern(body.pattern, body.is_regex)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    if body.sign not in (None, "+", "-"):
+        raise HTTPException(400, "Sens invalide.")
+    if d.conn.execute("SELECT 1 FROM categories WHERE id=?", (body.category_id,)).fetchone() is None:
+        raise HTTPException(404, "Catégorie introuvable.")
+    return pattern
+
+
+@app.get("/api/rules")
+def list_rules():
+    d = require_unlocked()
+    rows = d.conn.execute(
+        """SELECT r.id, r.pattern, r.is_regex, r.sign, r.origin, r.priority, r.category_id,
+                  c.name AS category, c.color AS category_color
+           FROM rules r JOIN categories c ON c.id = r.category_id
+           ORDER BY CASE r.origin WHEN 'default' THEN 1 ELSE 0 END, r.priority, r.id DESC"""
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
+@app.post("/api/rules")
+def create_rule(body: RuleIn):
+    d = require_unlocked()
+    with d.lock:
+        pattern = _check_rule(d, body)
+        cur = d.conn.execute(
+            "INSERT INTO rules(pattern, is_regex, category_id, priority, sign, origin) VALUES (?,?,?,?,?, 'user')",
+            (pattern, int(body.is_regex), body.category_id, max(1, min(body.priority, 99)), body.sign),
+        )
+        changed = categorize.categorize_all(d.conn)
+        save_or_conflict()
+    return {"id": cur.lastrowid, "changed": changed}
+
+
+@app.put("/api/rules/{rule_id}")
+def update_rule(rule_id: int, body: RuleIn):
+    d = require_unlocked()
+    with d.lock:
+        pattern = _check_rule(d, body)
+        d.conn.execute(
+            "UPDATE rules SET pattern=?, is_regex=?, category_id=?, sign=?, "
+            "origin=CASE origin WHEN 'default' THEN 'user' ELSE origin END WHERE id=?",
+            (pattern, int(body.is_regex), body.category_id, body.sign, rule_id),
+        )
+        changed = categorize.categorize_all(d.conn)
+        save_or_conflict()
+    return {"ok": True, "changed": changed}
+
+
+@app.delete("/api/rules/{rule_id}")
+def delete_rule(rule_id: int):
+    d = require_unlocked()
+    with d.lock:
+        d.conn.execute("DELETE FROM rules WHERE id=?", (rule_id,))
+        changed = categorize.categorize_all(d.conn)
+        save_or_conflict()
+    return {"ok": True, "changed": changed}
+
+
+class RulePreviewIn(BaseModel):
+    pattern: str
+    is_regex: bool = False
+    sign: str | None = None
+
+
+@app.post("/api/rules/preview")
+def rule_preview(body: RulePreviewIn):
+    d = require_unlocked()
+    try:
+        pattern = categorize.validate_pattern(body.pattern, body.is_regex)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    with d.lock:
+        return categorize.preview_rule(d.conn, pattern, body.is_regex, body.sign)
+
+
+@app.post("/api/rules/recategorize")
+def recategorize():
+    d = require_unlocked()
+    with d.lock:
+        changed = categorize.categorize_all(d.conn)
+        save_or_conflict()
+    return {"changed": changed}
+
+
+class TxCategoryIn(BaseModel):
+    category_id: int | None
+    rule_pattern: str | None = None  # si fourni : crée une règle à partir de la correction
+    rule_is_regex: bool = False
+    rule_sign: str | None = None
+
+
+@app.get("/api/transactions/{tx_id}/suggest")
+def suggest_rule(tx_id: int):
+    d = require_unlocked()
+    row = d.conn.execute("SELECT label FROM transactions WHERE id=?", (tx_id,)).fetchone()
+    if row is None:
+        raise HTTPException(404, "Opération introuvable.")
+    return {"pattern": categorize.suggest_pattern(row["label"])}
+
+
+@app.put("/api/transactions/{tx_id}/category")
+def set_category(tx_id: int, body: TxCategoryIn):
+    """Correction manuelle : l'opération est verrouillée ; une règle peut être créée."""
+    d = require_unlocked()
+    with d.lock:
+        if d.conn.execute("SELECT 1 FROM transactions WHERE id=?", (tx_id,)).fetchone() is None:
+            raise HTTPException(404, "Opération introuvable.")
+        if body.category_id is not None and d.conn.execute(
+            "SELECT 1 FROM categories WHERE id=?", (body.category_id,)
+        ).fetchone() is None:
+            raise HTTPException(404, "Catégorie introuvable.")
+        d.conn.execute(
+            "UPDATE transactions SET category_id=?, category_locked=1, category_source='manuel' WHERE id=?",
+            (body.category_id, tx_id),
+        )
+        changed = 0
+        if body.rule_pattern and body.category_id is not None:
+            rule = RuleIn(pattern=body.rule_pattern, is_regex=body.rule_is_regex,
+                          category_id=body.category_id, sign=body.rule_sign)
+            pattern = _check_rule(d, rule)
+            d.conn.execute(
+                "INSERT INTO rules(pattern, is_regex, category_id, priority, created_from_correction, sign, origin) "
+                "VALUES (?,?,?,10,1,?, 'correction')",
+                (pattern, int(rule.is_regex), rule.category_id, rule.sign),
+            )
+        changed = categorize.categorize_all(d.conn)
+        save_or_conflict()
+    return {"ok": True, "changed": changed}
+
+
+@app.post("/api/transactions/{tx_id}/auto")
+def unlock_category(tx_id: int):
+    """Rend l'opération au classement automatique."""
+    d = require_unlocked()
+    with d.lock:
+        d.conn.execute("UPDATE transactions SET category_locked=0 WHERE id=?", (tx_id,))
+        categorize.categorize_all(d.conn)
         save_or_conflict()
     return {"ok": True}
 

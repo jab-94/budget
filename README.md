@@ -4,9 +4,10 @@ Application de suivi de budget personnel **100 % locale**. Vos données bancaire
 quittent jamais votre ordinateur. La seule exception est celle que vous choisissez :
 le fichier **chiffré** que vous pouvez placer dans iCloud Drive.
 
-> État : **étape 2/6**. Sont en place : le coffre chiffré, les comptes, l'import PDF
-> et CSV avec vérification, la saisie manuelle et la détection des doublons.
-> La catégorisation, le tableau de bord, les budgets et les suggestions arrivent ensuite.
+> État : **étape 3/6**. Sont en place : le coffre chiffré, les comptes, l'import PDF
+> et CSV avec vérification, la saisie manuelle, la détection des doublons et la
+> catégorisation par règles. Le tableau de bord, les budgets et les suggestions
+> arrivent ensuite.
 
 ---
 
@@ -86,6 +87,28 @@ bout en bout, par Apple.
   - permet d'inverser le sens d'une opération (bouton ±) si le PDF a été mal lu.
 - Pour calibrer la lecture d'un PDF sans rien dévoiler, lancez `tools/inspect_pdf.py`
   (voir l'en-tête du script).
+
+---
+
+## Catégorisation automatique (sans IA, 100 % locale)
+
+Chaque opération est classée par des **règles**, dans cet ordre :
+
+1. **Vos règles**, créées dans l'onglet Catégories ou en corrigeant une opération.
+2. **Virements entre vos comptes** : même montant en sens opposé sur deux de vos
+   comptes, à 3 jours près. Ils sont classés « Virements internes ».
+3. **Nature donnée par la banque** (export Trade Republic : investissement, dividende,
+   frais, taxe…).
+4. **Règles par défaut** : environ 200 enseignes françaises courantes, modifiables.
+   La plus précise l'emporte (« UBER EATS » avant « UBER »).
+
+- Un **mot-clé** se compare au libellé sans accents ni majuscules, sur des mots entiers.
+  Une **expression régulière** est aussi possible.
+- **Corriger une opération** (en cliquant sur sa catégorie) la verrouille. L'app
+  propose aussi de créer une règle pour les opérations similaires, en affichant
+  combien d'opérations elle toucherait.
+- Les catégories **« Hors budget »** (Virements internes, Investissement) ne comptent
+  ni en dépenses ni en revenus.
 
 ---
 

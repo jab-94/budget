@@ -20,6 +20,7 @@
   <nav id="tabs" class="tabs" hidden>
     <button data-tab="ops" class="active">Opérations</button>
     <button data-tab="import">Importer</button>
+    <button data-tab="categories">Catégories</button>
     <button data-tab="accounts">Comptes</button>
   </nav>
 
@@ -62,13 +63,14 @@
           <h2>Opérations</h2>
           <div class="row">
             <select id="ops-account" aria-label="Compte"></select>
+            <select id="ops-category" aria-label="Catégorie"></select>
             <input type="month" id="ops-month" aria-label="Mois">
           </div>
         </div>
         <p id="ops-summary" class="muted small"></p>
         <div class="table-wrap">
           <table class="tx">
-            <thead><tr><th>Date</th><th>Libellé</th><th class="num">Montant</th><th></th></tr></thead>
+            <thead><tr><th class="desktop-only">Date</th><th>Libellé</th><th class="desktop-only">Catégorie</th><th class="num">Montant</th><th></th></tr></thead>
             <tbody id="ops-body"></tbody>
           </table>
         </div>
@@ -143,6 +145,59 @@
       </div>
     </section>
 
+    <!-- ===== Onglet Catégories et règles ===== -->
+    <section id="tab-categories" class="tab" hidden>
+      <div class="card">
+        <div class="row space">
+          <h2>Catégories</h2>
+          <button type="button" id="recat-btn" class="ghost small-btn">Reclasser tout</button>
+        </div>
+        <p id="cat-summary" class="small muted"></p>
+        <ul id="cat-list" class="list"></ul>
+        <form id="cat-form" class="grid">
+          <label>Nouvelle catégorie <input type="text" id="cat-name" maxlength="40" required></label>
+          <label>Type
+            <select id="cat-kind">
+              <option value="expense">Dépense</option>
+              <option value="income">Revenu</option>
+              <option value="transfer">Hors budget (virement, placement)</option>
+            </select>
+          </label>
+          <label>Couleur <input type="color" id="cat-color" value="#5b8def"></label>
+          <div class="wide"><button type="submit">Ajouter la catégorie</button></div>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Mes règles</h2>
+        <p class="small muted">Elles passent avant tout le reste. Une correction manuelle peut en créer une.</p>
+        <ul id="rule-list" class="list"></ul>
+        <p id="rule-empty" class="muted small" hidden>Aucune règle personnelle pour l'instant.</p>
+        <h3>Ajouter une règle</h3>
+        <form id="rule-form" class="grid">
+          <label>Si le libellé contient <input type="text" id="rule-pattern" maxlength="200" required placeholder="ex. FREE MOBILE"></label>
+          <label>Type de motif
+            <select id="rule-regex"><option value="0">Mot(s)-clé(s)</option><option value="1">Expression régulière</option></select>
+          </label>
+          <label>Pour
+            <select id="rule-sign"><option value="">Dépenses et revenus</option><option value="-">Dépenses seulement</option><option value="+">Revenus seulement</option></select>
+          </label>
+          <label>Alors classer en <select id="rule-category" required></select></label>
+          <p id="rule-preview" class="wide small muted"></p>
+          <div class="wide"><button type="submit">Créer la règle</button> <span id="rule-msg" class="small"></span></div>
+        </form>
+      </div>
+
+      <div class="card">
+        <details>
+          <summary>Règles par défaut (<span id="default-count"></span>)</summary>
+          <p class="small muted">Enseignes courantes. Le motif le plus précis l'emporte (« UBER EATS » avant « UBER »).
+            Modifier une règle par défaut la transforme en règle personnelle.</p>
+          <ul id="default-list" class="list compact"></ul>
+        </details>
+      </div>
+    </section>
+
     <!-- ===== Onglet Comptes ===== -->
     <section id="tab-accounts" class="tab" hidden>
       <div class="card">
@@ -177,5 +232,25 @@
       </div>
     </section>
   </main>
+
+  <!-- Fenêtre de correction de catégorie -->
+  <dialog id="cat-dialog">
+    <form id="cat-dialog-form" method="dialog">
+      <h2>Classer l'opération</h2>
+      <p id="cd-label" class="cd-label"></p>
+      <label>Catégorie <select id="cd-category"></select></label>
+      <label class="check"><input type="checkbox" id="cd-make-rule" checked> Classer aussi les opérations similaires (créer une règle)</label>
+      <div id="cd-rule-box">
+        <label>Si le libellé contient <input type="text" id="cd-pattern" maxlength="200"></label>
+        <p id="cd-preview" class="small muted"></p>
+      </div>
+      <p id="cd-error" class="error" role="alert"></p>
+      <div class="row">
+        <button type="submit" id="cd-save" value="save">Enregistrer</button>
+        <button type="button" id="cd-auto" class="ghost" hidden>Revenir au classement automatique</button>
+        <button type="button" id="cd-cancel" class="ghost">Annuler</button>
+      </div>
+    </form>
+  </dialog>
 </body>
 </html>

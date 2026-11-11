@@ -169,10 +169,32 @@ function showTab(name) {
   for (const b of document.querySelectorAll("#tabs button")) b.classList.toggle("active", b.dataset.tab === name);
   for (const s of document.querySelectorAll(".tab")) s.hidden = s.id !== "tab-" + name;
   if (name === "ops") loadOps();
+  if (name === "categories") loadCategoriesTab();
 }
 for (const b of document.querySelectorAll("#tabs button")) b.addEventListener("click", () => showTab(b.dataset.tab));
 
+let categories = [];
+const KIND_GROUP = { expense: "Dépenses", income: "Revenus", transfer: "Hors budget" };
+
+/** Options de catégories groupées par type (Dépenses / Revenus / Hors budget). */
+function categoryOptions(selectedId, extra = []) {
+  const groups = Object.entries(KIND_GROUP).map(([kind, label]) => el("optgroup", { label },
+    ...categories.filter((c) => c.kind === kind).map((c) =>
+      el("option", { value: c.id, selected: c.id === selectedId }, c.name))));
+  return [...extra, ...groups];
+}
+
+async function loadCategories() {
+  categories = await api("/api/categories");
+  const keep = $("ops-category").value;
+  $("ops-category").replaceChildren(...categoryOptions(null, [
+    el("option", { value: "" }, "Toutes catégories"), el("option", { value: "none" }, "À classer")]));
+  $("ops-category").value = keep;
+  $("rule-category").replaceChildren(...categoryOptions(null));
+}
+
 async function loadAccounts() {
+  await loadCategories();
   accounts = await api("/api/accounts");
   const opts = () => accounts.map((a) => el("option", { value: a.id }, a.name));
   // On garde le compte sélectionné dans chaque liste (sinon un réimport partirait sur le mauvais compte).
@@ -231,12 +253,14 @@ $("wipe-btn").addEventListener("click", async () => {
 
 // ---------- Opérations ----------
 $("ops-account").addEventListener("change", loadOps);
+$("ops-category").addEventListener("change", loadOps);
 $("ops-month").addEventListener("change", loadOps);
 
 async function loadOps() {
   const p = new URLSearchParams();
   if ($("ops-account").value) p.set("account_id", $("ops-account").value);
   if ($("ops-month").value) p.set("month", $("ops-month").value);
+  if ($("ops-category").value) p.set("category", $("ops-category").value);
   const rows = await api(`/api/transactions?${p}`);
   const income = rows.filter((r) => r.amount_cents > 0).reduce((s, r) => s + r.amount_cents, 0);
   const spent = rows.filter((r) => r.amount_cents < 0).reduce((s, r) => s + r.amount_cents, 0);
@@ -245,8 +269,11 @@ async function loadOps() {
     : "";
   $("ops-empty").hidden = rows.length > 0;
   $("ops-body").replaceChildren(...rows.map((r) => el("tr", {},
-    el("td", { class: "nowrap" }, dateFr(r.date)),
-    el("td", {}, r.label, el("div", { class: "muted small" }, r.account, r.hint ? " · " : "", r.hint ? HINT_LABEL[r.hint] || r.hint : "")),
+    el("td", { class: "nowrap desktop-only" }, dateFr(r.date)),
+    el("td", {}, r.label, el("div", { class: "muted small" }, r.account, r.hint ? " · " : "", r.hint ? HINT_LABEL[r.hint] || r.hint : ""),
+      // Sur téléphone, la date et la catégorie passent sous le libellé (colonnes masquées).
+      el("div", { class: "mobile-only" }, el("span", { class: "muted small" }, dateFr(r.date)), categoryChip(r))),
+    el("td", { class: "desktop-only" }, categoryChip(r)),
     el("td", { class: "num nowrap " + (r.amount_cents < 0 ? "neg" : "pos") }, money(r.amount_cents)),
     el("td", {}, el("button", {
       class: "icon-btn", title: "Supprimer", "aria-label": "Supprimer",
@@ -426,6 +453,162 @@ $("i-commit").addEventListener("click", async () => {
     $("i-error").textContent = e.message;
     $("i-commit").disabled = false;
   }
+});
+
+// ---------- Catégorisation ----------
+const SOURCE_LABEL = {
+  manuel: "classée à la main", regle: "par une de vos règles", "virement-interne": "virement entre vos comptes",
+  source: "d'après la banque", defaut: "règle par défaut",
+};
+
+function categoryChip(r) {
+  const label = r.category || "À classer";
+  return el("button", {
+    class: "chip" + (r.category ? "" : " chip-empty") + (r.category_locked ? " chip-locked" : ""),
+    style: r.category_color ? `--dot:${r.category_color}` : "",
+    title: r.category_source ? `Classement : ${SOURCE_LABEL[r.category_source] || r.category_source}. Cliquer pour changer.` : "Cliquer pour classer",
+    onclick: () => openCategoryDialog(r),
+  }, label);
+}
+
+let cdTx = null;
+let previewTimer = null;
+
+function debouncedPreview(fn) {
+  clearTimeout(previewTimer);
+  previewTimer = setTimeout(fn, 250);
+}
+
+async function openCategoryDialog(r) {
+  cdTx = r;
+  $("cd-label").textContent = `${dateFr(r.date)} · ${r.label} · ${money(r.amount_cents)}`;
+  $("cd-category").replaceChildren(...categoryOptions(r.category_id, r.category_id ? [] : [el("option", { value: "" }, "— choisir —")]));
+  $("cd-error").textContent = "";
+  $("cd-auto").hidden = !r.category_locked;
+  $("cd-make-rule").checked = true;
+  $("cd-rule-box").hidden = false;
+  $("cd-pattern").value = "";
+  $("cd-preview").textContent = "";
+  $("cat-dialog").showModal();
+  const s = await api(`/api/transactions/${r.id}/suggest`);
+  $("cd-pattern").value = s.pattern;
+  updateDialogPreview();
+}
+
+async function updateDialogPreview() {
+  const pattern = $("cd-pattern").value.trim();
+  if (!$("cd-make-rule").checked || !pattern) { $("cd-preview").textContent = ""; return; }
+  try {
+    const p = await api("/api/rules/preview", { body: { pattern } });
+    $("cd-preview").textContent = p.count
+      ? `${p.count} opération(s) correspondent` + (p.locked ? ` (dont ${p.locked} classée(s) à la main, qui ne bougeront pas)` : "") +
+        (p.samples.length ? ` — ex. : ${p.samples.slice(0, 3).join(" ; ")}` : "")
+      : "Aucune opération existante ne correspond (la règle servira aux prochains imports).";
+  } catch (e) { $("cd-preview").textContent = e.message; }
+}
+
+$("cd-make-rule").addEventListener("change", () => {
+  $("cd-rule-box").hidden = !$("cd-make-rule").checked;
+  updateDialogPreview();
+});
+$("cd-pattern").addEventListener("input", () => debouncedPreview(updateDialogPreview));
+$("cd-cancel").addEventListener("click", () => $("cat-dialog").close());
+$("cd-auto").addEventListener("click", async () => {
+  await api(`/api/transactions/${cdTx.id}/auto`, { method: "POST" });
+  $("cat-dialog").close();
+  loadOps();
+});
+$("cat-dialog-form").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const catId = $("cd-category").value ? Number($("cd-category").value) : null;
+  if (catId === null) { $("cd-error").textContent = "Choisissez une catégorie."; return; }
+  const body = { category_id: catId };
+  if ($("cd-make-rule").checked && $("cd-pattern").value.trim()) body.rule_pattern = $("cd-pattern").value.trim();
+  try {
+    await api(`/api/transactions/${cdTx.id}/category`, { method: "PUT", body });
+    $("cat-dialog").close();
+    loadOps();
+  } catch (e) { $("cd-error").textContent = e.message; }
+});
+
+// ---------- Onglet Catégories ----------
+const SIGN_LABEL = { "+": "revenus seulement", "-": "dépenses seulement" };
+const ORIGIN_LABEL = { user: "créée à la main", correction: "créée par une correction", default: "par défaut" };
+
+async function loadCategoriesTab() {
+  await loadCategories();
+  const [stats, rules] = await Promise.all([api("/api/categories/stats"), api("/api/rules")]);
+  $("cat-summary").textContent = stats.uncategorized
+    ? `${stats.uncategorized} opération(s) à classer. Les catégories « Hors budget » ne comptent ni en dépenses ni en revenus.`
+    : "Toutes les opérations sont classées. Les catégories « Hors budget » ne comptent ni en dépenses ni en revenus.";
+  $("cat-list").replaceChildren(...stats.categories.map((c) => el("li", {},
+    el("div", {},
+      el("span", { class: "dot", style: `--dot:${c.color || "#999"}` }),
+      el("strong", {}, c.name), " ",
+      el("span", { class: "muted small" }, `${KIND_GROUP[c.kind]} · ${c.tx_count} opération(s) · ${c.rule_count} règle(s)`)),
+    el("button", { class: "ghost small-btn", onclick: async () => {
+      if (!confirm(`Supprimer « ${c.name} » et ses ${c.rule_count} règle(s) ? Ses opérations seront reclassées automatiquement.`)) return;
+      await api(`/api/categories/${c.id}`, { method: "DELETE" });
+      loadCategoriesTab();
+    } }, "Supprimer"))));
+
+  const ruleItem = (r) => el("li", {},
+    el("div", {},
+      el("code", {}, r.pattern), r.is_regex ? el("span", { class: "tag tag-hint" }, "regex") : null, " → ",
+      el("strong", {}, r.category),
+      el("div", { class: "muted small" }, [ORIGIN_LABEL[r.origin], SIGN_LABEL[r.sign]].filter(Boolean).join(" · "))),
+    el("button", { class: "ghost small-btn", onclick: async () => {
+      const res = await api(`/api/rules/${r.id}`, { method: "DELETE" });
+      $("rule-msg").textContent = `Règle supprimée, ${res.changed} opération(s) reclassée(s).`;
+      loadCategoriesTab();
+    } }, "Supprimer"));
+  const mine = rules.filter((r) => r.origin !== "default");
+  const defaults = rules.filter((r) => r.origin === "default");
+  $("rule-empty").hidden = mine.length > 0;
+  $("rule-list").replaceChildren(...mine.map(ruleItem));
+  $("default-count").textContent = defaults.length;
+  $("default-list").replaceChildren(...defaults.map(ruleItem));
+}
+
+async function updateRulePreview() {
+  const pattern = $("rule-pattern").value.trim();
+  if (!pattern) { $("rule-preview").textContent = ""; return; }
+  try {
+    const p = await api("/api/rules/preview", { body: {
+      pattern, is_regex: $("rule-regex").value === "1", sign: $("rule-sign").value || null } });
+    $("rule-preview").textContent = `${p.count} opération(s) correspondent` +
+      (p.samples.length ? ` — ex. : ${p.samples.slice(0, 3).join(" ; ")}` : "");
+  } catch (e) { $("rule-preview").textContent = e.message; }
+}
+for (const id of ["rule-pattern", "rule-regex", "rule-sign"]) {
+  $(id).addEventListener(id === "rule-pattern" ? "input" : "change", () => debouncedPreview(updateRulePreview));
+}
+
+$("rule-form").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  try {
+    const res = await api("/api/rules", { body: {
+      pattern: $("rule-pattern").value, is_regex: $("rule-regex").value === "1",
+      sign: $("rule-sign").value || null, category_id: Number($("rule-category").value) } });
+    $("rule-pattern").value = ""; $("rule-preview").textContent = "";
+    $("rule-msg").textContent = `Règle créée, ${res.changed} opération(s) reclassée(s).`;
+    loadCategoriesTab();
+  } catch (e) { $("rule-msg").textContent = e.message; }
+});
+
+$("cat-form").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  try {
+    await api("/api/categories", { body: { name: $("cat-name").value, kind: $("cat-kind").value, color: $("cat-color").value } });
+    $("cat-name").value = "";
+    loadCategoriesTab();
+  } catch (e) { alert(e.message); }
+});
+
+$("recat-btn").addEventListener("click", async () => {
+  const res = await api("/api/rules/recategorize", { method: "POST" });
+  $("cat-summary").textContent = `${res.changed} opération(s) reclassée(s).`;
+  setTimeout(loadCategoriesTab, 1500);
 });
 
 refresh().catch((e) => { document.body.textContent = e.message; });
