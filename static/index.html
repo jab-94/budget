@@ -8,21 +8,39 @@
   <title>Budget local</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="/static/app.css">
+  <!-- Chargé avant l'affichage pour appliquer le thème sans « flash » (pas de script inline : CSP). -->
+  <script src="/static/theme.js"></script>
   <script src="/static/app.js" defer></script>
 </head>
-<body>
-  <header class="topbar">
-    <h1>Budget local</h1>
-    <span class="badge" title="Aucune donnée ne quitte cet ordinateur">Hors ligne</span>
-    <button id="lock-btn" class="ghost" hidden>Verrouiller</button>
-  </header>
-
-  <nav id="tabs" class="tabs" hidden>
-    <button data-tab="ops" class="active">Opérations</button>
-    <button data-tab="import">Importer</button>
-    <button data-tab="categories">Catégories</button>
-    <button data-tab="accounts">Comptes</button>
-  </nav>
+<body class="locked">
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">€</span>
+      <div>
+        <strong>Budget local</strong>
+        <span class="brand-sub" title="Aucune donnée ne quitte cet ordinateur"><span class="live-dot"></span>Hors ligne · 100 % local</span>
+      </div>
+    </div>
+    <nav id="tabs" class="nav" hidden>
+      <p class="nav-title">Menu</p>
+      <button data-tab="dashboard"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z"/></svg>Tableau de bord</button>
+      <button data-tab="ops"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>Opérations</button>
+      <button data-tab="budgets"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9h-9z M14 3.3A9 9 0 0 1 20.7 10H14z"/></svg>Budgets</button>
+      <button data-tab="import"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 19h14"/></svg>Importer</button>
+      <p class="nav-title">Réglages</p>
+      <button data-tab="categories"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h7v7H4zM15.5 5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7zM4 15h7v5H4zM14 15h6v5h-6z"/></svg>Catégories</button>
+      <button data-tab="accounts"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9l9-5 9 5M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/></svg>Comptes</button>
+    </nav>
+    <div class="sidebar-foot">
+      <div class="theme-switch" role="group" aria-label="Thème">
+        <button type="button" data-theme-choice="light" title="Thème clair"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8zM12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5"/></svg></button>
+        <button type="button" data-theme-choice="auto" title="Comme le système"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H4zM9 20h6M12 16v4"/></svg></button>
+        <button type="button" data-theme-choice="dark" title="Thème sombre"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg></button>
+      </div>
+      <button id="lock-btn" class="ghost lock-btn" hidden><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 11V8a5 5 0 0 1 10 0v3M5 11h14v9H5z"/></svg>Verrouiller</button>
+    </div>
+  </aside>
 
   <main>
     <!-- ===== Écran de déverrouillage / création du coffre ===== -->
@@ -54,6 +72,99 @@
           </div>
         </form>
       </details>
+    </section>
+
+    <!-- ===== Tableau de bord ===== -->
+    <section id="tab-dashboard" class="tab" hidden>
+      <div class="pagehead card">
+        <div class="month-nav">
+          <button type="button" id="dash-prev" class="icon-round" aria-label="Mois précédent">‹</button>
+          <button type="button" id="dash-next" class="icon-round" aria-label="Mois suivant">›</button>
+          <label class="month-pick">
+            <span id="dash-month-label" class="month-label"></span>
+            <select id="dash-month" aria-label="Choisir le mois"></select>
+          </label>
+        </div>
+        <div class="row">
+          <select id="dash-account" aria-label="Compte"></select>
+          <button type="button" class="primary" data-goto="import">+ Importer</button>
+        </div>
+      </div>
+
+      <div id="dash-empty" class="card empty" hidden>
+        <h2>Aucune opération pour l'instant</h2>
+        <p class="muted">Importez un relevé (PDF ou CSV) pour voir votre tableau de bord.</p>
+        <button type="button" class="primary" data-goto="import">Importer un relevé</button>
+      </div>
+
+      <div id="dash-grid" class="dash-grid">
+        <!-- Solde du mois -->
+        <article class="card hero span-2">
+          <div class="card-head"><h2>Solde du mois</h2><span id="dash-uncat" class="pill pill-muted" hidden></span></div>
+          <div class="hero-row">
+            <p class="amount-xl" id="dash-net"></p>
+            <div class="hero-note">
+              <p id="dash-rate" class="rate"></p>
+              <p class="muted small">revenus − dépenses du mois, hors virements entre vos comptes et placements</p>
+            </div>
+          </div>
+          <div id="dash-stack" class="stack" role="img"></div>
+          <ul id="dash-stack-legend" class="stack-legend"></ul>
+        </article>
+        <!-- Revenus -->
+        <article class="card">
+          <div class="card-head"><h2>Revenus</h2></div>
+          <p class="amount-l" id="dash-income"></p>
+          <p id="dash-income-delta" class="muted small"></p>
+          <ul id="dash-incomes" class="simple-list"></ul>
+        </article>
+        <!-- Évolution -->
+        <article class="card span-2">
+          <div class="card-head">
+            <h2 id="dash-evo-title">Évolution</h2>
+            <div class="row">
+              <button type="button" id="dash-evo-clear" class="chip" hidden>× Toutes catégories</button>
+              <select id="dash-range" aria-label="Période">
+                <option value="auto" selected>Auto</option><option value="6">6 mois</option><option value="12">12 mois</option><option value="24">24 mois</option>
+              </select>
+            </div>
+          </div>
+          <ul id="dash-evo-legend" class="legend"></ul>
+          <div id="dash-chart" class="chart"></div>
+          <details class="small"><summary>Voir en tableau</summary><div class="table-wrap"><table class="tx" id="dash-table"></table></div></details>
+        </article>
+        <!-- Budgets -->
+        <article class="card">
+          <div class="card-head"><h2>Budgets</h2><button type="button" class="link" data-goto="budgets">Gérer</button></div>
+          <p id="dash-budget-summary" class="muted small"></p>
+          <ul id="dash-budgets" class="budget-list"></ul>
+        </article>
+        <!-- Dépenses par catégorie -->
+        <article class="card">
+          <div class="card-head"><h2>Dépenses par catégorie</h2></div>
+          <p class="amount-l" id="dash-expenses"></p>
+          <p id="dash-expenses-delta" class="muted small"></p>
+          <ul id="dash-cats" class="cat-bars"></ul>
+          <p class="muted small">Cliquez sur une catégorie pour voir son évolution.</p>
+        </article>
+        <!-- Plus grosses dépenses -->
+        <article class="card span-2">
+          <div class="card-head"><h2>Plus grosses dépenses du mois</h2><button type="button" class="link" data-goto="ops">Toutes les opérations</button></div>
+          <ul id="dash-top" class="simple-list"></ul>
+        </article>
+      </div>
+    </section>
+
+    <!-- ===== Budgets ===== -->
+    <section id="tab-budgets" class="tab" hidden>
+      <div class="card">
+        <h2>Budgets mensuels</h2>
+        <p class="muted small">Un plafond par catégorie de dépense. Alerte à 80 %, puis en cas de dépassement.
+          Laissez vide pour ne pas suivre une catégorie.</p>
+        <p id="bud-month" class="small"></p>
+        <ul id="bud-list" class="budget-edit"></ul>
+        <p id="bud-msg" class="small"></p>
+      </div>
     </section>
 
     <!-- ===== Onglet Opérations ===== -->
@@ -232,6 +343,7 @@
       </div>
     </section>
   </main>
+</div>
 
   <!-- Fenêtre de correction de catégorie -->
   <dialog id="cat-dialog">

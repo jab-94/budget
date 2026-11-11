@@ -251,3 +251,15 @@ def test_api_rejects_bad_regex(client):
     assert client.post("/api/rules", json={"pattern": "(", "is_regex": True,
                                            "category_id": cats["Loisirs"]}).status_code == 400
     assert client.post("/api/rules/preview", json={"pattern": "[", "is_regex": True}).status_code == 400
+
+
+def test_defaults_v2_removes_remboursement_from_existing_vault(conn):
+    """Un coffre initialisé en v1 perd la règle « REMBOURSEMENT » à la réouverture."""
+    alim = cid(conn, "Autres revenus")
+    conn.execute("INSERT INTO rules(pattern, category_id, sign, origin) VALUES ('REMBOURSEMENT', ?, '+', 'default')", (alim,))
+    conn.execute("UPDATE meta SET value='1' WHERE key='defaults_version'")
+    init_schema(conn)
+    assert conn.execute("SELECT COUNT(*) FROM rules WHERE pattern='REMBOURSEMENT'").fetchone()[0] == 0
+    tx = add(conn, "VIR CPAM REMBOURSEMENT", 3000)
+    categorize.categorize_all(conn)
+    assert cat_of(conn, tx)[0] == "Santé"

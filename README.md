@@ -4,10 +4,10 @@ Application de suivi de budget personnel **100 % locale**. Vos données bancaire
 quittent jamais votre ordinateur. La seule exception est celle que vous choisissez :
 le fichier **chiffré** que vous pouvez placer dans iCloud Drive.
 
-> État : **étape 3/6**. Sont en place : le coffre chiffré, les comptes, l'import PDF
-> et CSV avec vérification, la saisie manuelle, la détection des doublons et la
-> catégorisation par règles. Le tableau de bord, les budgets et les suggestions
-> arrivent ensuite.
+> État : **étape 4/6**. Sont en place : le coffre chiffré, les comptes, l'import PDF
+> et CSV avec vérification, la saisie manuelle, la détection des doublons, la
+> catégorisation par règles, le tableau de bord (thème clair / sombre) et les budgets.
+> Les suggestions d'économies et le suivi des revenus irréguliers arrivent ensuite.
 
 ---
 
@@ -109,6 +109,25 @@ Chaque opération est classée par des **règles**, dans cet ordre :
   combien d'opérations elle toucherait.
 - Les catégories **« Hors budget »** (Virements internes, Investissement) ne comptent
   ni en dépenses ni en revenus.
+
+---
+
+## Tableau de bord et budgets
+
+- **Solde du mois** = revenus − dépenses. Les virements entre vos comptes et les
+  placements (catégories « Hors budget ») ne comptent jamais.
+- Un **remboursement** classé dans une catégorie de dépense (ex. CPAM en Santé)
+  **réduit** cette dépense, il ne gonfle pas les revenus.
+- **Barre « où partent les revenus »** : les principales catégories de dépenses,
+  puis ce qui reste.
+- **Évolution** sur 6 à 24 mois. Cliquer sur une catégorie affiche son évolution
+  seule ; cliquer sur une colonne affiche ce mois. Chaque graphique a sa vue en
+  tableau.
+- **Budgets** : un plafond mensuel par catégorie. Alerte à 80 %, puis en cas de
+  dépassement. L'état est toujours écrit en toutes lettres, pas seulement en couleur.
+- **Thème** clair, sombre ou automatique (comme le système), en bas de la barre
+  latérale. Ce choix d'affichage est gardé dans le navigateur ; aucune donnée
+  n'y est stockée.
 
 ---
 

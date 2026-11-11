@@ -91,7 +91,8 @@ DEFAULT_RULES: list[tuple[str, str | None, list[str]]] = [
         "SACEM", "SACD", "SCAM", "ADAGP", "SOFIA", "DROITS D AUTEUR", "DROIT D AUTEUR", "EDITIONS",
         "ROYALTIES",
     ]),
-    ("Autres revenus", "+", ["CAF", "FRANCE TRAVAIL", "POLE EMPLOI", "REMBOURSEMENT"]),
+    # « REMBOURSEMENT » n'est volontairement PAS une règle : trop ambigu (sécu, ami, commerçant…).
+    ("Autres revenus", "+", ["CAF", "FRANCE TRAVAIL", "POLE EMPLOI"]),
     ("Virements internes", None, ["VIR INTERNE", "VIREMENT INTERNE", "VIR CPTE A CPTE", "VIREMENT DE COMPTE A COMPTE"]),
 ]
 
@@ -175,13 +176,32 @@ def suggest_pattern(label: str) -> str:
 
 
 # --- Initialisation (une seule fois par coffre) ---------------------------------------------------
-DEFAULTS_VERSION = 1
+DEFAULTS_VERSION = 2
 
 
 def seed_defaults(conn: sqlite3.Connection) -> None:
+    """Installe/met à jour les catégories et règles par défaut, une étape à la fois.
+
+    Chaque étape ne s'exécute qu'une fois par coffre : une règle par défaut que
+    l'utilisateur a supprimée n'est jamais recréée.
+    """
     row = conn.execute("SELECT value FROM meta WHERE key='defaults_version'").fetchone()
-    if row is not None and int(row[0]) >= DEFAULTS_VERSION:
+    version = int(row[0]) if row is not None else 0
+    if version >= DEFAULTS_VERSION:
         return
+    if version < 1:
+        _seed_v1(conn)
+    if version < 2:
+        # v2 : « REMBOURSEMENT » retiré (un remboursement CPAM doit réduire la dépense Santé).
+        conn.execute("DELETE FROM rules WHERE origin='default' AND pattern='REMBOURSEMENT'")
+    conn.execute(
+        "INSERT INTO meta(key, value) VALUES ('defaults_version', ?) "
+        "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+        (str(DEFAULTS_VERSION),),
+    )
+
+
+def _seed_v1(conn: sqlite3.Connection) -> None:
     conn.executemany("INSERT OR IGNORE INTO categories(name, kind, color) VALUES (?,?,?)", EXTRA_CATEGORIES)
     ids = {r[1]: r[0] for r in conn.execute("SELECT id, name FROM categories")}
     rows = []
@@ -193,11 +213,6 @@ def seed_defaults(conn: sqlite3.Connection) -> None:
         "INSERT INTO rules(pattern, is_regex, category_id, priority, created_from_correction, sign, origin) "
         "VALUES (?,?,?,?,?,?,?)",
         rows,
-    )
-    conn.execute(
-        "INSERT INTO meta(key, value) VALUES ('defaults_version', ?) "
-        "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
-        (str(DEFAULTS_VERSION),),
     )
 
 

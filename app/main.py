@@ -20,7 +20,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import categorize, config, dedup, importers
+from . import categorize, config, dashboard, dedup, importers
 from .db import Database
 from .security import SESSION_TOKEN, SecurityMiddleware
 from .vault import VaultConflict, VaultError, WrongPassword, find_icloud_conflict_copies
@@ -683,6 +683,62 @@ def unlock_category(tx_id: int):
         categorize.categorize_all(d.conn)
         save_or_conflict()
     return {"ok": True}
+
+
+# --- Tableau de bord et budgets ------------------------------------------------------------
+def _month_or_400(month: str | None) -> str | None:
+    if month is None:
+        return None
+    try:
+        date.fromisoformat(month[:7] + "-01")
+    except ValueError:
+        raise HTTPException(400, "Mois invalide.")
+    return month[:7]
+
+
+@app.get("/api/dashboard")
+def get_dashboard(month: str | None = None, months: int = 12, account_id: int | None = None,
+                  category_id: int | None = None):
+    d = require_unlocked()
+    with d.lock:
+        return dashboard.dashboard(d.conn, _month_or_400(month), max(3, min(months, 36)), account_id, category_id)
+
+
+class BudgetIn(BaseModel):
+    monthly_limit_cents: int | None
+
+
+@app.put("/api/budgets/{cat_id}")
+def set_budget(cat_id: int, body: BudgetIn):
+    """Plafond mensuel d'une catégorie de dépense ; vide ou 0 = pas de plafond."""
+    d = require_unlocked()
+    with d.lock:
+        row = d.conn.execute("SELECT kind FROM categories WHERE id=?", (cat_id,)).fetchone()
+        if row is None:
+            raise HTTPException(404, "Catégorie introuvable.")
+        if row["kind"] != "expense":
+            raise HTTPException(400, "Un budget ne s'applique qu'à une catégorie de dépense.")
+        if not body.monthly_limit_cents or body.monthly_limit_cents <= 0:
+            d.conn.execute("DELETE FROM budgets WHERE category_id=?", (cat_id,))
+        else:
+            d.conn.execute(
+                "INSERT INTO budgets(category_id, monthly_limit_cents) VALUES (?,?) "
+                "ON CONFLICT(category_id) DO UPDATE SET monthly_limit_cents=excluded.monthly_limit_cents",
+                (cat_id, body.monthly_limit_cents),
+            )
+        save_or_conflict()
+    return {"ok": True}
+
+
+@app.get("/api/budgets")
+def list_budgets():
+    d = require_unlocked()
+    rows = d.conn.execute(
+        """SELECT c.id AS category_id, c.name, c.color, b.monthly_limit_cents
+           FROM categories c LEFT JOIN budgets b ON b.category_id = c.id
+           WHERE c.kind = 'expense' ORDER BY c.name"""
+    ).fetchall()
+    return [dict(r) for r in rows]
 
 
 # --- Front -----------------------------------------------------------------------------
