@@ -12,7 +12,7 @@ from pathlib import Path
 
 from .vault import Vault
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
     category_locked INTEGER NOT NULL DEFAULT 0,  -- 1 = choisie à la main
     fingerprint TEXT NOT NULL,          -- pour détecter les doublons à la réimportation
+    hint TEXT,                          -- nature connue par la source (investissement, frais…)
     note TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_tx_date ON transactions(date);
@@ -115,6 +116,8 @@ def init_schema(conn: sqlite3.Connection) -> None:
     # Migrations : chaque étape est rejouable sans risque.
     if "kind" not in _columns(conn, "accounts"):
         conn.execute("ALTER TABLE accounts ADD COLUMN kind TEXT NOT NULL DEFAULT 'courant'")
+    if "hint" not in _columns(conn, "transactions"):
+        conn.execute("ALTER TABLE transactions ADD COLUMN hint TEXT")
     conn.execute(
         "INSERT INTO meta(key, value) VALUES ('schema_version', ?) "
         "ON CONFLICT(key) DO UPDATE SET value=excluded.value",

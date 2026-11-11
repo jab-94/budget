@@ -11,6 +11,7 @@ import csv
 import io
 import unicodedata
 
+from . import trade_republic
 from .base import ImportErrorFr, ParsedStatement, ParsedTransaction, parse_amount, parse_date
 
 
@@ -25,6 +26,13 @@ PRESETS = {
         "label": "Boursobank (export CSV)",
         "signature": {"dateop", "label", "amount"},
         "mapping": {"date": "dateOp", "label": "label", "amount": "amount"},
+    },
+    # Lecteur dédié : frais/taxes séparés, achats de titres marqués « investissement ».
+    "trade_republic": {
+        "label": "Trade Republic (export CSV)",
+        "signature": trade_republic.SIGNATURE,
+        "mapping": {"date": "date", "label": "description", "amount": "amount"},
+        "reader": trade_republic.parse_rows,
     },
 }
 
@@ -65,7 +73,8 @@ def read_rows(raw: bytes) -> tuple[list[str], list[dict]]:
 
 def detect_preset(headers: list[str]) -> str | None:
     normed = {_norm(h) for h in headers}
-    for key, p in PRESETS.items():
+    # Le préréglage le plus spécifique (signature la plus longue) l'emporte.
+    for key, p in sorted(PRESETS.items(), key=lambda kv: -len(kv[1]["signature"])):
         if p["signature"] <= normed:
             return key
     return None
@@ -94,6 +103,10 @@ def parse_csv(raw: bytes, mapping: dict | None = None) -> tuple[ParsedStatement,
     """Renvoie (relevé lu, infos pour le front : colonnes, mapping utilisé, préréglage)."""
     headers, rows = read_rows(raw)
     preset = detect_preset(headers)
+    if preset and not mapping and "reader" in PRESETS[preset]:
+        st = PRESETS[preset]["reader"](headers, rows)
+        return st, {"headers": headers, "mapping": _resolve_preset_mapping(preset, headers), "preset": preset,
+                    "preset_label": PRESETS[preset]["label"], "needs_mapping": False}
     if not mapping:
         mapping = _resolve_preset_mapping(preset, headers) if preset else guess_mapping(headers)
 

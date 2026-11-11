@@ -331,11 +331,15 @@ async def import_preview(request: Request, account_id: int, fmt: str, parser: st
     return result
 
 
+HINTS = {"investissement", "dividende", "interets", "impot", "frais", "carte", "virement"}
+
+
 class ImportTx(BaseModel):
     date: str
     label: str
     amount_cents: int
     fingerprint: str
+    hint: str | None = None
 
 
 class ImportCommit(BaseModel):
@@ -371,12 +375,12 @@ def import_commit(body: ImportCommit):
         sid = cur.lastrowid
         rows = [
             (body.account_id, sid, _valid_date(t.date), t.label.strip()[:300] or "(sans libellé)",
-             t.amount_cents, t.fingerprint[:64])
+             t.amount_cents, t.fingerprint[:64], t.hint if t.hint in HINTS else None)
             for t in body.transactions
         ]
         d.conn.executemany(
-            "INSERT INTO transactions(account_id, statement_id, date, label, amount_cents, fingerprint) "
-            "VALUES (?,?,?,?,?,?)",
+            "INSERT INTO transactions(account_id, statement_id, date, label, amount_cents, fingerprint, hint) "
+            "VALUES (?,?,?,?,?,?,?)",
             rows,
         )
         save_or_conflict()
@@ -395,7 +399,7 @@ class ManualTx(BaseModel):
 @app.get("/api/transactions")
 def list_transactions(account_id: int | None = None, month: str | None = None, limit: int = 500):
     d = require_unlocked()
-    sql = """SELECT t.id, t.account_id, a.name AS account, t.date, t.label, t.amount_cents,
+    sql = """SELECT t.id, t.account_id, a.name AS account, t.date, t.label, t.amount_cents, t.hint,
                     t.category_id, c.name AS category, c.color AS category_color, t.statement_id
              FROM transactions t JOIN accounts a ON a.id = t.account_id
              LEFT JOIN categories c ON c.id = t.category_id WHERE 1=1"""

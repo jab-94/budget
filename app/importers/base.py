@@ -21,6 +21,9 @@ class ParsedTransaction:
     label: str
     amount_cents: int  # négatif = dépense
     uncertain_sign: bool = False  # vrai si le sens débit/crédit a été deviné
+    # Nature connue grâce à la source (ex. « investissement », « frais », « interets »).
+    # Servira à la catégorisation et à exclure les placements des dépenses.
+    hint: str | None = None
 
 
 @dataclass
@@ -75,6 +78,22 @@ def parse_amount(text: str) -> int:
     whole, _, dec = s.partition(".")
     cents = int(whole) * 100 + int((dec + "00")[:2])
     return -cents if negative else cents
+
+
+def parse_dot_decimal(text: str) -> int:
+    """Montant au format « 123.456789 » (point décimal, précision quelconque) -> centimes arrondis.
+
+    Utilisé pour les exports qui donnent les montants avec 6 décimales (Trade Republic).
+    """
+    from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
+
+    s = str(text or "").strip()
+    if not re.fullmatch(r"[-+]?\d+(\.\d+)?", s):
+        raise ValueError("montant illisible")
+    try:
+        return int((Decimal(s) * 100).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+    except InvalidOperation:
+        raise ValueError("montant illisible") from None
 
 
 def format_cents(cents: int) -> str:

@@ -246,7 +246,7 @@ async function loadOps() {
   $("ops-empty").hidden = rows.length > 0;
   $("ops-body").replaceChildren(...rows.map((r) => el("tr", {},
     el("td", { class: "nowrap" }, dateFr(r.date)),
-    el("td", {}, r.label, el("div", { class: "muted small" }, r.account)),
+    el("td", {}, r.label, el("div", { class: "muted small" }, r.account, r.hint ? " · " : "", r.hint ? HINT_LABEL[r.hint] || r.hint : "")),
     el("td", { class: "num nowrap " + (r.amount_cents < 0 ? "neg" : "pos") }, money(r.amount_cents)),
     el("td", {}, el("button", {
       class: "icon-btn", title: "Supprimer", "aria-label": "Supprimer",
@@ -333,7 +333,9 @@ async function renderImportOptions() {
     $("i-parser").replaceChildren(...parsers.map((x) => el("option", { value: x.name, selected: x.name === pv.parser }, x.label)));
   } else {
     const info = pv.csv || {};
-    $("i-preset").textContent = info.preset_label ? `Format reconnu : ${info.preset_label}` : "Format non reconnu automatiquement.";
+    $("i-preset").textContent = info.preset_label ? `✓ Format reconnu : ${info.preset_label}` : "Format non reconnu automatiquement.";
+    // Format reconnu : le choix manuel des colonnes est replié (et contournerait le lecteur dédié).
+    $("i-map-box").open = !info.preset || Boolean(imp.mapping);
     $("i-mapping").replaceChildren(...MAP_FIELDS.map(([field, label]) => el("label", {}, label,
       el("select", { "data-field": field },
         el("option", { value: "" }, "—"),
@@ -350,12 +352,19 @@ function renderReview() {
   renderRows();
 }
 
+const HINT_LABEL = {
+  investissement: "Investissement", dividende: "Dividende", interets: "Intérêts", impot: "Impôt / taxe",
+  frais: "Frais", carte: "Carte", virement: "Virement",
+};
+const hintTag = (h) => el("span", { class: "tag tag-hint" }, HINT_LABEL[h] || h);
+
 function renderRows() {
   $("i-body").replaceChildren(...imp.rows.map((t) => {
     const tags = [];
     if (t.duplicate === "exact") tags.push(el("span", { class: "tag tag-dup" }, "Déjà importée"));
     if (t.duplicate === "probable") tags.push(el("span", { class: "tag tag-warn" }, "Doublon probable"));
     if (t.uncertain_sign) tags.push(el("span", { class: "tag tag-warn" }, "Sens deviné"));
+    if (t.hint) tags.push(hintTag(t.hint));
     return el("tr", { class: t.selected ? "" : "dimmed" },
       el("td", {}, el("input", { type: "checkbox", checked: t.selected, "aria-label": "Importer cette ligne",
         onchange: (ev) => { t.selected = ev.target.checked; ev.target.closest("tr").classList.toggle("dimmed", !t.selected); updateCounts(); } })),
@@ -408,7 +417,7 @@ $("i-commit").addEventListener("click", async () => {
       account_id: Number($("i-account").value), source: imp.fmt,
       period_start: imp.preview.period_start, period_end: imp.preview.period_end,
       opening_balance_cents: parseEuros($("i-open").value), closing_balance_cents: parseEuros($("i-close").value),
-      transactions: sel.map((t) => ({ date: t.date, label: t.label, amount_cents: t.amount_cents, fingerprint: t.fingerprint })),
+      transactions: sel.map((t) => ({ date: t.date, label: t.label, amount_cents: t.amount_cents, fingerprint: t.fingerprint, hint: t.hint })),
     } });
     resetImport();
     $("i-error").replaceChildren(el("span", { class: "ok-text" }, `${r.inserted} opération(s) enregistrée(s).`));

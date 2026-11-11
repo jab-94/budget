@@ -159,3 +159,4 @@ ul.list li:last-child { border-bottom: 0; }
   .card { padding: 14px; }
   table.tx { font-size: 14px; }
 }
+.tag-hint { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }

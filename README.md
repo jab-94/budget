@@ -73,7 +73,7 @@ bout en bout, par Apple.
 |---|---|---|
 | Boursobank | **CSV** (espace client › Mes opérations › icône de téléchargement) | Format CSV reconnu automatiquement |
 | LCL | PDF | **Calibré** sur la structure de vos relevés (détails, pied de page, colonnes) |
-| Trade Republic | **CSV** (« exportation de transactions en CSV ») | Reconnaissance automatique à venir ; en attendant, vous indiquez les colonnes |
+| Trade Republic | **CSV** (« exportation de transactions en CSV ») | **Reconnu automatiquement** : frais et taxes séparés, achats de titres marqués « Investissement » |
 | Autre banque | CSV ou PDF | CSV : vous indiquez les colonnes. PDF : lecture générique |
 
 - Le fichier est envoyé à l'app locale, lu **en mémoire**, puis oublié. Aucune copie
