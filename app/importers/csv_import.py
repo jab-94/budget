@@ -55,8 +55,24 @@ def decode(raw: bytes) -> str:
     raise ImportErrorFr("Encodage du fichier non reconnu.")
 
 
+def _unwrap_quoted_lines(text: str) -> str | None:
+    """Retire l'enveloppe de guillemets quand CHAQUE ligne est entourée de guillemets en
+    entier (les guillemets internes étant doublés), comme après un passage par Excel ou un
+    éditeur de texte. Renvoie None si le fichier n'a pas cette forme."""
+    lines = [ln for ln in text.splitlines() if ln.strip()]
+    if not lines or not all(ln.startswith('"') and ln.rstrip().endswith('"') for ln in lines):
+        return None
+    inner = [row[0] if row else "" for row in csv.reader(lines)]
+    if not any(d in inner[0] for d in ",;\t"):
+        return None
+    return "\n".join(inner)
+
+
 def read_rows(raw: bytes) -> tuple[list[str], list[dict]]:
     text = decode(raw)
+    unwrapped = _unwrap_quoted_lines(text)
+    if unwrapped is not None:
+        text = unwrapped
     sample = text[:5000]
     try:
         dialect = csv.Sniffer().sniff(sample, delimiters=";,\t|")

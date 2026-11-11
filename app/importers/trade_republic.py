@@ -1,12 +1,12 @@
 """Lecteur de l'export CSV Trade Republic (« exportation de transactions »).
 
-Structure observée sur un extrait masqué d'un vrai export (séparateur virgule) :
+Colonnes confirmées sur un vrai export (en-têtes fournis en clair, sans données) :
     datetime, date, account_type, category, type, asset_class, name, symbol,
     shares, price, amount, fee, tax, currency, original_amount,
     original_currency, fx_rate, description, transaction_id,
     counterparty_name, counterparty_iban, payment_reference, mcc_code
-Seules les colonnes vues EN CLAIR servent à la reconnaissance (SIGNATURE) ;
-les autres sont utilisées si elles sont présentes, sans être obligatoires.
+Seules 8 colonnes servent à la reconnaissance (SIGNATURE) ; les autres sont
+utilisées si elles sont présentes, sans être obligatoires.
 
 Choix de lecture :
 - `amount` a 6 décimales -> arrondi au centime.

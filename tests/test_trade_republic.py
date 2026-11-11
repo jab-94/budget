@@ -106,3 +106,25 @@ def test_api_keeps_hint(client):
     again = client.post(f"/api/import/preview?account_id={acc}&fmt=csv", content=_csv_bytes(),
                         headers={"Content-Type": "application/octet-stream"}).json()
     assert all(t["duplicate"] == "exact" for t in again["transactions"])
+
+
+# En-tête exact d'un vrai export, tel que fourni (sans données), avec chaque ligne
+# entourée de guillemets comme après un passage par Excel ou un éditeur de texte.
+REAL_HEADER_WRAPPED = ('"datetime,""date"",""account_type"",""category"",""type"",""asset_class"",""name"",'
+                       '""symbol"",""shares"",""price"",""amount"",""fee"",""tax"",""currency"",""original_amount"",'
+                       '""original_currency"",""fx_rate"",""description"",""transaction_id"",""counterparty_name"",'
+                       '""counterparty_iban"",""payment_reference"",""mcc_code"""')
+
+
+def test_real_header_matches_fixture():
+    from app.importers.csv_import import _unwrap_quoted_lines
+
+    assert next(csv.reader([_unwrap_quoted_lines(REAL_HEADER_WRAPPED)])) == HEADERS
+
+
+def test_wrapped_lines_are_unwrapped():
+    line = '"2026-03-05T10:00:00Z,""2026-03-05"",""DEFAULT"",""CASH"",""INTEREST_PAYOUT"",' + '"""",' * 5 \
+        + '""1.500000"",' + '"""",' * 2 + '""EUR"",' + '"""",' * 3 + '""Interest"",' + '"""",' * 4 + '"""""'
+    st, info = parse_csv((REAL_HEADER_WRAPPED + "\n" + line + "\n").encode("utf-8"))
+    assert info["preset"] == "trade_republic"
+    assert [(t.amount_cents, t.hint) for t in st.transactions] == [(150, "interets")]
