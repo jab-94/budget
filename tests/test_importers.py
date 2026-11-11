@@ -180,3 +180,70 @@ def test_lcl_continuation_filter():
     assert p.continuation_text("REF.MANDAT: 2026XYZ0001") is None
     assert p.continuation_text("DE: SOC DES AUTEURS") == "SOC DES AUTEURS"
     assert p.continuation_text("99999999999") is None
+
+
+# --- Boursobank : calibré sur la structure d'un vrai relevé (extrait masqué) -----------------
+BOURSO_PDF = Path(__file__).parent / "fixtures" / "faux_releve_boursobank.pdf"
+
+
+def test_bourso_pdf_end_to_end():
+    st = parse_pdf(BOURSO_PDF.read_bytes())
+    assert st.parser == "boursobank"
+    assert (st.period_start, st.period_end) == ("2026-03-01", "2026-03-31")
+    # La ligne d'en-tête « 01/04/2026 … EUR du … au … 0,00 » de chaque page n'est PAS une opération.
+    assert [(t.date, t.amount_cents) for t in st.transactions] == [
+        ("2026-03-02", -1999), ("2026-03-05", -450), ("2026-03-10", 215000),
+        ("2026-03-12", -85000), ("2026-03-15", -12345)]
+    assert (st.opening_balance_cents, st.closing_balance_cents) == (123456, 238662)
+    assert st.opening_balance_cents + sum(t.amount_cents for t in st.transactions) == st.closing_balance_cents
+    assert not st.warnings
+
+
+def test_bourso_labels_clean():
+    labels = [t.label for t in parse_pdf(BOURSO_PDF.read_bytes()).transactions]
+    joined = " ".join(labels)
+    for noise in ("REF", "RUM", "ICS", "ABC123", "conditions", "Montant des frais", "BoursoBank"):
+        assert noise not in joined
+    assert labels[0] == "PRLV SEPA FREE MOBILE FREE MOBILE SAS"
+    assert labels[4] == "PRLV SEPA ASSURANCE-HABITATION COMPAGNIE EXEMPLE ASSURANCES"
+
+
+# Structure exacte de l'extrait masqué (dates et mots remplacés par des valeurs inventées) :
+# en-têtes de colonnes débit/crédit illisibles, mots collés (« Soldeau », « NouveausoldeenEUR »).
+BOURSO_LAYOUT = """
+      15/04/2026 40618 80000 00012345678 90 EUR du 01/03/2026au 31/03/2026 0,00(cid:128) 0,000000% 1/1
+                                                    MOUVEMENTS      EN  EUR
+      Date
+             Libxxxx                                 Valeur  ZZZZZ    WWWWWW
+      operxxxxx
+                                             Soldeau: 28/02/2026         50,00
+      02/03/2026 PRLVSEPAFREE                       02/03/2026 19,99
+               FREEMOBILESAS
+               REF:ABC123456789012345678901
+      10/03/2026 VIRSACEM                           10/03/2026          100,00
+           Lesopérationsdevotrecomptesontsoumisesauxconditionsgénéralesenvigueurdisponiblessurdemandeauprès.
+                    NouveausoldeenEUR:                                 130,01
+                                                                0,00     0,00
+"""
+
+
+def test_bourso_masked_layout_unknown_column_titles_and_glued_words():
+    from app.importers.banks import BoursobankParser
+
+    st = BoursobankParser().parse_pages([BOURSO_LAYOUT])
+    assert [(t.date, t.amount_cents, t.uncertain_sign) for t in st.transactions] == [
+        ("2026-03-02", -1999, False), ("2026-03-10", 10000, False)]
+    assert st.transactions[0].label == "PRLVSEPAFREE FREEMOBILESAS"
+    assert st.transactions[1].label == "VIRSACEM"  # la mention légale n'est pas collée au libellé
+    assert (st.opening_balance_cents, st.closing_balance_cents) == (5000, 13001)
+    assert (st.period_start, st.period_end) == ("2026-03-01", "2026-03-31")
+
+
+def test_period_line_is_never_a_transaction_even_in_generic_mode():
+    page = """
+ 05/04/2026 12345 EUR du 01/03/2026 au 31/03/2026 0,00
+ Date   Libellé          Débit      Crédit
+ 10/03/2026 VIR SACEM 10/03/2026            100,00
+"""
+    st = GenericPdfParser().parse_pages([page])
+    assert [(t.date, t.amount_cents) for t in st.transactions] == [("2026-03-10", 10000)]

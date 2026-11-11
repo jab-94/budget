@@ -72,7 +72,7 @@ bout en bout, par Apple.
 
 | Banque | Format conseillé | État |
 |---|---|---|
-| Boursobank | **CSV** (espace client › Mes opérations › icône de téléchargement) | Format CSV reconnu automatiquement |
+| Boursobank | PDF (pas d'export CSV disponible) | **Calibré** sur la structure de vos relevés (en-têtes de page, mots collés, références) |
 | LCL | PDF | **Calibré** sur la structure de vos relevés (détails, pied de page, colonnes) |
 | Trade Republic | **CSV** (« exportation de transactions en CSV ») | **Reconnu automatiquement** : frais et taxes séparés, achats de titres marqués « Investissement » |
 | Autre banque | CSV ou PDF | CSV : vous indiquez les colonnes. PDF : lecture générique |

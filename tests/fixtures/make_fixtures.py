@@ -90,3 +90,77 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+# --- Boursobank ---------------------------------------------------------------------------
+OUT_BOURSO = Path(__file__).with_name("faux_releve_boursobank.pdf")
+BX_DATE, BX_LABEL, BX_VAL, BX_DEB, BX_CRE = 40, 95, 300, 400, 480
+
+
+def bourso_header(c, page, total):
+    y = 800
+    c.drawString(BX_DATE, y, "Date      N° compte      Devise      Période      Page"); y -= 12
+    # Ligne d'infos qui commence par une date et contient un montant : PAS une opération.
+    c.drawString(BX_DATE, y, f"01/04/2026 40618 80000 00012345678 90 EUR du 01/03/2026 au 31/03/2026 0,00 0,000000% {page}/{total}")
+    y -= 12
+    c.drawString(BX_DATE, y, "BoursoBank - SA au capital de 1 000 000,00 euros - www.boursobank.com"); y -= 30
+    c.drawString(250, y, "MOUVEMENTS      EN  EUR"); y -= 14
+    c.drawString(BX_DATE, y, "Date"); y -= 10
+    c.drawString(BX_LABEL - 20, y, "Libellé"); c.drawString(BX_VAL, y, "Valeur")
+    c.drawRightString(BX_DEB, y, "Débit"); c.drawRightString(BX_CRE, y, "Crédit"); y -= 10
+    c.drawString(BX_DATE, y, "opération"); y -= 14
+    return y
+
+
+def brow(c, y, d, label, deb="", cre=""):
+    c.drawString(BX_DATE, y, d); c.drawString(BX_LABEL, y, label); c.drawString(BX_VAL, y, d)
+    if deb: c.drawRightString(BX_DEB, y, deb)
+    if cre: c.drawRightString(BX_CRE, y, cre)
+    return y - 12
+
+
+def bdetail(c, y, text):
+    c.drawString(BX_LABEL + 5, y, text)
+    return y - 12
+
+
+def bourso_legal(c):
+    c.setFont("Helvetica", 6)
+    c.drawString(60, 90, "Les opérations de votre compte sont soumises aux conditions générales en vigueur, disponibles sur demande auprès de nos services.")
+    c.drawString(60, 82, "*Montant des frais et commissions perçus au cours de la période, détaillés dans le récapitulatif annuel des frais bancaires.")
+    c.setFont("Helvetica", 8)
+
+
+def make_bourso():
+    c = canvas.Canvas(str(OUT_BOURSO))
+    c.setFont("Helvetica", 8)
+    y = bourso_header(c, 1, 2)
+    c.drawString(250, y, "Solde au : 28/02/2026"); c.drawRightString(BX_CRE, y, "1.234,56"); y -= 14
+    y = brow(c, y, "02/03/2026", "PRLV SEPA FREE MOBILE", deb="19,99")
+    y = bdetail(c, y, "FREE MOBILE SAS")
+    y = bdetail(c, y, "REF:ABC1234567890123456789")
+    y = brow(c, y, "05/03/2026", "CARTE 03/03/26 BOULANGERIE CB*1234", deb="4,50")
+    y = brow(c, y, "10/03/2026", "VIR SACEM", cre="2.150,00")
+    y = bdetail(c, y, "SACEM DROITS")
+    bourso_legal(c)
+    c.showPage(); c.setFont("Helvetica", 8)
+
+    y = bourso_header(c, 2, 2)
+    y = brow(c, y, "12/03/2026", "VIR INST LOYER", deb="850,00")
+    y = bdetail(c, y, "PROPRIETAIRE EXEMPLE")
+    y = brow(c, y, "15/03/2026", "PRLV SEPA ASSURANCE-HABITATION", deb="123,45")
+    y = bdetail(c, y, "COMPAGNIE EXEMPLE ASSURANCES")
+    y = bdetail(c, y, "99-12345678-9ABC1DEF")
+    y = bdetail(c, y, "RUM-12345678-123456789")
+    y = bdetail(c, y, "ICS FR12ZZZ1234567890")
+    y -= 6
+    c.drawString(120, y, "Nouveau solde en EUR :"); c.drawRightString(BX_CRE, y, "2.386,62"); y -= 12
+    c.drawRightString(BX_DEB, y, "0,00"); c.drawRightString(BX_CRE + 10, y, "0,00"); y -= 12
+    c.drawString(120, y, "Frais bancaires et cotisations*:")
+    bourso_legal(c)
+    c.save()
+    print("écrit :", OUT_BOURSO)
+
+
+if __name__ == "__main__":
+    make_bourso()

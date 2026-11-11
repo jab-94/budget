@@ -30,6 +30,8 @@ DATE_START = re.compile(r"^\s*(\d{2}[/.]\d{2}(?:[/.]\d{2,4})?)(?=\s)")
 TRAILING_DATE = re.compile(r"\s+\d{2}[/.]\d{2}(?:[/.]\d{2,4})?\s*$")
 AMOUNT = re.compile(r"(?<![\d,.])-?\d{1,3}(?:[   .]\d{3})*,\d{2}(?![\d,%])")
 PERIOD = re.compile(r"(\d{2}[/.]\d{2}[/.]\d{4})\D{1,20}?(\d{2}[/.]\d{2}[/.]\d{4})")
+# « du 01/03/2026 au 31/03/2026 », y compris mots collés (« 01/03/2026au »).
+PERIOD_DU_AU = re.compile(r"\bdu\s*(\d{2}[/.]\d{2}[/.]\d{4})\s*au\s*(\d{2}[/.]\d{2}[/.]\d{4})", re.I)
 PAGE_MARK = re.compile(r"\bpage\s*\d+\s*/\s*\d+\b")
 
 
@@ -70,6 +72,12 @@ class GenericPdfParser:
     credit_hints = ("VIR RECU", "VIREMENT RECU", "VIR SEPA RECU", "REMISE", "AVOIR", "REMBOURSEMENT", "SALAIRE")
     skip_line_keywords = ("total des operations", "totaux", "sous-total", "sous total")
     max_label_length = 140
+    # Si défini : sur chaque page, les opérations ne sont lues qu'APRÈS la ligne
+    # contenant ce texte (sans accents, minuscules). Évite de prendre les lignes
+    # d'en-tête (n° de compte, période…) pour des opérations.
+    start_marker: str | None = None
+    # Une ligne de suite de libellé plus longue que ça est un texte légal, pas un libellé.
+    max_continuation_length = 80
 
     @classmethod
     def detect(cls, text: str) -> bool:
@@ -89,16 +97,20 @@ class GenericPdfParser:
 
         cols: tuple[float, float] | None = None
         current: ParsedTransaction | None = None
-        current_indent = 0.0
+        cont_min_x = 0.0  # abscisse minimale d'une ligne de suite du libellé courant
         balances: list[tuple[str, int]] = []
 
         for page in pages:
             current = None  # une opération ne continue jamais sur la page suivante
+            in_section = self.start_marker is None
             for line in page:
                 text = line.text
                 if not text.strip():
                     continue
                 low = _plain(text)
+                if not in_section:
+                    in_section = self.start_marker in low
+                    continue
                 header = self._header_columns(line)
                 if header:
                     cols, current = header, None
@@ -117,13 +129,22 @@ class GenericPdfParser:
                     continue
 
                 dm = DATE_START.match(text)
+                if dm and PERIOD_DU_AU.search(text):
+                    # « … du JJ/MM/AAAA au JJ/MM/AAAA … » : ligne d'en-tête, jamais une opération.
+                    current = None
+                    continue
                 if dm and amounts:
                     current = self._make_tx(line, dm, amounts, cols, year_hint, st)
-                    current_indent = line.indent
+                    # Une ligne de suite doit être alignée plus près du libellé que de la date.
+                    rest = text[dm.end():]
+                    label_idx = dm.end() + len(rest) - len(rest.lstrip())
+                    label_x = line.xs[label_idx] if label_idx < len(line.xs) else line.indent
+                    cont_min_x = (line.indent + label_x) / 2
                     if current:
                         st.transactions.append(current)
                     continue
-                if current is not None and not amounts and not dm and line.indent > current_indent:
+                if (current is not None and not amounts and not dm and line.indent > cont_min_x
+                        and len(text.strip()) <= self.max_continuation_length):
                     extra = self.continuation_text(" ".join(text.split()))
                     if extra and len(current.label) + len(extra) < self.max_label_length:
                         current.label = f"{current.label} {extra}"
@@ -155,7 +176,8 @@ class GenericPdfParser:
 
     # --- détails --------------------------------------------------------------------
     def _find_period(self, text: str, st: ParsedStatement) -> None:
-        for m in PERIOD.finditer(text):
+        # « du … au … » d'abord (sans ambiguïté), sinon deux dates proches.
+        for m in [*PERIOD_DU_AU.finditer(text), *PERIOD.finditer(text)]:
             a, b = (self._full_date(x) for x in m.groups())
             if a and b and a <= b:
                 st.period_start, st.period_end = a, b
@@ -169,8 +191,7 @@ class GenericPdfParser:
         except ValueError:
             return None
 
-    @staticmethod
-    def _header_columns(line: Line) -> tuple[float, float] | None:
+    def _header_columns(self, line: Line) -> tuple[float, float] | None:
         low = _plain(line.text)
         if "solde" in low:
             return None
