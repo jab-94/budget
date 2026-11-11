@@ -27,6 +27,7 @@
       <button data-tab="dashboard"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z"/></svg>Tableau de bord</button>
       <button data-tab="ops"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>Opérations</button>
       <button data-tab="budgets"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9h-9z M14 3.3A9 9 0 0 1 20.7 10H14z"/></svg>Budgets</button>
+      <button data-tab="insights"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg>Suggestions<span id="nav-insights-count" class="nav-count" hidden></span></button>
       <button data-tab="import"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 19h14"/></svg>Importer</button>
       <p class="nav-title">Réglages</p>
       <button data-tab="categories"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h7v7H4zM15.5 5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7zM4 15h7v5H4zM14 15h6v5h-6z"/></svg>Catégories</button>
@@ -147,6 +148,19 @@
           <ul id="dash-cats" class="cat-bars"></ul>
           <p class="muted small">Cliquez sur une catégorie pour voir son évolution.</p>
         </article>
+        <!-- Suggestions (aperçu) -->
+        <article class="card span-2">
+          <div class="card-head"><h2>Suggestions d'économies</h2><button type="button" class="link" data-goto="insights">Tout voir</button></div>
+          <ul id="dash-suggestions" class="suggestion-list compact"></ul>
+        </article>
+
+        <!-- À venir -->
+        <article class="card">
+          <div class="card-head"><h2>À venir</h2><span id="dash-upcoming-total" class="muted small"></span></div>
+          <div id="dash-remaining"></div>
+          <ul id="dash-upcoming" class="upcoming-list"></ul>
+        </article>
+
         <!-- Plus grosses dépenses -->
         <article class="card span-2">
           <div class="card-head"><h2>Plus grosses dépenses du mois</h2><button type="button" class="link" data-goto="ops">Toutes les opérations</button></div>
@@ -164,6 +178,33 @@
         <p id="bud-month" class="small"></p>
         <ul id="bud-list" class="budget-edit"></ul>
         <p id="bud-msg" class="small"></p>
+      </div>
+    </section>
+
+    <!-- ===== Suggestions d'économies ===== -->
+    <section id="tab-insights" class="tab" hidden>
+      <div id="ins-remaining-card" class="card" hidden>
+        <div class="card-head"><h2>Reste à vivre prévisionnel</h2><span id="ins-asof" class="muted small"></span></div>
+        <p class="amount-xl" id="ins-remaining"></p>
+        <p id="ins-perday" class="rate"></p>
+        <ul id="ins-remaining-detail" class="stack-legend"></ul>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>Suggestions d'économies</h2><button type="button" id="ins-restore" class="link" hidden></button></div>
+        <p class="muted small">Calculées sur cet ordinateur à partir de vos opérations, par des règles simples : aucune donnée n'est envoyée.</p>
+        <ul id="ins-list" class="suggestion-list"></ul>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>Prélèvements et abonnements récurrents</h2><span id="ins-rec-total" class="muted small"></span></div>
+        <p class="muted small">Repérés automatiquement : même libellé, intervalle régulier, montant stable (≈ = montant variable).</p>
+        <div class="table-wrap">
+          <table class="tx">
+            <thead><tr><th>Libellé</th><th class="desktop-only">Fréquence</th><th class="num">Montant</th>
+              <th class="num desktop-only">Par an</th><th>Prochaine</th></tr></thead>
+            <tbody id="ins-rec-body"></tbody>
+          </table>
+        </div>
+        <p id="ins-rec-empty" class="muted" hidden>Aucune récurrence repérée pour l'instant : il faut au moins 3 mois d'historique.</p>
       </div>
     </section>
 

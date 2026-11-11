@@ -20,7 +20,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import categorize, config, dashboard, dedup, importers
+from . import categorize, config, dashboard, dedup, importers, insights
 from .db import Database
 from .security import SESSION_TOKEN, SecurityMiddleware
 from .vault import VaultConflict, VaultError, WrongPassword, find_icloud_conflict_copies
@@ -739,6 +739,40 @@ def list_budgets():
            WHERE c.kind = 'expense' ORDER BY c.name"""
     ).fetchall()
     return [dict(r) for r in rows]
+
+
+# --- Suggestions d'économies ----------------------------------------------------------------
+@app.get("/api/insights")
+def get_insights(month: str | None = None, account_id: int | None = None):
+    d = require_unlocked()
+    with d.lock:
+        return insights.insights(d.conn, _month_or_400(month), account_id)
+
+
+class DismissIn(BaseModel):
+    id: str
+
+
+@app.post("/api/insights/dismiss")
+def dismiss_insight(body: DismissIn):
+    d = require_unlocked()
+    if not body.id or len(body.id) > 200:
+        raise HTTPException(400, "Identifiant invalide.")
+    with d.lock:
+        ids = insights.dismissed(d.conn)
+        ids.add(body.id)
+        insights.set_dismissed(d.conn, ids)
+        save_or_conflict()
+    return {"ok": True}
+
+
+@app.delete("/api/insights/dismiss")
+def restore_insights():
+    d = require_unlocked()
+    with d.lock:
+        insights.set_dismissed(d.conn, set())
+        save_or_conflict()
+    return {"ok": True}
 
 
 # --- Front -----------------------------------------------------------------------------

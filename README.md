@@ -4,10 +4,11 @@ Application de suivi de budget personnel **100 % locale**. Vos données bancaire
 quittent jamais votre ordinateur. La seule exception est celle que vous choisissez :
 le fichier **chiffré** que vous pouvez placer dans iCloud Drive.
 
-> État : **étape 4/6**. Sont en place : le coffre chiffré, les comptes, l'import PDF
+> État : **étape 5/6**. Sont en place : le coffre chiffré, les comptes, l'import PDF
 > et CSV avec vérification, la saisie manuelle, la détection des doublons, la
-> catégorisation par règles, le tableau de bord (thème clair / sombre) et les budgets.
-> Les suggestions d'économies et le suivi des revenus irréguliers arrivent ensuite.
+> catégorisation par règles, le tableau de bord (thème clair / sombre), les budgets
+> et les suggestions d'économies. Le suivi des revenus irréguliers, l'export et le
+> rapport iPhone arrivent ensuite.
 
 ---
 
@@ -128,6 +129,28 @@ Chaque opération est classée par des **règles**, dans cet ordre :
 - **Thème** clair, sombre ou automatique (comme le système), en bas de la barre
   latérale. Ce choix d'affichage est gardé dans le navigateur ; aucune donnée
   n'y est stockée.
+
+---
+
+## Suggestions d'économies (calculées sur votre ordinateur)
+
+- **Prélèvements récurrents et abonnements** : l'app repère les opérations qui
+  reviennent à intervalle régulier (hebdomadaire, mensuel, trimestriel, annuel),
+  avec le même libellé et un montant stable. Elle en tire le coût annuel, la
+  prochaine échéance, les **hausses de prix** et les abonnements **qui semblent
+  arrêtés**.
+  - Un achat par carte n'est retenu que s'il a un montant fixe : un restaurant
+    payé chaque mois n'est pas un abonnement.
+  - Une facture prélevée peut varier (énergie). Elle est alors marquée « ≈ ».
+- **Catégories en hausse** : au moins +20 % et 30 € de plus que votre moyenne des
+  3 mois précédents.
+- **Frais bancaires** cumulés sur 12 mois.
+- **Doublons suspects** : même montant, même libellé, même compte, à 2 jours près,
+  à partir de 10 €.
+- **Reste à vivre prévisionnel** pour le mois en cours : revenus reçus − déjà
+  dépensé − prélèvements récurrents encore attendus d'ici la fin du mois. Les
+  dépenses courantes à venir (courses…) n'y sont pas déduites.
+- Chaque suggestion peut être **masquée**, puis réaffichée.
 
 ---
 

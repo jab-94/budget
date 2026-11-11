@@ -174,6 +174,7 @@ function showTab(name) {
   if (name === "categories") loadCategoriesTab();
   if (name === "dashboard") loadDashboard();
   if (name === "budgets") loadBudgetsTab();
+  if (name === "insights") loadInsightsTab();
   window.scrollTo(0, 0);
 }
 for (const b of document.querySelectorAll("#tabs button")) b.addEventListener("click", () => showTab(b.dataset.tab));
@@ -723,6 +724,7 @@ async function loadDashboard() {
   renderIncomes(d);
   renderTop(d);
   renderEvolution(d);
+  loadDashInsights();
 }
 
 function renderHero(d) {
@@ -984,6 +986,124 @@ window.addEventListener("resize", () => {
   clearTimeout(resizeTimer);
   resizeTimer = setTimeout(() => { if (currentTab === "dashboard" && dash.data && !$("dash-grid").hidden) renderEvolution(dash.data); }, 150);
 });
+
+// ================= Suggestions d'économies =================
+const SG_ICON = { bad: ["sg-bad", "✕"], warn: ["sg-warn", "!"], info: ["sg-info", "i"] };
+const CADENCE_SHORT = { hebdomadaire: "/sem.", mensuel: "/mois", trimestriel: "/trim.", annuel: "/an" };
+const DAY_FMT = new Intl.DateTimeFormat("fr-FR", { month: "short" });
+
+async function fetchInsights() {
+  const p = new URLSearchParams();
+  if (dash.month) p.set("month", dash.month);
+  if (dash.account) p.set("account_id", dash.account);
+  const ins = await api(`/api/insights?${p}`);
+  const n = ins.suggestions.filter((s) => s.severity !== "info").length;
+  $("nav-insights-count").hidden = !n;
+  $("nav-insights-count").textContent = n;
+  return ins;
+}
+
+function suggestionItem(s, { compact = false, onDismiss } = {}) {
+  const [cls, glyph] = SG_ICON[s.severity];
+  const side = el("div", { class: "sg-side" });
+  if (s.yearly_saving_cents) side.append(el("span", { class: "pill pill-good" }, `≈ ${money(s.yearly_saving_cents)}/an`));
+  if (!compact) side.append(el("button", { type: "button", class: "link", onclick: onDismiss }, "Masquer"));
+  const body = el("div", {}, el("div", { class: "sg-title" }, s.title), el("div", { class: "sg-detail" }, s.detail));
+  if (!compact && s.items) {
+    body.append(el("ul", { class: "sg-items" }, ...s.items.map((it) =>
+      el("li", {}, `${it.label} · ${money(it.amount_cents)}${CADENCE_SHORT[it.cadence] || ""} · ${money(it.yearly_cents)}/an`))));
+  }
+  const sevLabel = { bad: "Important", warn: "À surveiller", info: "Information" }[s.severity];
+  return el("li", {}, el("span", { class: `sg-icon ${cls}`, title: sevLabel, "aria-label": sevLabel }, glyph), body, side);
+}
+
+function upcomingItem(u) {
+  const dt = new Date(u.next_date + "T12:00:00");
+  const dot = el("span", { class: "dot" });
+  if (u.color) dot.style.setProperty("--dot", u.color);
+  return el("li", {},
+    el("span", { class: "day-chip" }, el("strong", {}, String(dt.getDate()).padStart(2, "0")), el("span", {}, DAY_FMT.format(dt).replace(".", ""))),
+    el("div", { class: "up-label" }, el("div", {}, titleCase(u.key)),
+      el("div", { class: "muted small" }, [u.category, u.account].filter(Boolean).join(" · "))),
+    el("span", { class: "sl-val" + (u.is_expense ? "" : " pos") }, `${u.is_expense ? "−" : "+"}${u.variable ? " ≈" : ""} ${money(u.amount_cents)}`));
+}
+const titleCase = (s) => s.toLowerCase().replace(/(^|\s)\p{L}/gu, (m) => m.toUpperCase());
+
+function remainingNode(rem) {
+  const box = el("div", { class: "remaining-box" },
+    el("div", { class: "muted small" }, `Reste à vivre d'ici le ${dateFr(rem.month_end)}`),
+    amountNode(rem.remaining_cents, el("p", { class: "amount-l" + (rem.remaining_cents < 0 ? " is-neg" : "") })),
+    el("div", { class: "muted small" }, rem.per_day_cents
+      ? `soit ${money(rem.per_day_cents)} par jour pendant ${rem.days_left} jours`
+      : rem.remaining_cents < 0 ? "⚠ dépenses prévues supérieures aux revenus" : ""));
+  return box;
+}
+
+async function loadDashInsights() {
+  let ins;
+  try { ins = await fetchInsights(); } catch (_) { return; }
+  const list = ins.suggestions.slice(0, 4);
+  $("dash-suggestions").replaceChildren(...(list.length ? list.map((s) => suggestionItem(s, { compact: true }))
+    : [el("li", { class: "muted" }, "Rien à signaler pour l'instant. Les suggestions apparaissent avec quelques mois d'historique.")]));
+  $("dash-remaining").replaceChildren(ins.remaining ? remainingNode(ins.remaining) : "");
+  const up = ins.upcoming.slice(0, 6);
+  const total = ins.upcoming.filter((u) => u.is_expense).reduce((s, u) => s + u.amount_cents, 0);
+  $("dash-upcoming-total").textContent = ins.upcoming.length ? `${money(total)} sur 31 jours` : "";
+  $("dash-upcoming").replaceChildren(...(up.length ? up.map(upcomingItem)
+    : [el("li", { class: "muted small" }, "Aucun prélèvement récurrent repéré pour l'instant.")]));
+}
+
+async function loadInsightsTab() {
+  const ins = await fetchInsights();
+  // Reste à vivre
+  $("ins-remaining-card").hidden = !ins.remaining;
+  if (ins.remaining) {
+    const r = ins.remaining;
+    $("ins-asof").textContent = `d'après les opérations connues au ${dateFr(r.as_of)}`;
+    amountNode(r.remaining_cents, $("ins-remaining")).classList.toggle("is-neg", r.remaining_cents < 0);
+    $("ins-perday").className = "rate " + (r.remaining_cents >= 0 ? "good" : "bad");
+    $("ins-perday").textContent = r.per_day_cents
+      ? `soit ${money(r.per_day_cents)} par jour pendant les ${r.days_left} jours restants`
+      : r.remaining_cents < 0 ? "⚠ Les dépenses prévues dépassent les revenus du mois" : "";
+    const li = (name, val, cls = "") => el("li", { class: cls }, el("div", { class: "lg-name" }, name), el("div", { class: "lg-val" }, val));
+    $("ins-remaining-detail").replaceChildren(
+      li("Revenus reçus", money(r.income_cents)),
+      li("Revenus attendus", `+ ${money(r.upcoming_income_cents)}`),
+      li("Déjà dépensé", `− ${money(r.spent_cents)}`),
+      li("Prélèvements à venir", `− ${money(r.upcoming_expense_cents)}`),
+      li("= Reste à vivre", money(r.remaining_cents), r.remaining_cents >= 0 ? "lg-rest" : "lg-over"));
+  }
+  // Suggestions
+  $("ins-list").replaceChildren(...(ins.suggestions.length ? ins.suggestions.map((s) => suggestionItem(s, {
+    onDismiss: async () => { await api("/api/insights/dismiss", { body: { id: s.id } }); loadInsightsTab(); },
+  })) : [el("li", { class: "muted" }, "Aucune suggestion pour l'instant.")]));
+  $("ins-restore").hidden = !ins.dismissed_count;
+  $("ins-restore").textContent = `Réafficher ${ins.dismissed_count} suggestion(s) masquée(s)`;
+  // Récurrences
+  const rec = ins.recurring.filter((x) => x.is_expense || x.active);
+  const active = rec.filter((x) => x.active && x.is_expense);
+  $("ins-rec-total").textContent = active.length
+    ? `${active.length} actives · ${money(active.reduce((s, x) => s + x.monthly_cents, 0))}/mois · ${money(active.reduce((s, x) => s + x.yearly_cents, 0))}/an` : "";
+  $("ins-rec-empty").hidden = rec.length > 0;
+  $("ins-rec-body").replaceChildren(...rec.map((x) => {
+    const dot = el("span", { class: "dot" });
+    if (x.color) dot.style.setProperty("--dot", x.color);
+    const tags = [];
+    if (x.is_subscription) tags.push(el("span", { class: "tag tag-hint" }, "Abonnement"));
+    if (!x.is_expense) tags.push(el("span", { class: "tag tag-dup" }, "Revenu"));
+    if (x.price_change_cents > 0) tags.push(el("span", { class: "tag tag-warn" }, `▲ +${money(x.price_change_cents)}`));
+    if (!x.active) tags.push(el("span", { class: "tag tag-dup" }, "Semble arrêté"));
+    return el("tr", { class: x.active ? "" : "dimmed" },
+      el("td", {}, el("span", { class: "cat-name" }, dot, el("span", {}, titleCase(x.key))),
+        el("div", { class: "muted small" }, [x.category, x.account, `${x.occurrences} fois`].filter(Boolean).join(" · ")),
+        tags.length ? el("div", { class: "tags" }, ...tags) : null),
+      el("td", { class: "desktop-only" }, x.cadence),
+      el("td", { class: "num nowrap" + (x.is_expense ? "" : " pos") }, `${x.variable ? "≈ " : ""}${money(x.amount_cents)}`),
+      el("td", { class: "num nowrap desktop-only" }, money(x.yearly_cents)),
+      el("td", { class: "nowrap" }, x.active ? dateFr(x.next_date) : el("span", { class: "status-off" }, "—")));
+  }));
+}
+$("ins-restore").addEventListener("click", async () => { await api("/api/insights/dismiss", { method: "DELETE" }); loadInsightsTab(); });
 
 // ================= Page Budgets =================
 async function loadBudgetsTab() {
