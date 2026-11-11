@@ -90,7 +90,6 @@ DEFAULT_CATEGORIES = [
     ("Impôts", "expense", "#7a8699"),
     ("Divers", "expense", "#b0b0b0"),
     ("Salaire", "income", "#2e9e6a"),
-    ("Droits d'auteur", "income", "#1f8a8a"),
     ("Autres revenus", "income", "#57a87a"),
     ("Virements internes", "transfer", "#c0c0c0"),
 ]

@@ -44,7 +44,7 @@ def test_default_rules(conn):
         add(conn, "PRLV SEPA FREE MOBILE", -1999): "Abonnements",
         add(conn, "CB UBER EATS PARIS", -2500): "Restaurants",   # plus précis que « UBER »
         add(conn, "CB UBER BV", -1800): "Transports",
-        add(conn, "VIR SACEM DROITS", 215000): "Droits d'auteur",
+        add(conn, "VIR SALAIRE MARS", 215000): "Salaire",
         add(conn, "CB PHARMACIE DU CENTRE", -1200): "Santé",
         add(conn, "COTISATION CARTE", -450): "Frais bancaires",
         add(conn, "RETRAIT DAB 03/03", -5000): "Espèces",
@@ -63,11 +63,11 @@ def test_whole_words_only(conn):
 
 
 def test_sign_restriction(conn):
-    refund = add(conn, "VIR EDITIONS EXEMPLE", 30000)
-    purchase = add(conn, "CB EDITIONS EXEMPLE LIBRAIRIE", -2000)  # achat d'un livre : pas un revenu
+    pay = add(conn, "VIR SALAIRE MARS", 300000)
+    odd = add(conn, "PRLV REGULARISATION SALAIRE", -2000)  # sortie : la règle « Salaire » (revenus seulement) ne s'applique pas
     categorize.categorize_all(conn)
-    assert cat_of(conn, refund)[0] == "Droits d'auteur"
-    assert cat_of(conn, purchase)[0] == "Loisirs"   # via « LIBRAIRIE »
+    assert cat_of(conn, pay)[0] == "Salaire"
+    assert cat_of(conn, odd)[0] is None
 
 
 def test_user_rule_beats_default(conn):
@@ -263,3 +263,30 @@ def test_defaults_v2_removes_remboursement_from_existing_vault(conn):
     tx = add(conn, "VIR CPAM REMBOURSEMENT", 3000)
     categorize.categorize_all(conn)
     assert cat_of(conn, tx)[0] == "Santé"
+
+
+def test_defaults_v3_removes_author_rights(conn):
+    """Coffre initialisé avant la correction : la catégorie « Droits d'auteur » disparaît si elle est inutilisée."""
+    conn.execute("INSERT INTO categories(name, kind) VALUES ('Droits d''auteur', 'income')")
+    cat = cid(conn, "Droits d'auteur")
+    conn.execute("INSERT INTO rules(pattern, category_id, sign, origin) VALUES ('SACEM', ?, '+', 'default')", (cat,))
+    tx = add(conn, "VIR EMPLOYEUR", 10000)
+    categorize.categorize_all(conn)
+    conn.execute("UPDATE meta SET value='2' WHERE key='defaults_version'")
+    init_schema(conn)
+    assert conn.execute("SELECT COUNT(*) FROM categories WHERE name='Droits d''auteur'").fetchone()[0] == 0
+    assert conn.execute("SELECT COUNT(*) FROM rules WHERE pattern='SACEM'").fetchone()[0] == 0
+    assert cat_of(conn, tx)[0] is None
+
+
+def test_defaults_v3_keeps_author_rights_if_used(conn):
+    """Si l'utilisateur s'en sert (classement manuel), la catégorie est conservée ; seules les règles par défaut partent."""
+    conn.execute("INSERT INTO categories(name, kind) VALUES ('Droits d''auteur', 'income')")
+    cat = cid(conn, "Droits d'auteur")
+    conn.execute("INSERT INTO rules(pattern, category_id, sign, origin) VALUES ('SACEM', ?, '+', 'default')", (cat,))
+    tx = add(conn, "VIR CLIENT", 10000)
+    conn.execute("UPDATE transactions SET category_id=?, category_locked=1 WHERE id=?", (cat, tx))
+    conn.execute("UPDATE meta SET value='2' WHERE key='defaults_version'")
+    init_schema(conn)
+    assert cat_of(conn, tx)[0] == "Droits d'auteur"
+    assert conn.execute("SELECT COUNT(*) FROM rules WHERE pattern='SACEM'").fetchone()[0] == 0

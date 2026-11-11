@@ -44,7 +44,7 @@ BOURSO_CSV = (
     "dateOp;dateVal;label;category;categoryParent;supplierFound;amount;comment;accountNum;accountLabel;accountbalance\n"
     '2026-03-03;2026-03-03;"CB CARREFOUR 02/03";"Alimentation";"Vie quotidienne";"carrefour";-45,90;;"00000";"Compte";1500,00\n'
     '2026-03-05;2026-03-05;"PRLV SEPA FREE MOBILE";"Telephone";"Abonnements";"free";-19,99;;"00000";"Compte";1500,00\n'
-    '2026-03-10;2026-03-10;"VIR SACEM";"Revenus";"Revenus";"";"2 150,00";;"00000";"Compte";1500,00\n'
+    '2026-03-10;2026-03-10;"VIR EMPLOYEUR";"Revenus";"Revenus";"";"2 150,00";;"00000";"Compte";1500,00\n'
 ).encode("utf-8")
 
 
@@ -53,7 +53,7 @@ def test_csv_boursobank_preset():
     assert info["preset"] == "boursobank"
     assert [t.amount_cents for t in st.transactions] == [-4590, -1999, 215000]
     assert st.transactions[0].date == "2026-03-03"
-    assert st.transactions[2].label == "VIR SACEM"
+    assert st.transactions[2].label == "VIR EMPLOYEUR"
     assert (st.period_start, st.period_end) == ("2026-03-03", "2026-03-10")
 
 
@@ -85,7 +85,7 @@ PAGE = """
  03/03   03/03   CB CARREFOUR MARKET                       45,90
                  PARIS 11
  05/03   05/03   PRLV SEPA FREE MOBILE                     19,99
- 10/03   10/03   VIR SACEM DROITS                                         2 150,00
+ 10/03   10/03   VIR EMPLOYEUR EXEMPLE                                         2 150,00
                  TOTAL DES OPERATIONS                      65,89          2 150,00
                  NOUVEAU SOLDE AU 31/03/2026                              3 318,67
 """
@@ -160,7 +160,7 @@ def test_lcl_labels_clean():
         assert noise not in joined
     # Valeurs utiles des lignes de détail conservées
     assert labels[2].endswith("CONTRAT HABITATION")
-    assert labels[3] == "VIREMENT SACEM SOC DES AUTEURS"
+    assert labels[3] == "VIREMENT EMPLOYEUR SOCIETE EXEMPLE"
 
 
 def test_long_label_does_not_flip_debit_to_credit():
@@ -178,7 +178,7 @@ def test_lcl_continuation_filter():
     assert p.continuation_text("ID.CREANCIER:FR12ZZZ123456") is None
     assert p.continuation_text("NATURE DU VIREMENT:VIR1") is None
     assert p.continuation_text("REF.MANDAT: 2026XYZ0001") is None
-    assert p.continuation_text("DE: SOC DES AUTEURS") == "SOC DES AUTEURS"
+    assert p.continuation_text("DE: SOCIETE EXEMPLE") == "SOCIETE EXEMPLE"
     assert p.continuation_text("99999999999") is None
 
 
@@ -220,7 +220,7 @@ BOURSO_LAYOUT = """
       02/03/2026 PRLVSEPAFREE                       02/03/2026 19,99
                FREEMOBILESAS
                REF:ABC123456789012345678901
-      10/03/2026 VIRSACEM                           10/03/2026          100,00
+      10/03/2026 VIREMPLOYEUR                           10/03/2026          100,00
            Lesopérationsdevotrecomptesontsoumisesauxconditionsgénéralesenvigueurdisponiblessurdemandeauprès.
                     NouveausoldeenEUR:                                 130,01
                                                                 0,00     0,00
@@ -234,7 +234,7 @@ def test_bourso_masked_layout_unknown_column_titles_and_glued_words():
     assert [(t.date, t.amount_cents, t.uncertain_sign) for t in st.transactions] == [
         ("2026-03-02", -1999, False), ("2026-03-10", 10000, False)]
     assert st.transactions[0].label == "PRLVSEPAFREE FREEMOBILESAS"
-    assert st.transactions[1].label == "VIRSACEM"  # la mention légale n'est pas collée au libellé
+    assert st.transactions[1].label == "VIREMPLOYEUR"  # la mention légale n'est pas collée au libellé
     assert (st.opening_balance_cents, st.closing_balance_cents) == (5000, 13001)
     assert (st.period_start, st.period_end) == ("2026-03-01", "2026-03-31")
 
@@ -243,7 +243,7 @@ def test_period_line_is_never_a_transaction_even_in_generic_mode():
     page = """
  05/04/2026 12345 EUR du 01/03/2026 au 31/03/2026 0,00
  Date   Libellé          Débit      Crédit
- 10/03/2026 VIR SACEM 10/03/2026            100,00
+ 10/03/2026 VIR EMPLOYEUR 10/03/2026            100,00
 """
     st = GenericPdfParser().parse_pages([page])
     assert [(t.date, t.amount_cents) for t in st.transactions] == [("2026-03-10", 10000)]

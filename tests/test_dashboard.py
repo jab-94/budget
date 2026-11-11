@@ -36,7 +36,7 @@ def test_month_add():
 
 
 def test_counting_rules(conn):
-    add(conn, "2026-03-01", "VIR SACEM", 300000)                    # revenu
+    add(conn, "2026-03-01", "VIR SALAIRE EMPLOYEUR", 300000)        # revenu (salaire)
     add(conn, "2026-03-02", "CB CARREFOUR", -10000)                 # dépense
     add(conn, "2026-03-03", "CB PHARMACIE", -5000)                  # dépense santé
     add(conn, "2026-03-04", "VIR CPAM REMBOURSEMENT", 3000)         # remboursement santé (règle CPAM)

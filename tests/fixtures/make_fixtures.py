@@ -72,8 +72,8 @@ def main():
     c.drawString(50, y, "M JEAN DUPONT"); y -= 13
     c.drawString(50, y, "ECRITURES DE LA PERIODE"); y -= 14
     y = cols(c, y)
-    y = row(c, y, "10.03", "VIREMENT SACEM", "10.03.26", cre="2 150,00")
-    y = detail(c, y, "DE: SOC DES AUTEURS")
+    y = row(c, y, "10.03", "VIREMENT EMPLOYEUR", "10.03.26", cre="2 150,00")
+    y = detail(c, y, "DE: SOCIETE EXEMPLE")
     y = row(c, y, "12.03", "VIR INST LOYER APPARTEMENT", "12.03.26", deb="850,00", dot=True)
     y = detail(c, y, "REF.CLIENT:LOYER")
     y = row(c, y, label="", deb="974,68", cre="2 200,00"); c.drawString(250, y + 13, "TOTAUX")
@@ -140,8 +140,8 @@ def make_bourso():
     y = bdetail(c, y, "FREE MOBILE SAS")
     y = bdetail(c, y, "REF:ABC1234567890123456789")
     y = brow(c, y, "05/03/2026", "CARTE 03/03/26 BOULANGERIE CB*1234", deb="4,50")
-    y = brow(c, y, "10/03/2026", "VIR SACEM", cre="2.150,00")
-    y = bdetail(c, y, "SACEM DROITS")
+    y = brow(c, y, "10/03/2026", "VIR EMPLOYEUR", cre="2.150,00")
+    y = bdetail(c, y, "EMPLOYEUR EXEMPLE")
     bourso_legal(c)
     c.showPage(); c.setFont("Helvetica", 8)
 

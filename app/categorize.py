@@ -87,10 +87,6 @@ DEFAULT_RULES: list[tuple[str, str | None, list[str]]] = [
         "PRELEVEMENT A LA SOURCE",
     ]),
     ("Salaire", "+", ["SALAIRE", "PAIE", "REMUNERATION"]),
-    ("Droits d'auteur", "+", [
-        "SACEM", "SACD", "SCAM", "ADAGP", "SOFIA", "DROITS D AUTEUR", "DROIT D AUTEUR", "EDITIONS",
-        "ROYALTIES",
-    ]),
     # « REMBOURSEMENT » n'est volontairement PAS une règle : trop ambigu (sécu, ami, commerçant…).
     ("Autres revenus", "+", ["CAF", "FRANCE TRAVAIL", "POLE EMPLOI"]),
     ("Virements internes", None, ["VIR INTERNE", "VIREMENT INTERNE", "VIR CPTE A CPTE", "VIREMENT DE COMPTE A COMPTE"]),
@@ -176,7 +172,7 @@ def suggest_pattern(label: str) -> str:
 
 
 # --- Initialisation (une seule fois par coffre) ---------------------------------------------------
-DEFAULTS_VERSION = 2
+DEFAULTS_VERSION = 3
 
 
 def seed_defaults(conn: sqlite3.Connection) -> None:
@@ -194,11 +190,34 @@ def seed_defaults(conn: sqlite3.Connection) -> None:
     if version < 2:
         # v2 : « REMBOURSEMENT » retiré (un remboursement CPAM doit réduire la dépense Santé).
         conn.execute("DELETE FROM rules WHERE origin='default' AND pattern='REMBOURSEMENT'")
+    if version < 3:
+        _remove_author_rights(conn)
     conn.execute(
         "INSERT INTO meta(key, value) VALUES ('defaults_version', ?) "
         "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
         (str(DEFAULTS_VERSION),),
     )
+
+
+def _remove_author_rights(conn: sqlite3.Connection) -> None:
+    """v3 : la catégorie « Droits d'auteur » venait d'une erreur dans la demande initiale.
+
+    On retire ses règles par défaut. La catégorie elle-même n'est supprimée que si
+    l'utilisateur ne s'en sert pas (aucune opération classée à la main, aucune règle
+    personnelle) ; ses opérations classées automatiquement seront reclassées.
+    """
+    row = conn.execute("SELECT id FROM categories WHERE name = ?", ("Droits d'auteur",)).fetchone()
+    if row is None:
+        return
+    cid = row[0]
+    conn.execute("DELETE FROM rules WHERE category_id = ? AND origin = 'default'", (cid,))
+    used = conn.execute(
+        "SELECT (SELECT COUNT(*) FROM transactions WHERE category_id = ? AND category_locked = 1)"
+        " + (SELECT COUNT(*) FROM rules WHERE category_id = ?)", (cid, cid)).fetchone()[0]
+    if not used:
+        conn.execute("UPDATE transactions SET category_id = NULL, category_source = NULL WHERE category_id = ?", (cid,))
+        conn.execute("DELETE FROM budgets WHERE category_id = ?", (cid,))
+        conn.execute("DELETE FROM categories WHERE id = ?", (cid,))
 
 
 def _seed_v1(conn: sqlite3.Connection) -> None:

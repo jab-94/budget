@@ -46,7 +46,7 @@ def test_recurring_detection_and_price_change(conn):
     monthly(conn, "PRLV SEPA NETFLIX", [-1349] * 5 + [-1599])          # hausse de prix au dernier mois
     monthly(conn, "PRLV SEPA EDF", [-4500, -8200, -5900, -6100, -9100, -7000], day=8)  # montant variable (±39 %)
     monthly(conn, "VIR INST LOYER APPARTEMENT", [-85000] * 6, day=2)
-    monthly(conn, "VIR SACEM", [180000, 320000, 90000, 410000, 150000, 260000], day=5)  # trop irrégulier
+    monthly(conn, "VIR EMPLOYEUR", [180000, 320000, 90000, 410000, 150000, 260000], day=5)  # trop irrégulier
     for m in MONTHS:  # courses hebdomadaires aux montants très variables : PAS un prélèvement
         for d, a in ((4, -2300), (11, -8900), (18, -4100), (25, -12000)):
             add(conn, f"{m}-{d:02d}", "CB CARREFOUR MARKET", a)
@@ -98,7 +98,7 @@ def test_internal_transfers_ignored(conn):
 def test_remaining_to_live(conn):
     monthly(conn, "PRLV SEPA NETFLIX", [-1349] * 6, day=20)
     monthly(conn, "VIR INST LOYER APPARTEMENT", [-85000] * 6, day=25)
-    add(conn, "2026-06-01", "VIR SACEM", 200000)
+    add(conn, "2026-06-01", "VIR EMPLOYEUR", 200000)
     add(conn, "2026-06-05", "CB CARREFOUR", -10000)
     # On retire les prélèvements de fin juin : relevé arrêté au 10 juin.
     conn.execute("DELETE FROM transactions WHERE date > '2026-06-10'")
