@@ -1,4 +1,8 @@
-# Audit de confidentialité — Budget local
+# Audit de confidentialité — Budget
+
+> **Deux versions.** Les § 1 à 8 portent sur la **version locale** (Python). La
+> **version web**, publiée sur GitHub Pages et synchronisée via Firebase, est décrite
+> au § 9.
 
 > Audit réalisé à la fin du développement (étape 6), sur la version du dépôt qui
 > contient ce fichier. Il répond à une question : **une donnée bancaire peut-elle
@@ -163,3 +167,30 @@ Vous pouvez aussi couper le wifi : toute l'app fonctionne hors ligne.
 - **Le navigateur lui-même** (Chrome, Safari, Edge) peut contacter ses propres
   services, par exemple pour ses mises à jour. Cela ne concerne pas l'app : la CSP
   interdit à la page d'envoyer quoi que ce soit ailleurs qu'à `127.0.0.1`.
+
+## 9. Version web (GitHub Pages + Firebase)
+
+**Ce qui sort de l'appareil** : uniquement le coffre **chiffré dans le navigateur**,
+vers Firestore (projet Firebase dédié, région Europe), ainsi que l'e-mail et le
+mot de passe du **compte**, qui servent à la connexion. Le mot de passe du **coffre**
+ne quitte jamais l'appareil.
+
+| Élément | Analyse |
+|---|---|
+| Chiffrement | PBKDF2-SHA256 (600 000 itérations, sel aléatoire) → AES-256-GCM, après compression. L'en-tête (sel, iv, révision, date) est authentifié : toute modification est détectée (tests `tests-web/crypto.test.mjs`) |
+| Ce que voit Google | un bloc illisible découpé en morceaux, un numéro de révision et une date de mise à jour |
+| Accès à la base | règles Firestore : seul l'UID du propriétaire peut lire ou écrire son coffre, tout le reste est interdit. Inscriptions fermées |
+| Code chargé | uniquement depuis `jab-94.github.io` (CSP `script-src 'self'`). Firebase (Auth + Firestore « lite », sans Analytics) et pdf.js sont **copiés** dans `docs/vendor` |
+| Connexions autorisées | CSP `connect-src` : `firestore.googleapis.com`, `identitytoolkit.googleapis.com`, `securetoken.googleapis.com`, rien d'autre. Pas d'iframe, pas de fenêtre Google, pas de reCAPTCHA chargé |
+| pdf.js | exécution de code généré désactivée (`isEvalSupported: false`) ; polices et tables locales |
+| Notre code | n'appelle jamais `fetch`, `XMLHttpRequest`, WebSocket ou `sendBeacon` ; seul le module Firebase embarqué parle au réseau (test `tests/test_web_privacy.py`) |
+| Hors ligne | copie **chiffrée** dans le navigateur (IndexedDB) ; service worker qui ne met en cache que les fichiers de l'app, jamais les échanges avec Firebase |
+
+**Limites propres à la version web** :
+- **Le code de la page est rechargé depuis GitHub.** Une personne qui prendrait le
+  contrôle du compte GitHub pourrait publier une page modifiée. Protection : double
+  authentification sur GitHub (activée) et sur le compte Google qui gère Firebase.
+- **Le mot de passe du compte Firebase** est connu de Google. Il ne permet pas de lire
+  le coffre, à condition d'être différent du mot de passe du coffre.
+- Firebase envoie avec ses requêtes des informations techniques (version du kit,
+  navigateur), sans aucune donnée budgétaire.
