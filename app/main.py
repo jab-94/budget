@@ -20,7 +20,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import categorize, config, dashboard, dedup, importers, insights
+from . import categorize, config, dashboard, dedup, importers, income, insights
 from .db import Database
 from .security import SESSION_TOKEN, SecurityMiddleware
 from .vault import VaultConflict, VaultError, WrongPassword, find_icloud_conflict_copies
@@ -771,6 +771,35 @@ def restore_insights():
     d = require_unlocked()
     with d.lock:
         insights.set_dismissed(d.conn, set())
+        save_or_conflict()
+    return {"ok": True}
+
+
+# --- Revenus variables ----------------------------------------------------------------------
+@app.get("/api/income")
+def get_income(month: str | None = None, months: int = 12):
+    d = require_unlocked()
+    with d.lock:
+        out = income.analysis(d.conn, _month_or_400(month), max(6, min(months, 36)))
+        out["income_categories"] = [dict(r) for r in d.conn.execute(
+            "SELECT id, name, color FROM categories WHERE kind = 'income' ORDER BY name")]
+        out["budgets_total_cents"] = d.conn.execute(
+            "SELECT COALESCE(SUM(monthly_limit_cents), 0) FROM budgets").fetchone()[0]
+        return out
+
+
+class IncomeCategoriesIn(BaseModel):
+    category_ids: list[int]
+
+
+@app.put("/api/income/categories")
+def set_income_categories(body: IncomeCategoriesIn):
+    d = require_unlocked()
+    with d.lock:
+        valid = {r[0] for r in d.conn.execute("SELECT id FROM categories WHERE kind = 'income'")}
+        if not set(body.category_ids) <= valid:
+            raise HTTPException(400, "Seules des catégories de revenus peuvent être suivies.")
+        income.set_tracked_categories(d.conn, body.category_ids)
         save_or_conflict()
     return {"ok": True}
 

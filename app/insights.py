@@ -20,6 +20,7 @@ import sqlite3
 import statistics
 from datetime import date, timedelta
 
+from . import income
 from .categorize import _NOISE_WORDS
 from .dashboard import _split, month_add
 from .importers.base import normalize_label
@@ -229,8 +230,14 @@ def suspected_duplicates(rows, recurring_keys: set) -> list[dict]:
 
 
 # --- 5. Reste à vivre prévisionnel -------------------------------------------------------------
-def remaining_to_live(rows, recurring: list[dict], month: str, last_date: date) -> dict | None:
-    """Pour un mois EN COURS (la dernière opération connue tombe dans ce mois)."""
+def remaining_to_live(rows, recurring: list[dict], month: str, last_date: date,
+                      salary: dict | None = None) -> dict | None:
+    """Pour un mois EN COURS (la dernière opération connue tombe dans ce mois).
+
+    salary : résultat de income.analysis(). Si le salaire suivi n'est pas encore
+    arrivé ce mois-ci, le revenu de référence PRUDENT est compté comme attendu
+    (et les virements récurrents de ces catégories ne sont pas comptés en double).
+    """
     if last_date.strftime("%Y-%m") != month:
         return None
     y, m = int(month[:4]), int(month[5:7])
@@ -241,14 +248,20 @@ def remaining_to_live(rows, recurring: list[dict], month: str, last_date: date) 
     spent = sum(exp.values()) + unc_out
     upcoming = [x for x in recurring
                 if x["active"] and last_date.isoformat() < x["next_date"] <= month_end.isoformat()]
+    expected_salary = 0
+    tracked = set(salary["category_names"]) if salary else set()
+    if salary and salary.get("reference") and salary["enough_history"] and not salary["current_received"]:
+        expected_salary = salary["reference"]["prudent_cents"]
+        upcoming = [x for x in upcoming if x["is_expense"] or x["category"] not in tracked]
     up_exp = sum(x["amount_cents"] for x in upcoming if x["is_expense"])
-    up_inc = sum(x["amount_cents"] for x in upcoming if not x["is_expense"])
+    up_inc = sum(x["amount_cents"] for x in upcoming if not x["is_expense"]) + expected_salary
     remaining = income + up_inc - spent - up_exp
     days_left = (month_end - last_date).days
     return {
         "as_of": last_date.isoformat(), "month_end": month_end.isoformat(), "days_left": days_left,
         "income_cents": income, "spent_cents": spent,
         "upcoming_expense_cents": up_exp, "upcoming_income_cents": up_inc,
+        "expected_salary_cents": expected_salary,
         "remaining_cents": remaining,
         "per_day_cents": round(remaining / days_left) if days_left > 0 and remaining > 0 else None,
         "upcoming": upcoming,
@@ -287,7 +300,8 @@ def insights(conn: sqlite3.Connection, month: str | None = None, account_id: int
     increases = category_increases(rows, month)
     fees = bank_fees(rows, last_date)
     dups = suspected_duplicates(rows, {(x["account_id"], x["key"]) for x in recurring})
-    remaining = remaining_to_live(rows, recurring, month, last_date)
+    salary = income.analysis(conn, month) if account_id is None else None
+    remaining = remaining_to_live(rows, recurring, month, last_date, salary)
     horizon = (last_date + timedelta(days=31)).isoformat()
     upcoming = sorted((x for x in active if x["next_date"] <= horizon), key=lambda x: x["next_date"])
 

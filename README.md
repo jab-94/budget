@@ -4,7 +4,7 @@ Application de suivi de budget personnel **100 % locale**. Vos données bancaire
 quittent jamais votre ordinateur. La seule exception est celle que vous choisissez :
 le fichier **chiffré** que vous pouvez placer dans iCloud Drive.
 
-> État : **étape 5/6**. Sont en place : le coffre chiffré, les comptes, l'import PDF
+> État : **étape 6/6 en cours**. Sont en place : le coffre chiffré, les comptes, l'import PDF
 > et CSV avec vérification, la saisie manuelle, la détection des doublons, la
 > catégorisation par règles, le tableau de bord (thème clair / sombre), les budgets
 > et les suggestions d'économies. Le suivi des revenus irréguliers, l'export et le
@@ -131,6 +131,21 @@ Chaque opération est classée par des **règles**, dans cet ordre :
   n'y est stockée.
 
 ---
+
+## Salaire variable : revenu de référence prudent
+
+- Page **Revenus** : moyennes lissées sur 3 et 6 mois de la catégorie « Salaire »
+  (catégories suivies modifiables).
+- **Revenu de référence prudent** = le plus petit des deux montants suivants :
+  - la moyenne des 6 derniers mois, diminuée de 20 % ;
+  - le montant dépassé environ 3 mois sur 4 (premier quartile).
+- Le calcul porte sur les 6 mois **avant** le mois affiché : un mois en cours, où le
+  salaire n'est pas encore arrivé, ne fausse rien. Un mois importé sans salaire
+  compte pour 0 ; un mois sans aucune donnée est ignoré.
+- Le revenu prudent sert :
+  - au **reste à vivre**, où il est compté comme « attendu » tant que le salaire du
+    mois n'est pas arrivé ;
+  - à la page **Budgets**, qui compare le total des plafonds à ce revenu.
 
 ## Suggestions d'économies (calculées sur votre ordinateur)
 

@@ -175,6 +175,7 @@ function showTab(name) {
   if (name === "dashboard") loadDashboard();
   if (name === "budgets") loadBudgetsTab();
   if (name === "insights") loadInsightsTab();
+  if (name === "income") loadIncomeTab();
   window.scrollTo(0, 0);
 }
 for (const b of document.querySelectorAll("#tabs button")) b.addEventListener("click", () => showTab(b.dataset.tab));
@@ -725,6 +726,7 @@ async function loadDashboard() {
   renderTop(d);
   renderEvolution(d);
   loadDashInsights();
+  loadDashSalary();
 }
 
 function renderHero(d) {
@@ -1068,7 +1070,7 @@ async function loadInsightsTab() {
     const li = (name, val, cls = "") => el("li", { class: cls }, el("div", { class: "lg-name" }, name), el("div", { class: "lg-val" }, val));
     $("ins-remaining-detail").replaceChildren(
       li("Revenus reçus", money(r.income_cents)),
-      li("Revenus attendus", `+ ${money(r.upcoming_income_cents)}`),
+      li(r.expected_salary_cents ? "Revenus attendus (dont salaire prudent)" : "Revenus attendus", `+ ${money(r.upcoming_income_cents)}`),
       li("Déjà dépensé", `− ${money(r.spent_cents)}`),
       li("Prélèvements à venir", `− ${money(r.upcoming_expense_cents)}`),
       li("= Reste à vivre", money(r.remaining_cents), r.remaining_cents >= 0 ? "lg-rest" : "lg-over"));
@@ -1105,10 +1107,157 @@ async function loadInsightsTab() {
 }
 $("ins-restore").addEventListener("click", async () => { await api("/api/insights/dismiss", { method: "DELETE" }); loadInsightsTab(); });
 
+// ================= Revenus variables =================
+const RULE_TEXT = {
+  "moyenne-20": "la moyenne sur 6 mois diminuée de 20 %",
+  quartile: "le montant dépassé environ 3 mois sur 4",
+};
+
+async function fetchIncome(months = 12) {
+  const p = new URLSearchParams({ months });
+  if (dash.month) p.set("month", dash.month);
+  return api(`/api/income?${p}`);
+}
+
+async function loadDashSalary() {
+  let inc;
+  try { inc = await fetchIncome(6); } catch (_) { return; }
+  const box = $("dash-salary");
+  const ref = inc.reference;
+  box.hidden = !(ref && inc.enough_history);
+  if (box.hidden) return;
+  box.replaceChildren(
+    el("div", { class: "muted small" }, `${inc.category_names.join(", ")} · moyenne 6 mois ${money(ref.avg6_cents)}`),
+    el("div", { class: "row space" }, el("strong", {}, "Référence prudente"), el("strong", {}, money(ref.prudent_cents))),
+    el("div", { class: "muted small" }, inc.current_received ? `Reçu ce mois-ci : ${money(inc.current_cents)}` : "Pas encore reçu ce mois-ci"));
+}
+
+function kpi(name, cents, sub, main = false) {
+  return el("li", { class: main ? "kpi-main" : "" }, el("div", { class: "k-name" }, name),
+    amountNode(cents, el("div", { class: "k-val" })), sub ? el("div", { class: "k-sub" }, sub) : null);
+}
+
+async function loadIncomeTab() {
+  // Comme le tableau de bord : la période couvre les mois disponibles (6 à 12).
+  let span = 12;
+  const avail = dash.data && dash.data.months_available;
+  if (avail && avail.length && dash.month) {
+    span = (Number(dash.month.slice(0, 4)) - Number(avail[0].slice(0, 4))) * 12
+      + Number(dash.month.slice(5, 7)) - Number(avail[0].slice(5, 7)) + 1;
+  }
+  const inc = await fetchIncome(Math.min(12, Math.max(6, span)));
+  const ref = inc.reference;
+  $("inc-title").textContent = inc.category_names.length ? `${inc.category_names.join(" + ")} — revenu variable` : "Revenus variables";
+  $("inc-month").textContent = inc.month ? `référence pour ${monthLabel(inc.month)}` : "";
+  // Catégories suivies
+  $("inc-cats").replaceChildren(...inc.income_categories.map((c) => {
+    const box = el("input", { type: "checkbox", checked: inc.categories.includes(c.id) });
+    box.addEventListener("change", async () => {
+      const ids = [...$("inc-cats").querySelectorAll("input")].map((b, i) => (b.checked ? inc.income_categories[i].id : null)).filter(Boolean);
+      await api("/api/income/categories", { method: "PUT", body: { category_ids: ids } });
+      $("inc-cats-msg").replaceChildren(el("span", { class: "ok-text" }, "✓ Enregistré"));
+      loadIncomeTab();
+    });
+    return el("label", { class: "check-pill" }, box, c.name);
+  }));
+
+  const empty = !ref;
+  $("inc-empty").hidden = !empty;
+  $("inc-body").hidden = empty;
+  if (empty) {
+    $("inc-empty").textContent = inc.categories.length
+      ? "Pas encore assez de données : importez quelques mois de relevés et classez votre salaire en « Salaire »."
+      : "Aucune catégorie de revenu suivie : cochez-en une ci-dessous.";
+    return;
+  }
+  const n = inc.history_months;
+  $("inc-kpis").replaceChildren(
+    kpi("Ce mois-ci", inc.current_cents, inc.current_received ? "reçu" : "pas encore reçu"),
+    kpi("Moyenne 3 mois", ref.avg3_cents, "lissée"),
+    kpi(`Moyenne ${n} mois`, ref.avg6_cents, ref.variability_pct !== null ? `écart moyen ±${ref.variability_pct} %` : ""),
+    kpi("Référence prudente", ref.prudent_cents, "à utiliser pour votre budget", true));
+  $("inc-rule").replaceChildren(
+    `Référence prudente = le plus petit de : moyenne ${n} mois − 20 % (${money(ref.avg6_minus_20_cents)}) et montant dépassé ~3 mois sur 4 (${money(ref.q25_cents)}). `,
+    el("strong", {}, `Ici, c'est ${RULE_TEXT[ref.prudent_rule]}.`),
+    inc.enough_history ? "" : ` ⚠ Seulement ${n} mois d'historique : la référence deviendra plus fiable avec le temps.`);
+  $("inc-legend").replaceChildren(
+    el("li", {}, el("span", { class: "sw sw-income" }), "Montant reçu"),
+    el("li", {}, el("span", { class: "sw sw-avg" }), `Moyenne ${n} mois`),
+    el("li", {}, el("span", { class: "sw sw-prudent" }), "Référence prudente"));
+  renderIncomeChart(inc);
+  $("inc-table").replaceChildren(
+    el("thead", {}, el("tr", {}, el("th", {}, "Mois"), el("th", { class: "num" }, "Montant reçu"))),
+    el("tbody", {}, ...inc.series.filter((p) => p.has_data).reverse().map((p) =>
+      el("tr", {}, el("td", {}, monthLabel(p.month)), el("td", { class: "num" }, money(p.amount_cents))))));
+}
+
+function renderIncomeChart(inc) {
+  const box = $("inc-chart");
+  const ref = inc.reference;
+  const series = inc.series;
+  const W = Math.max(300, box.clientWidth || 600), H = 230;
+  const pad = { l: 52, r: 96, t: 10, b: 26 };
+  const pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
+  const ticks = niceTicks(Math.max(...series.map((p) => p.amount_cents), ref.avg6_cents, 1));
+  const top = ticks[ticks.length - 1];
+  const yOf = (v) => pad.t + ph - (v / top) * ph;
+  const band = pw / series.length;
+  const barW = Math.max(4, Math.min(24, band - 12));
+  const root = svg("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Montant reçu chaque mois et revenu de référence" });
+  for (const t of ticks) {
+    const y = yOf(t);
+    root.append(svg("line", { class: t === 0 ? "baseline" : "gridline", x1: pad.l, x2: W - pad.r, y1: y, y2: y }));
+    const lab = svg("text", { class: "axis", x: pad.l - 8, y: y + 4, "text-anchor": "end" });
+    lab.textContent = compactEur(t);
+    root.append(lab);
+  }
+  const tip = el("div", { class: "tooltip", hidden: true });
+  series.forEach((p, i) => {
+    const x0 = pad.l + i * band;
+    const hit = svg("rect", { class: "band" + (p.month === inc.month ? " active" : ""), x: x0, y: pad.t, width: band, height: ph, rx: 8 });
+    root.append(hit);
+    if (p.amount_cents > 0) {
+      const y = yOf(p.amount_cents);
+      root.append(svg("path", { class: "bar-income", d: columnPath(x0 + (band - barW) / 2, y, barW, pad.t + ph - y), "pointer-events": "none" }));
+    }
+    const lab = svg("text", { class: "axis", x: x0 + band / 2, y: H - 8, "text-anchor": "middle" });
+    lab.textContent = (series.length > 8 && i % 2) ? "" : monthShort(p.month);
+    root.append(lab);
+    hit.addEventListener("mouseenter", () => {
+      tip.replaceChildren(el("strong", {}, monthLabel(p.month)),
+        el("div", { class: "tt-row" }, el("span", {}, "Reçu"), el("span", {}, p.has_data ? money(p.amount_cents) : "pas de données")));
+      tip.hidden = false;
+      const scale = box.clientWidth / W, tw = tip.offsetWidth || 170, right = (x0 + band) * scale + 8;
+      tip.style.left = `${right + tw <= box.clientWidth ? right : Math.max(0, x0 * scale - tw - 8)}px`;
+      tip.style.top = "8px";
+    });
+    hit.addEventListener("mouseleave", () => { tip.hidden = true; });
+  });
+  // Lignes de référence, étiquetées directement en bout de ligne.
+  for (const [v, cls, name] of [[ref.avg6_cents, "ref-avg", "Moyenne"], [ref.prudent_cents, "ref-prudent", "Prudent"]]) {
+    const y = yOf(v);
+    root.append(svg("line", { class: `ref-line ${cls}`, x1: pad.l, x2: W - pad.r, y1: y, y2: y }));
+    const t = svg("text", { class: "ref-label", x: W - pad.r + 6, y: y + (cls === "ref-avg" ? -2 : 12) });
+    t.textContent = `${name} ${compactEur(v)}`;
+    root.append(t);
+  }
+  box.replaceChildren(root, tip);
+}
+
 // ================= Page Budgets =================
 async function loadBudgetsTab() {
   const [list, d] = await Promise.all([api("/api/budgets"), api(`/api/dashboard?months=3${dash.month ? "&month=" + dash.month : ""}`)]);
   const spent = Object.fromEntries(d.expenses_by_category.map((c) => [c.category_id, c]));
+  fetchIncome(6).then((inc) => {
+    const box = $("bud-vs-income");
+    const ref = inc.reference;
+    box.hidden = !(ref && inc.enough_history && inc.budgets_total_cents);
+    if (box.hidden) return;
+    const pctv = inc.budgets_total_cents / ref.prudent_cents * 100;
+    box.replaceChildren(`Total de vos plafonds : ${money(inc.budgets_total_cents)} par mois, soit `,
+      el("strong", {}, `${pct(pctv)} de votre revenu de référence prudent`), ` (${money(ref.prudent_cents)}).`,
+      pctv > 100 ? " ⚠ Vos plafonds dépassent ce que vous pouvez raisonnablement compter toucher." : "");
+  }).catch(() => {});
   $("bud-month").textContent = d.months_available.length ? `Dépenses de ${monthLabel(d.month)} :` : "";
   $("bud-list").replaceChildren(...list.map((b) => {
     const s = spent[b.category_id];

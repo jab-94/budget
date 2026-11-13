@@ -27,6 +27,7 @@
       <button data-tab="dashboard"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z"/></svg>Tableau de bord</button>
       <button data-tab="ops"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>Opérations</button>
       <button data-tab="budgets"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9h-9z M14 3.3A9 9 0 0 1 20.7 10H14z"/></svg>Budgets</button>
+      <button data-tab="income"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5M4 19h16M8 15l4-4 3 3 5-6"/></svg>Revenus</button>
       <button data-tab="insights"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg>Suggestions<span id="nav-insights-count" class="nav-count" hidden></span></button>
       <button data-tab="import"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 19h14"/></svg>Importer</button>
       <p class="nav-title">Réglages</p>
@@ -118,6 +119,7 @@
           <p class="amount-l" id="dash-income"></p>
           <p id="dash-income-delta" class="muted small"></p>
           <ul id="dash-incomes" class="simple-list"></ul>
+          <div id="dash-salary" class="remaining-box" hidden></div>
         </article>
         <!-- Évolution -->
         <article class="card span-2">
@@ -175,9 +177,40 @@
         <h2>Budgets mensuels</h2>
         <p class="muted small">Un plafond par catégorie de dépense. Alerte à 80 %, puis en cas de dépassement.
           Laissez vide pour ne pas suivre une catégorie.</p>
+        <div id="bud-vs-income" class="info" hidden></div>
         <p id="bud-month" class="small"></p>
         <ul id="bud-list" class="budget-edit"></ul>
         <p id="bud-msg" class="small"></p>
+      </div>
+    </section>
+
+    <!-- ===== Revenus variables ===== -->
+    <section id="tab-income" class="tab" hidden>
+      <div class="card">
+        <div class="card-head"><h2 id="inc-title">Salaire variable</h2><span id="inc-month" class="muted small"></span></div>
+        <p id="inc-empty" class="muted" hidden></p>
+        <div id="inc-body">
+          <ul id="inc-kpis" class="kpis"></ul>
+          <p id="inc-rule" class="muted small"></p>
+          <ul id="inc-legend" class="legend"></ul>
+          <div id="inc-chart" class="chart"></div>
+          <details class="small"><summary>Voir en tableau</summary><div class="table-wrap"><table class="tx" id="inc-table"></table></div></details>
+        </div>
+      </div>
+      <div class="card">
+        <h2>À quoi sert le revenu de référence prudent ?</h2>
+        <ul class="plain-list muted small">
+          <li>C'est le montant sur lequel vous pouvez raisonnablement compter chaque mois, même si celui-ci est moins bon.</li>
+          <li><strong>Reste à vivre</strong> : tant que votre salaire du mois n'est pas arrivé, c'est ce montant qui est compté comme « attendu ».</li>
+          <li><strong>Budgets</strong> : la page Budgets compare le total de vos plafonds à ce revenu.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2>Revenus suivis</h2>
+        <p class="muted small">Catégories prises en compte dans ce calcul (par défaut : Salaire). Pour que votre salaire soit bien
+          classé, corrigez une fois son virement en « Salaire » en cochant « créer une règle ».</p>
+        <div id="inc-cats" class="row"></div>
+        <p id="inc-cats-msg" class="small"></p>
       </div>
     </section>
 

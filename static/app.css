@@ -374,6 +374,25 @@ dialog::backdrop { background: rgb(0 0 0 / .45); }
 .remaining-box .amount-l { font-size: 26px; }
 .status-off { color: var(--faint); }
 
+/* ================= Revenus variables ================= */
+.kpis { list-style: none; padding: 0; margin: 8px 0 14px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.kpis li { background: var(--surface-2); border-radius: var(--radius-s); padding: 12px 14px; min-width: 0; }
+.kpis li.kpi-main { background: var(--accent-soft); }
+.kpis .k-name { font-size: 12px; color: var(--muted); }
+.kpis .k-val { font-size: 22px; font-weight: 700; letter-spacing: -.02em; white-space: nowrap; }
+.kpis .k-val .cents { font-size: .55em; color: var(--muted); font-weight: 600; }
+.kpis .k-sub { font-size: 12px; color: var(--faint); }
+.chart .ref-line { fill: none; stroke-width: 2; }
+.chart .ref-avg { stroke: var(--faint); }
+.chart .ref-prudent { stroke: var(--text); }
+.chart .ref-label { font-size: 11px; fill: var(--text); font-weight: 600; }
+.sw-avg { background: var(--faint); height: 2px !important; }
+.sw-prudent { background: var(--text); height: 2px !important; }
+.plain-list { padding-left: 18px; margin: 0; }
+.plain-list li { margin: 4px 0; }
+.check-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border: 1px solid var(--border); border-radius: 999px; font-weight: 500; margin: 0; cursor: pointer; }
+@media (max-width: 860px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
 /* ---------- Responsive ---------- */
 .mobile-only { display: none; }
 @media (max-width: 1100px) {
