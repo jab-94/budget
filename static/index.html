@@ -411,7 +411,7 @@
         </form>
       </div>
       <div class="card">
-        <h2>Sauvegarde et export</h2>
+        <h2>Sauvegarde, export et rapport iPhone</h2>
         <div class="export-grid">
           <div>
             <h3>Sauvegarde chiffrée <span class="pill pill-good">recommandé</span></h3>
@@ -427,6 +427,21 @@
           </div>
         </div>
         <p id="exp-msg" class="small"></p>
+        <h3>Rapport pour l'iPhone <span class="pill pill-good">PDF chiffré</span></h3>
+        <p class="muted small">Un résumé du mois (chiffres clés, catégories, budgets, évolution, prélèvements à venir,
+          suggestions) dans un PDF protégé par mot de passe (AES-256). Sur l'iPhone : app <strong>Fichiers</strong> ›
+          iCloud Drive › dossier du coffre › <strong>Rapports</strong>, puis saisissez le mot de passe.
+          Mot de passe oublié = rapport illisible (régénérez-le simplement).</p>
+        <form id="rep-form" class="grid">
+          <label>Mois <select id="rep-month"></select></label>
+          <label>Mot de passe du rapport <input type="password" id="rep-pw" autocomplete="new-password" required></label>
+          <label>Confirmer <input type="password" id="rep-pw2" autocomplete="new-password" required></label>
+          <div class="wide row">
+            <button type="submit" id="rep-save">Enregistrer dans le dossier du coffre</button>
+            <button type="button" id="rep-dl" class="ghost">Télécharger</button>
+          </div>
+        </form>
+        <p id="rep-msg" class="small"></p>
       </div>
       <div class="card danger-zone">
         <h2>Zone sensible</h2>

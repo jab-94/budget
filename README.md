@@ -147,6 +147,22 @@ Chaque opération est classée par des **règles**, dans cet ordre :
     mois n'est pas arrivé ;
   - à la page **Budgets**, qui compare le total des plafonds à ce revenu.
 
+## Sauvegarde, export et rapport iPhone (onglet Comptes)
+
+- **Sauvegarde chiffrée** (`.vault`) : une copie complète du coffre, protégée par le
+  même mot de passe. Pour la restaurer, verrouillez l'app, puis indiquez ce fichier
+  dans « Emplacement du coffre ».
+- **Export CSV** : toutes les opérations, lisibles dans Excel. Ce fichier est
+  **en clair** : supprimez-le après usage.
+- **Rapport PDF pour l'iPhone** : le résumé d'un mois, chiffré en AES-256 avec un mot
+  de passe de votre choix.
+  - Enregistré dans le sous-dossier `Rapports` à côté du coffre (iCloud Drive), il
+    apparaît dans l'app **Fichiers** de l'iPhone, qui demande le mot de passe à
+    l'ouverture.
+  - Il peut aussi être simplement téléchargé.
+- **Tout supprimer** (zone sensible) : vide le coffre (opérations, comptes, règles,
+  budgets).
+
 ## Suggestions d'économies (calculées sur votre ordinateur)
 
 - **Prélèvements récurrents et abonnements** : l'app repère les opérations qui

@@ -20,7 +20,7 @@ from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import categorize, config, dashboard, dedup, importers, income, insights
+from . import categorize, config, dashboard, dedup, importers, income, insights, report
 from .db import Database
 from .security import SESSION_TOKEN, SecurityMiddleware
 from .vault import VaultConflict, VaultError, WrongPassword, find_icloud_conflict_copies
@@ -844,6 +844,42 @@ def export_csv():
     log.info("Export CSV généré.")
     return _download(("\ufeff" + buf.getvalue()).encode("utf-8"),
                      f"budget-operations-{date.today().isoformat()}.csv", "text/csv; charset=utf-8")
+
+
+# --- Rapport PDF chiffré (iPhone) -----------------------------------------------------------
+class ReportIn(BaseModel):
+    password: str
+    month: str | None = None
+    save_next_to_vault: bool = False
+
+
+@app.post("/api/report")
+def make_report(body: ReportIn):
+    """PDF du mois, chiffré AES-256 avec le mot de passe donné.
+
+    save_next_to_vault : écrit le fichier (chiffré) dans « Rapports » à côté du coffre,
+    par exemple iCloud Drive/Budget/Rapports, pour l'ouvrir depuis l'iPhone.
+    Sinon, le fichier est renvoyé pour téléchargement.
+    """
+    d = require_unlocked()
+    if len(body.password) < config.MIN_PASSWORD_LENGTH:
+        raise HTTPException(400, f"Mot de passe trop court ({config.MIN_PASSWORD_LENGTH} caractères minimum).")
+    with d.lock:
+        pdf, month = report.build_pdf(d.conn, _month_or_400(body.month))
+    data = report.encrypt_pdf(pdf, body.password)
+    del pdf
+    name = f"Budget-{month}.pdf"
+    if body.save_next_to_vault:
+        folder = d.vault.path.parent / "Rapports"
+        folder.mkdir(parents=True, exist_ok=True)
+        target = folder / name
+        tmp = target.with_suffix(".tmp")
+        tmp.write_bytes(data)
+        tmp.replace(target)
+        log.info("Rapport chiffré enregistré à côté du coffre.")
+        return {"ok": True, "saved_to": str(target)}
+    log.info("Rapport chiffré généré.")
+    return _download(data, name, "application/pdf")
 
 
 # --- Front -----------------------------------------------------------------------------

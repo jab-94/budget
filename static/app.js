@@ -176,6 +176,7 @@ function showTab(name) {
   if (name === "budgets") loadBudgetsTab();
   if (name === "insights") loadInsightsTab();
   if (name === "income") loadIncomeTab();
+  if (name === "accounts") fillReportMonths();
   window.scrollTo(0, 0);
 }
 for (const b of document.querySelectorAll("#tabs button")) b.addEventListener("click", () => showTab(b.dataset.tab));
@@ -1293,9 +1294,16 @@ async function loadBudgetsTab() {
 
 // ================= Sauvegarde et export =================
 /** Télécharge un fichier produit par l'app locale (la requête ne sort pas de l'ordinateur). */
-async function downloadFrom(path, fallbackName) {
-  const res = await fetch(path, { headers: { "X-Budget-Token": TOKEN }, credentials: "same-origin", cache: "no-store" });
-  if (!res.ok) throw new Error("Export impossible.");
+async function downloadFrom(path, fallbackName, body) {
+  const headers = { "X-Budget-Token": TOKEN };
+  if (body) headers["Content-Type"] = "application/json";
+  const res = await fetch(path, { method: body ? "POST" : "GET", headers, body: body ? JSON.stringify(body) : undefined,
+    credentials: "same-origin", cache: "no-store" });
+  if (!res.ok) {
+    let detail = "Export impossible.";
+    try { detail = (await res.json()).detail || detail; } catch (_) { /* pas de détail */ }
+    throw new Error(detail);
+  }
   const name = (res.headers.get("Content-Disposition") || "").match(/filename="([^"]+)"/);
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);
@@ -1319,6 +1327,41 @@ $("exp-csv").addEventListener("click", async () => {
     const n = await downloadFrom("/api/export/csv", "budget-operations.csv");
     $("exp-msg").replaceChildren(el("span", { class: "ok-text" }, `✓ ${n} enregistré dans vos téléchargements. Pensez à le supprimer après usage.`));
   } catch (e) { $("exp-msg").textContent = e.message; }
+});
+
+// ---------- Rapport PDF chiffré ----------
+async function fillReportMonths() {
+  let months = dash.data && dash.data.months_available;
+  if (!months) {
+    try { months = (await api("/api/dashboard?months=3")).months_available; } catch (_) { months = []; }
+  }
+  const keep = $("rep-month").value || dash.month;
+  $("rep-month").replaceChildren(...[...months].reverse().map((m) => el("option", { value: m, selected: m === keep }, monthLabel(m))));
+}
+
+function reportBody(save) {
+  const pw = $("rep-pw").value;
+  if (pw !== $("rep-pw2").value) throw new Error("Les deux mots de passe ne correspondent pas.");
+  if (pw.length < status.min_password_length) throw new Error(`Mot de passe trop court (${status.min_password_length} caractères minimum).`);
+  return { password: pw, month: $("rep-month").value || null, save_next_to_vault: save };
+}
+
+$("rep-form").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  $("rep-msg").textContent = "Création du rapport…";
+  try {
+    const r = await api("/api/report", { body: reportBody(true) });
+    $("rep-pw").value = ""; $("rep-pw2").value = "";
+    $("rep-msg").replaceChildren(el("span", { class: "ok-text" }, `✓ Rapport chiffré enregistré : ${r.saved_to}`));
+  } catch (e) { $("rep-msg").textContent = e.message; }
+});
+$("rep-dl").addEventListener("click", async () => {
+  $("rep-msg").textContent = "Création du rapport…";
+  try {
+    const n = await downloadFrom("/api/report", "Budget.pdf", reportBody(false));
+    $("rep-pw").value = ""; $("rep-pw2").value = "";
+    $("rep-msg").replaceChildren(el("span", { class: "ok-text" }, `✓ ${n} (chiffré) enregistré dans vos téléchargements.`));
+  } catch (e) { $("rep-msg").textContent = e.message; }
 });
 
 refresh().catch((e) => { document.body.textContent = e.message; });
