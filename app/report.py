@@ -11,11 +11,18 @@ import io
 from datetime import date
 
 from pypdf import PdfReader, PdfWriter
+from reportlab import rl_config
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.utils import simpleSplit
 from reportlab.pdfgen import canvas
 
 from . import dashboard, income, insights
+
+# reportlab sait télécharger une image ou une police si on lui donne une URL.
+# Refusé par défaut (aucun hôte de confiance) ; on le FORCE, quelle que soit la
+# configuration de l'environnement (RL_trustedHosts…). L'app ne lui passe jamais d'URL.
+rl_config.trustedHosts = None
+rl_config.trustedSchemes = ["file"]
 
 W, H = A4
 M = 36  # marge

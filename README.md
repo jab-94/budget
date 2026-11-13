@@ -4,11 +4,10 @@ Application de suivi de budget personnel **100 % locale**. Vos données bancaire
 quittent jamais votre ordinateur. La seule exception est celle que vous choisissez :
 le fichier **chiffré** que vous pouvez placer dans iCloud Drive.
 
-> État : **étape 6/6 en cours**. Sont en place : le coffre chiffré, les comptes, l'import PDF
-> et CSV avec vérification, la saisie manuelle, la détection des doublons, la
-> catégorisation par règles, le tableau de bord (thème clair / sombre), les budgets
-> et les suggestions d'économies. Le suivi des revenus irréguliers, l'export et le
-> rapport iPhone arrivent ensuite.
+> État : **terminé (étapes 1 à 6)**. Coffre chiffré, comptes, import PDF et CSV
+> (LCL, Boursobank, Trade Republic), catégorisation, tableau de bord, budgets, salaire
+> variable, suggestions d'économies, sauvegarde, export et rapport iPhone.
+> Audit de confidentialité : [docs/AUDIT.md](docs/AUDIT.md).
 
 ---
 
@@ -195,6 +194,15 @@ Chaque opération est classée par des **règles**, dans cet ordre :
 | Le fichier est bien chiffré | Ouvrez `budget.vault` dans un éditeur de texte : on n'y voit que des caractères illisibles, aucun libellé ni montant. |
 | Les journaux ne contiennent rien de personnel | La fenêtre du terminal n'affiche que des messages comme « Coffre déverrouillé. » Aucune URL, aucun montant, aucun libellé. |
 | Aucune donnée dans Git | `data/`, `*.vault`, `*.pdf`, `*.csv` et `*.db` sont listés dans `.gitignore`. |
+
+### Garde réseau (essai en conditions réelles)
+
+```
+.venv/bin/python tools/network_guard.py          (Windows : .venv\Scripts\python tools\network_guard.py)
+```
+Ce script lance l'app normalement, mais **bloque et signale** toute connexion vers
+l'extérieur. Utilisez l'app, puis vérifiez qu'aucune ligne « BLOQUÉ » n'est apparue
+dans le terminal. L'audit complet est dans [docs/AUDIT.md](docs/AUDIT.md).
 
 ### Tests automatiques
 

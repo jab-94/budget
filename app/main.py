@@ -8,6 +8,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import os
 import platform
 import secrets
 import sqlite3
@@ -32,7 +33,15 @@ _state = {"last_activity": time.monotonic()}
 
 # docs_url/redoc_url désactivés : la doc interactive de FastAPI charge des
 # fichiers depuis un CDN, ce qui violerait la règle « aucun appel externe ».
-app = FastAPI(title="Budget local", docs_url=None, redoc_url=None, openapi_url=None)
+# Télémétrie : FastAPI intègre OpenTelemetry (paquet « opentelemetry-api », dépendance
+# obligatoire). Sans SDK ni « exporter » installés, rien ne peut être envoyé ; on le
+# désactive quand même EXPLICITEMENT, y compris l'auto-configuration par variables
+# d'environnement (FASTAPI_OTEL_AUTO_CONFIGURE, OTEL_*), avec le coupe-circuit officiel.
+os.environ["OTEL_SDK_DISABLED"] = "true"
+os.environ.pop("FASTAPI_OTEL_AUTO_CONFIGURE", None)
+TELEMETRY_OFF = {"tracing": False, "metrics": False, "logs": False, "operation_spans": False, "auto_configure": False}
+
+app = FastAPI(title="Budget local", docs_url=None, redoc_url=None, openapi_url=None, telemetry=TELEMETRY_OFF)
 app.add_middleware(SecurityMiddleware)
 
 
