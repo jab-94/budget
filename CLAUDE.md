@@ -34,7 +34,8 @@ Deux versions, même logique métier :
 
 ## Calibrage des banques (d'après des extraits MASQUÉS, jamais de vrais relevés)
 - LCL : PDF (« Crédit Lyonnais », point « . » = débit, lignes REF/NATURE ignorées).
-- Boursobank : PDF uniquement (pas d'export CSV) ; opérations après « MOUVEMENTS EN EUR »,
+- Boursobank : ✅ confirmé sur 47 vrais relevés (4 ans, tous cohérents, import par lot).
+  PDF uniquement (pas d'export CSV) ; opérations après « MOUVEMENTS EN EUR »,
   colonnes = 2 mots après « Valeur », mots souvent collés.
 - Trade Republic : CSV (23 colonnes confirmées), frais/taxes séparés, titres = Investissement.
 - Script de masquage pour calibrer : `tools/inspect_pdf.py` (PDF et CSV).
