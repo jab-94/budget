@@ -11,9 +11,17 @@ import { HINT_CATEGORY, NOISE_WORDS } from "./defaults.js";
 
 const TRANSFER_WORDS = /\b(VIR|VIREMENT|TRANSFER|TRANSFERT|INPAYMENT|PAYOUT)\b/;
 
+// Types de motif : « contains » (mots entiers, par défaut), « starts » (commence par),
+// « equals » (libellé identique), « regex » (expression régulière sur le libellé brut).
+export const MATCH_TYPES = ["contains", "starts", "equals", "regex"];
+
+export const matchType = (r) => r.match || (r.is_regex ? "regex" : "contains");
+
 export function prepareRule(r) {
-  const rule = { ...r, norm: "", re: null };
-  if (r.is_regex) {
+  const match = matchType(r);
+  const rule = { ...r, match, norm: "", re: null,
+    excludes: String(r.exclude || "").split(",").map((x) => normalizeLabel(x)).filter(Boolean) };
+  if (match === "regex") {
     try { rule.re = new RegExp(r.pattern, "i"); } catch (_) { return null; }
   } else {
     rule.norm = normalizeLabel(r.pattern);
@@ -23,8 +31,36 @@ export function prepareRule(r) {
 
 export function ruleMatches(rule, label, normPadded, amount) {
   if ((rule.sign === "+" && amount < 0) || (rule.sign === "-" && amount > 0)) return false;
-  if (rule.is_regex) return Boolean(rule.re && rule.re.test(label));
-  return Boolean(rule.norm) && normPadded.includes(` ${rule.norm} `);
+  const abs = Math.abs(amount);
+  if (rule.min_cents != null && abs < rule.min_cents) return false;
+  if (rule.max_cents != null && abs > rule.max_cents) return false;
+  // « Et ne contient pas » : chaque mot ou groupe de mots exclu, en mots entiers.
+  if (rule.excludes && rule.excludes.some((x) => normPadded.includes(` ${x} `))) return false;
+  switch (rule.match) {
+    case "regex": return Boolean(rule.re && rule.re.test(label));
+    case "equals": return Boolean(rule.norm) && normPadded === ` ${rule.norm} `;
+    case "starts": return Boolean(rule.norm) && normPadded.startsWith(` ${rule.norm} `);
+    default: return Boolean(rule.norm) && normPadded.includes(` ${rule.norm} `);
+  }
+}
+
+/** Contrôle et normalise les champs d'une règle (message d'erreur affichable sinon). */
+export function validateRuleFields(body) {
+  const match = body.match || (body.is_regex ? "regex" : "contains");
+  if (!MATCH_TYPES.includes(match)) throw new Error("Type de motif invalide.");
+  const pattern = validatePattern(body.pattern, match === "regex");
+  const exclude = String(body.exclude || "").split(",").map((x) => x.trim()).filter(Boolean).join(", ");
+  if (exclude.length > 200) throw new Error("Liste d'exclusions trop longue.");
+  if (exclude && exclude.split(",").some((x) => !normalizeLabel(x))) throw new Error("Une exclusion ne contient aucune lettre utilisable.");
+  const num = (v) => (v === null || v === undefined || v === "" ? null : Math.trunc(Number(v)));
+  const min = num(body.min_cents), max = num(body.max_cents);
+  if ((min !== null && (!Number.isFinite(min) || min < 0)) || (max !== null && (!Number.isFinite(max) || max < 0))) {
+    throw new Error("Montant invalide.");
+  }
+  if (min !== null && max !== null && min > max) throw new Error("Le montant minimum dépasse le maximum.");
+  if (![null, undefined, "", "+", "-"].includes(body.sign)) throw new Error("Sens invalide.");
+  return { pattern, match, is_regex: match === "regex", exclude: exclude || null, min_cents: min, max_cents: max,
+    sign: body.sign || null };
 }
 
 export function validatePattern(pattern, isRegex) {
@@ -119,8 +155,8 @@ export function categorizeAll(data) {
   return changes;
 }
 
-export function previewRule(data, pattern, isRegex, sign) {
-  const rule = prepareRule({ pattern, is_regex: isRegex, sign });
+export function previewRule(data, fields) {
+  const rule = prepareRule(fields);
   let count = 0, locked = 0;
   const samples = [];
   const sorted = [...data.transactions].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));

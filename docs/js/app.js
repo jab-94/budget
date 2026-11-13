@@ -607,6 +607,33 @@ function categoryChip(r) {
 }
 
 let cdTx = null;
+
+const MATCH_LABEL = { contains: "contient", starts: "commence par", equals: "est identique à", regex: "correspond à l'expression" };
+
+/** Champs d'une règle lus dans un formulaire (préfixe « rule » ou « cd »). Montants en centimes. */
+function ruleFields(prefix) {
+  const cents = (id) => {
+    const v = $(`${prefix}-${id}`).value.trim();
+    if (!v) return null;
+    const c = parseEuros(v);
+    if (c === null || c < 0) throw new Error("Montant illisible.");
+    return c;
+  };
+  return { pattern: $(`${prefix}-pattern`).value.trim(), match: $(`${prefix}-match`).value,
+    exclude: $(`${prefix}-exclude`).value.trim() || null, sign: $(`${prefix}-sign`).value || null,
+    min_cents: cents("min"), max_cents: cents("max") };
+}
+
+/** « commence par « TENUE DE COMPTE » · sauf REMISE · dépenses seulement · de 5,00 € à 20,00 € » */
+function describeRule(r) {
+  const parts = [`${MATCH_LABEL[r.match] || "contient"} « ${r.pattern} »`];
+  if (r.exclude) parts.push(`sauf « ${r.exclude} »`);
+  if (r.sign) parts.push(r.sign === "+" ? "revenus seulement" : "dépenses seulement");
+  if (r.min_cents != null && r.max_cents != null) parts.push(`de ${money(r.min_cents)} à ${money(r.max_cents)}`);
+  else if (r.min_cents != null) parts.push(`à partir de ${money(r.min_cents)}`);
+  else if (r.max_cents != null) parts.push(`jusqu'à ${money(r.max_cents)}`);
+  return parts.join(" · ");
+}
 let previewTimer = null;
 
 function debouncedPreview(fn) {
@@ -623,6 +650,9 @@ async function openCategoryDialog(r) {
   $("cd-make-rule").checked = true;
   $("cd-rule-box").hidden = false;
   $("cd-pattern").value = "";
+  $("cd-match").value = "contains";
+  $("cd-exclude").value = ""; $("cd-sign").value = ""; $("cd-min").value = ""; $("cd-max").value = "";
+  $("cd-more").open = false;
   $("cd-preview").textContent = "";
   $("cat-dialog").showModal();
   const s = await api(`/api/transactions/${r.id}/suggest`);
@@ -631,10 +661,9 @@ async function openCategoryDialog(r) {
 }
 
 async function updateDialogPreview() {
-  const pattern = $("cd-pattern").value.trim();
-  if (!$("cd-make-rule").checked || !pattern) { $("cd-preview").textContent = ""; return; }
+  if (!$("cd-make-rule").checked || !$("cd-pattern").value.trim()) { $("cd-preview").textContent = ""; return; }
   try {
-    const p = await api("/api/rules/preview", { body: { pattern } });
+    const p = await api("/api/rules/preview", { body: ruleFields("cd") });
     $("cd-preview").textContent = p.count
       ? `${p.count} opération(s) correspondent` + (p.locked ? ` (dont ${p.locked} classée(s) à la main, qui ne bougeront pas)` : "") +
         (p.samples.length ? ` — ex. : ${p.samples.slice(0, 3).join(" ; ")}` : "")
@@ -646,7 +675,8 @@ $("cd-make-rule").addEventListener("change", () => {
   $("cd-rule-box").hidden = !$("cd-make-rule").checked;
   updateDialogPreview();
 });
-$("cd-pattern").addEventListener("input", () => debouncedPreview(updateDialogPreview));
+for (const id of ["cd-pattern", "cd-exclude", "cd-min", "cd-max"]) $(id).addEventListener("input", () => debouncedPreview(updateDialogPreview));
+for (const id of ["cd-match", "cd-sign"]) $(id).addEventListener("change", () => debouncedPreview(updateDialogPreview));
 $("cd-cancel").addEventListener("click", () => $("cat-dialog").close());
 $("cd-auto").addEventListener("click", async () => {
   await api(`/api/transactions/${cdTx.id}/auto`, { method: "POST" });
@@ -658,7 +688,12 @@ $("cat-dialog-form").addEventListener("submit", async (ev) => {
   const catId = $("cd-category").value ? Number($("cd-category").value) : null;
   if (catId === null) { $("cd-error").textContent = "Choisissez une catégorie."; return; }
   const body = { category_id: catId };
-  if ($("cd-make-rule").checked && $("cd-pattern").value.trim()) body.rule_pattern = $("cd-pattern").value.trim();
+  if ($("cd-make-rule").checked && $("cd-pattern").value.trim()) {
+    let f;
+    try { f = ruleFields("cd"); } catch (e) { $("cd-error").textContent = e.message; return; }
+    Object.assign(body, { rule_pattern: f.pattern, rule_match: f.match, rule_exclude: f.exclude, rule_sign: f.sign,
+      rule_min_cents: f.min_cents, rule_max_cents: f.max_cents });
+  }
   try {
     await api(`/api/transactions/${cdTx.id}/category`, { method: "PUT", body });
     $("cat-dialog").close();
@@ -689,14 +724,15 @@ async function loadCategoriesTab() {
 
   const ruleItem = (r) => el("li", {},
     el("div", {},
-      el("code", {}, r.pattern), r.is_regex ? el("span", { class: "tag tag-hint" }, "regex") : null, " → ",
-      el("strong", {}, r.category),
-      el("div", { class: "muted small" }, [ORIGIN_LABEL[r.origin], SIGN_LABEL[r.sign]].filter(Boolean).join(" · "))),
-    el("button", { class: "ghost small-btn", onclick: async () => {
-      const res = await api(`/api/rules/${r.id}`, { method: "DELETE" });
-      $("rule-msg").textContent = `Règle supprimée, ${res.changed} opération(s) reclassée(s).`;
-      loadCategoriesTab();
-    } }, "Supprimer"));
+      el("div", {}, el("code", {}, describeRule(r)), " → ", el("strong", {}, r.category)),
+      el("div", { class: "muted small" }, ORIGIN_LABEL[r.origin])),
+    el("div", { class: "row" },
+      el("button", { class: "ghost small-btn", onclick: () => editRule(r) }, "Modifier"),
+      el("button", { class: "ghost small-btn", onclick: async () => {
+        const res = await api(`/api/rules/${r.id}`, { method: "DELETE" });
+        $("rule-msg").textContent = `Règle supprimée, ${res.changed} opération(s) reclassée(s).`;
+        loadCategoriesTab();
+      } }, "Supprimer")));
   const mine = rules.filter((r) => r.origin !== "default");
   const defaults = rules.filter((r) => r.origin === "default");
   $("rule-empty").hidden = mine.length > 0;
@@ -705,28 +741,55 @@ async function loadCategoriesTab() {
   $("default-list").replaceChildren(...defaults.map(ruleItem));
 }
 
+let editingRuleId = null;
+
+function editRule(r) {
+  editingRuleId = r.id;
+  $("rule-match").value = r.match || "contains";
+  $("rule-pattern").value = r.pattern;
+  $("rule-exclude").value = r.exclude || "";
+  $("rule-sign").value = r.sign || "";
+  $("rule-min").value = r.min_cents != null ? centsToInput(r.min_cents) : "";
+  $("rule-max").value = r.max_cents != null ? centsToInput(r.max_cents) : "";
+  $("rule-category").value = r.category_id;
+  $("rule-form-title").textContent = "Modifier la règle";
+  $("rule-submit").textContent = "Enregistrer la modification";
+  $("rule-cancel").hidden = false;
+  $("rule-form").scrollIntoView({ behavior: "smooth", block: "center" });
+  updateRulePreview();
+}
+
+function resetRuleForm() {
+  editingRuleId = null;
+  for (const id of ["rule-pattern", "rule-exclude", "rule-min", "rule-max"]) $(id).value = "";
+  $("rule-match").value = "contains"; $("rule-sign").value = "";
+  $("rule-preview").textContent = "";
+  $("rule-form-title").textContent = "Ajouter une règle";
+  $("rule-submit").textContent = "Créer la règle";
+  $("rule-cancel").hidden = true;
+}
+$("rule-cancel").addEventListener("click", resetRuleForm);
+
 async function updateRulePreview() {
-  const pattern = $("rule-pattern").value.trim();
-  if (!pattern) { $("rule-preview").textContent = ""; return; }
+  if (!$("rule-pattern").value.trim()) { $("rule-preview").textContent = ""; return; }
   try {
-    const p = await api("/api/rules/preview", { body: {
-      pattern, is_regex: $("rule-regex").value === "1", sign: $("rule-sign").value || null } });
+    const p = await api("/api/rules/preview", { body: ruleFields("rule") });
     $("rule-preview").textContent = `${p.count} opération(s) correspondent` +
       (p.samples.length ? ` — ex. : ${p.samples.slice(0, 3).join(" ; ")}` : "");
   } catch (e) { $("rule-preview").textContent = e.message; }
 }
-for (const id of ["rule-pattern", "rule-regex", "rule-sign"]) {
-  $(id).addEventListener(id === "rule-pattern" ? "input" : "change", () => debouncedPreview(updateRulePreview));
-}
+for (const id of ["rule-pattern", "rule-exclude", "rule-min", "rule-max"]) $(id).addEventListener("input", () => debouncedPreview(updateRulePreview));
+for (const id of ["rule-match", "rule-sign"]) $(id).addEventListener("change", () => debouncedPreview(updateRulePreview));
 
 $("rule-form").addEventListener("submit", async (ev) => {
   ev.preventDefault();
   try {
-    const res = await api("/api/rules", { body: {
-      pattern: $("rule-pattern").value, is_regex: $("rule-regex").value === "1",
-      sign: $("rule-sign").value || null, category_id: Number($("rule-category").value) } });
-    $("rule-pattern").value = ""; $("rule-preview").textContent = "";
-    $("rule-msg").textContent = `Règle créée, ${res.changed} opération(s) reclassée(s).`;
+    const body = { ...ruleFields("rule"), category_id: Number($("rule-category").value) };
+    const res = editingRuleId
+      ? await api(`/api/rules/${editingRuleId}`, { method: "PUT", body })
+      : await api("/api/rules", { body });
+    $("rule-msg").textContent = `${editingRuleId ? "Règle modifiée" : "Règle créée"}, ${res.changed} opération(s) reclassée(s).`;
+    resetRuleForm();
     loadCategoriesTab();
   } catch (e) { $("rule-msg").textContent = e.message; }
 });

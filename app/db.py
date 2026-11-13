@@ -12,7 +12,7 @@ from pathlib import Path
 
 from .vault import Vault
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
@@ -123,6 +123,9 @@ def init_schema(conn: sqlite3.Connection) -> None:
     rule_cols = _columns(conn, "rules")
     if "sign" not in rule_cols:
         conn.execute("ALTER TABLE rules ADD COLUMN sign TEXT")  # '+', '-' ou NULL
+    for col, ddl in (("match", "TEXT"), ("exclude", "TEXT"), ("min_cents", "INTEGER"), ("max_cents", "INTEGER")):
+        if col not in rule_cols:
+            conn.execute(f"ALTER TABLE rules ADD COLUMN {col} {ddl}")  # options des règles (v5)
     if "origin" not in rule_cols:
         conn.execute("ALTER TABLE rules ADD COLUMN origin TEXT NOT NULL DEFAULT 'user'")  # user|correction|default
     from .categorize import seed_defaults  # import local : évite un cycle d'imports

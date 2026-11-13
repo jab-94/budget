@@ -2,7 +2,7 @@
 // (/api/...), sur les données déchiffrées en mémoire. Rien ne part sur le réseau ici :
 // seules les sauvegardes CHIFFRÉES passent par store.save() -> Firebase.
 
-import { categorizeAll, previewRule, suggestPattern, validatePattern } from "./categorize.js";
+import { categorizeAll, previewRule, suggestPattern, validateRuleFields } from "./categorize.js";
 import { coherence, dashboard, flagDuplicates, incomeAnalysis, insights, manualFingerprint } from "./analytics.js";
 import { parseCsvStatement } from "./csvparse.js";
 import { validDate } from "./core.js";
@@ -55,11 +55,10 @@ function accountOr404(d, id) {
 }
 
 function checkRule(d, body) {
-  let pattern;
-  try { pattern = validatePattern(body.pattern, Boolean(body.is_regex)); } catch (e) { fail(400, e.message); }
-  if (![null, undefined, "+", "-"].includes(body.sign)) fail(400, "Sens invalide.");
+  let fields;
+  try { fields = validateRuleFields(body); } catch (e) { fail(400, e.message); }
   if (!d.categories.some((c) => c.id === body.category_id)) fail(404, "Catégorie introuvable.");
-  return pattern;
+  return fields;
 }
 
 function checkCategory(body) {
@@ -179,13 +178,14 @@ export async function handle(method, fullPath, body, raw) {
     const cats = new Map(d.categories.map((c) => [c.id, c]));
     return [...d.rules].filter((r) => cats.has(r.category_id))
       .sort((a, b) => (a.origin === "default") - (b.origin === "default") || a.priority - b.priority || b.id - a.id)
-      .map((r) => ({ ...r, is_regex: r.is_regex ? 1 : 0, category: cats.get(r.category_id).name, category_color: cats.get(r.category_id).color }));
+      .map((r) => ({ ...r, match: r.match || (r.is_regex ? "regex" : "contains"), is_regex: r.is_regex ? 1 : 0,
+        category: cats.get(r.category_id).name, category_color: cats.get(r.category_id).color }));
   }
   if (p === "/api/rules" && method === "POST") {
     const d = D();
-    const pattern = checkRule(d, body);
-    const rule = { id: store.nextId(), pattern, is_regex: Boolean(body.is_regex), category_id: body.category_id,
-      priority: Math.max(1, Math.min(body.priority || 10, 99)), sign: body.sign ?? null, origin: "user" };
+    const fields = checkRule(d, body);
+    const rule = { id: store.nextId(), ...fields, category_id: body.category_id,
+      priority: Math.max(1, Math.min(body.priority || 10, 99)), origin: "user" };
     d.rules.push(rule);
     const changed = categorizeAll(d);
     await save();
@@ -193,9 +193,9 @@ export async function handle(method, fullPath, body, raw) {
   }
   if (p === "/api/rules/preview") {
     const d = D();
-    let pattern;
-    try { pattern = validatePattern(body.pattern, Boolean(body.is_regex)); } catch (e) { fail(400, e.message); }
-    return previewRule(d, pattern, Boolean(body.is_regex), body.sign ?? null);
+    let fields;
+    try { fields = validateRuleFields(body); } catch (e) { fail(400, e.message); }
+    return previewRule(d, fields);
   }
   if (p === "/api/rules/recategorize") {
     const d = D();
@@ -205,11 +205,10 @@ export async function handle(method, fullPath, body, raw) {
   }
   if (seg[1] === "rules" && seg.length === 3 && method === "PUT") {
     const d = D();
-    const pattern = checkRule(d, body);
+    const fields = checkRule(d, body);
     const r = d.rules.find((x) => x.id === id(2));
     if (!r) fail(404, "Règle introuvable.");
-    Object.assign(r, { pattern, is_regex: Boolean(body.is_regex), category_id: body.category_id, sign: body.sign ?? null,
-      origin: r.origin === "default" ? "user" : r.origin });
+    Object.assign(r, { ...fields, category_id: body.category_id, origin: r.origin === "default" ? "user" : r.origin });
     const changed = categorizeAll(d);
     await save();
     return { ok: true, changed };
@@ -379,9 +378,9 @@ export async function handle(method, fullPath, body, raw) {
     const cid = body.category_id ?? null;
     if (cid !== null && !d.categories.some((c) => c.id === cid)) fail(404, "Catégorie introuvable.");
     if (body.rule_pattern && cid !== null) {
-      const pattern = checkRule(d, { pattern: body.rule_pattern, is_regex: body.rule_is_regex, category_id: cid, sign: body.rule_sign ?? null });
-      d.rules.push({ id: store.nextId(), pattern, is_regex: Boolean(body.rule_is_regex), category_id: cid, priority: 10,
-        sign: body.rule_sign ?? null, origin: "correction" });
+      const fields = checkRule(d, { pattern: body.rule_pattern, match: body.rule_match, exclude: body.rule_exclude,
+        min_cents: body.rule_min_cents, max_cents: body.rule_max_cents, sign: body.rule_sign ?? null, category_id: cid });
+      d.rules.push({ id: store.nextId(), ...fields, category_id: cid, priority: 10, origin: "correction" });
     }
     Object.assign(t, { category_id: cid, category_locked: 1, category_source: "manuel" });
     const changed = categorizeAll(d);

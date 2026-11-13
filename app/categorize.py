@@ -120,22 +120,66 @@ class Rule:
     category_id: int
     sign: str | None
     origin: str
+    match: str | None = None          # contains | starts | equals | regex (None = déduit de is_regex)
+    exclude: str | None = None        # « et ne contient pas » : mots séparés par des virgules
+    min_cents: int | None = None      # montant (valeur absolue) minimum
+    max_cents: int | None = None      # montant (valeur absolue) maximum
     _compiled: re.Pattern | None = None
     _norm: str = ""
+    _excludes: tuple = ()
 
     def prepare(self) -> "Rule":
-        if self.is_regex:
+        self.match = self.match or ("regex" if self.is_regex else "contains")
+        if self.match == "regex":
             self._compiled = re.compile(self.pattern, re.IGNORECASE)
         else:
             self._norm = normalize_label(self.pattern)
+        self._excludes = tuple(x for x in (normalize_label(e) for e in (self.exclude or "").split(",")) if x)
         return self
 
     def matches(self, label: str, norm_padded: str, amount_cents: int) -> bool:
         if self.sign == "+" and amount_cents < 0 or self.sign == "-" and amount_cents > 0:
             return False
-        if self.is_regex:
+        if self.min_cents is not None and abs(amount_cents) < self.min_cents:
+            return False
+        if self.max_cents is not None and abs(amount_cents) > self.max_cents:
+            return False
+        if any(f" {x} " in norm_padded for x in self._excludes):
+            return False
+        if self.match == "regex":
             return bool(self._compiled and self._compiled.search(label))
-        return bool(self._norm) and f" {self._norm} " in norm_padded
+        if not self._norm:
+            return False
+        if self.match == "equals":
+            return norm_padded == f" {self._norm} "
+        if self.match == "starts":
+            return norm_padded.startswith(f" {self._norm} ")
+        return f" {self._norm} " in norm_padded
+
+
+MATCH_TYPES = ("contains", "starts", "equals", "regex")
+
+
+def validate_rule_fields(body: dict) -> dict:
+    """Contrôle et normalise les champs d'une règle ; lève ValueError (message affichable)."""
+    match = body.get("match") or ("regex" if body.get("is_regex") else "contains")
+    if match not in MATCH_TYPES:
+        raise ValueError("Type de motif invalide.")
+    pattern = validate_pattern(body.get("pattern"), match == "regex")
+    exclude = ", ".join(x.strip() for x in (body.get("exclude") or "").split(",") if x.strip())
+    if len(exclude) > 200:
+        raise ValueError("Liste d'exclusions trop longue.")
+    if exclude and any(not normalize_label(x) for x in exclude.split(",")):
+        raise ValueError("Une exclusion ne contient aucune lettre utilisable.")
+    mn, mx = body.get("min_cents"), body.get("max_cents")
+    if (mn is not None and mn < 0) or (mx is not None and mx < 0):
+        raise ValueError("Montant invalide.")
+    if mn is not None and mx is not None and mn > mx:
+        raise ValueError("Le montant minimum dépasse le maximum.")
+    if body.get("sign") not in (None, "", "+", "-"):
+        raise ValueError("Sens invalide.")
+    return {"pattern": pattern, "match": match, "is_regex": match == "regex", "exclude": exclude or None,
+            "min_cents": mn, "max_cents": mx, "sign": body.get("sign") or None}
 
 
 def validate_pattern(pattern: str, is_regex: bool) -> str:
@@ -240,11 +284,12 @@ def load_rules(conn: sqlite3.Connection) -> tuple[list[Rule], list[Rule]]:
     """(règles utilisateur ordonnées, règles par défaut ordonnées). Les regex invalides sont ignorées."""
     user, defaults = [], []
     for r in conn.execute(
-        "SELECT id, pattern, is_regex, category_id, sign, origin, priority FROM rules "
-        "ORDER BY priority ASC, id DESC"
+        "SELECT id, pattern, is_regex, category_id, sign, origin, priority, match, exclude, min_cents, max_cents "
+        "FROM rules ORDER BY priority ASC, id DESC"
     ):
         try:
-            rule = Rule(r["id"], r["pattern"], bool(r["is_regex"]), r["category_id"], r["sign"], r["origin"]).prepare()
+            rule = Rule(r["id"], r["pattern"], bool(r["is_regex"]), r["category_id"], r["sign"], r["origin"],
+                        r["match"], r["exclude"], r["min_cents"], r["max_cents"]).prepare()
         except re.error:
             continue
         (defaults if r["origin"] == "default" else user).append(rule)
@@ -314,9 +359,10 @@ def categorize_all(conn: sqlite3.Connection) -> int:
     return len(changes)
 
 
-def preview_rule(conn: sqlite3.Connection, pattern: str, is_regex: bool, sign: str | None) -> dict:
-    """Combien d'opérations un motif toucherait (sans rien modifier)."""
-    rule = Rule(0, pattern, is_regex, 0, sign, "user").prepare()
+def preview_rule(conn: sqlite3.Connection, fields: dict) -> dict:
+    """Combien d'opérations une règle toucherait (sans rien modifier). fields : validate_rule_fields()."""
+    rule = Rule(0, fields["pattern"], fields["is_regex"], 0, fields["sign"], "user", fields["match"],
+                fields["exclude"], fields["min_cents"], fields["max_cents"]).prepare()
     count = locked = 0
     samples: list[str] = []
     for r in conn.execute("SELECT label, amount_cents, category_locked FROM transactions ORDER BY date DESC"):

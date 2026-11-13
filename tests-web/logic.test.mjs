@@ -137,3 +137,39 @@ test("réparation : opérations importées avec la mauvaise année (31/12/2026 a
   await flagDuplicates(d, 900, again);
   assert.deepEqual(again.map((x) => x.duplicate), ["exact", "exact"]);
 });
+
+test("règles : commence par, identique à, ne contient pas, montant", async () => {
+  const { prepareRule, ruleMatches, validateRuleFields } = await import("../docs/js/categorize.js");
+  const m = (fields, label, amount) => ruleMatches(prepareRule(fields), label, ` ${normalizeLabel(label)} `, amount);
+  const frais = "TENUE DE COMPTE", remise = "REMISE TENUE DE COMPTE";
+  // « contient » seul : prend les deux (le problème signalé)
+  assert.ok(m({ pattern: "tenue de compte" }, frais, -800) && m({ pattern: "tenue de compte" }, remise, 800));
+  // « commence par » : seulement les frais
+  assert.ok(m({ pattern: "tenue de compte", match: "starts" }, frais, -800));
+  assert.ok(!m({ pattern: "tenue de compte", match: "starts" }, remise, 800));
+  // « contient … et ne contient pas REMISE »
+  assert.ok(m({ pattern: "tenue de compte", exclude: "remise, annulation" }, frais, -800));
+  assert.ok(!m({ pattern: "tenue de compte", exclude: "remise, annulation" }, remise, 800));
+  // « identique à »
+  assert.ok(m({ pattern: "Tenue de compte", match: "equals" }, "TENUE DE COMPTE 03/26", -800)); // dates ignorées
+  assert.ok(!m({ pattern: "tenue de compte", match: "equals" }, "TENUE DE COMPTE PREMIUM", -800));
+  // montants (valeur absolue) et sens
+  assert.ok(m({ pattern: "amazon", min_cents: 5000 }, "CB AMAZON", -6000));
+  assert.ok(!m({ pattern: "amazon", min_cents: 5000 }, "CB AMAZON", -4999));
+  assert.ok(!m({ pattern: "amazon", max_cents: 2000 }, "CB AMAZON", -2001));
+  assert.ok(!m({ pattern: "tenue de compte", sign: "-" }, remise, 800));
+  // validation
+  assert.throws(() => validateRuleFields({ pattern: "x", min_cents: 500, max_cents: 100 }), /minimum/);
+  assert.throws(() => validateRuleFields({ pattern: "(", match: "regex" }), /régulière/);
+  assert.throws(() => validateRuleFields({ pattern: "x", match: "bizarre" }), /Type/);
+  assert.deepEqual(validateRuleFields({ pattern: " Tenue ", exclude: " remise ,  , annulation " }),
+    { pattern: "Tenue", match: "contains", is_regex: false, exclude: "remise, annulation", min_cents: null, max_cents: null, sign: null });
+});
+
+test("anciennes règles (sans type) : toujours « contient » ou expression régulière", async () => {
+  const { prepareRule, ruleMatches } = await import("../docs/js/categorize.js");
+  const old = prepareRule({ pattern: "NETFLIX", is_regex: false });
+  assert.equal(old.match, "contains");
+  assert.ok(ruleMatches(old, "PRLV SEPA NETFLIX", " PRLV SEPA NETFLIX ", -1349));
+  assert.equal(prepareRule({ pattern: "net.lix", is_regex: true }).match, "regex");
+});

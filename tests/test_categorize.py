@@ -290,3 +290,35 @@ def test_defaults_v3_keeps_author_rights_if_used(conn):
     init_schema(conn)
     assert cat_of(conn, tx)[0] == "Droits d'auteur"
     assert conn.execute("SELECT COUNT(*) FROM rules WHERE pattern='SACEM'").fetchone()[0] == 0
+
+
+def test_rule_options_starts_equals_exclude_amount(conn):
+    """Frais « TENUE DE COMPTE » vs « REMISE TENUE DE COMPTE » (cas réel signalé par l'utilisateur)."""
+    frais = add(conn, "TENUE DE COMPTE", -800)
+    remise = add(conn, "REMISE TENUE DE COMPTE", 800)
+    fb = cid(conn, "Frais bancaires")
+    conn.execute("INSERT INTO rules(pattern, category_id, priority, origin, match) VALUES ('tenue de compte', ?, 10, 'user', 'starts')", (fb,))
+    categorize.categorize_all(conn)
+    assert cat_of(conn, frais)[0] == "Frais bancaires" and cat_of(conn, remise)[0] is None
+    conn.execute("UPDATE rules SET match='contains', exclude='remise, annulation' WHERE origin='user'")
+    categorize.categorize_all(conn)
+    assert cat_of(conn, frais)[0] == "Frais bancaires" and cat_of(conn, remise)[0] is None
+    conn.execute("UPDATE rules SET exclude=NULL, match='equals' WHERE origin='user'")
+    categorize.categorize_all(conn)
+    assert cat_of(conn, frais)[0] == "Frais bancaires" and cat_of(conn, remise)[0] is None
+    conn.execute("UPDATE rules SET match='contains', min_cents=1000 WHERE origin='user'")
+    categorize.categorize_all(conn)
+    assert cat_of(conn, frais)[0] is None  # 8 € < 10 € minimum
+
+
+def test_rule_options_via_api(client):
+    _, txs = _setup(client)
+    cats = _cats(client)
+    body = {"pattern": "BOULANGERIE", "match": "starts", "category_id": cats["Restaurants"]}
+    assert client.post("/api/rules/preview", json=body).json()["count"] == 0  # le libellé commence par « CB »
+    body["match"] = "contains"; body["min_cents"] = 260
+    assert client.post("/api/rules/preview", json=body).json()["count"] == 1  # seulement la 3,00 €
+    rid = client.post("/api/rules", json=body).json()["id"]
+    rule = next(r for r in client.get("/api/rules").json() if r["id"] == rid)
+    assert (rule["match"], rule["min_cents"]) == ("contains", 260)
+    assert client.post("/api/rules", json={**body, "min_cents": 500, "max_cents": 100}).status_code == 400

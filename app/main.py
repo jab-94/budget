@@ -543,28 +543,38 @@ def delete_category(cat_id: int):
 class RuleIn(BaseModel):
     pattern: str
     is_regex: bool = False
+    match: str | None = None
+    exclude: str | None = None
+    min_cents: int | None = None
+    max_cents: int | None = None
     category_id: int
     sign: str | None = None
     priority: int = 10
 
 
-def _check_rule(d: Database, body: RuleIn) -> str:
+def _check_rule(d: Database, body: RuleIn) -> dict:
     try:
-        pattern = categorize.validate_pattern(body.pattern, body.is_regex)
+        fields = categorize.validate_rule_fields(body.model_dump())
     except ValueError as e:
         raise HTTPException(400, str(e))
-    if body.sign not in (None, "+", "-"):
-        raise HTTPException(400, "Sens invalide.")
     if d.conn.execute("SELECT 1 FROM categories WHERE id=?", (body.category_id,)).fetchone() is None:
         raise HTTPException(404, "Catégorie introuvable.")
-    return pattern
+    return fields
+
+
+_RULE_COLS = "pattern, is_regex, match, exclude, min_cents, max_cents, sign"
+
+
+def _rule_values(f: dict) -> tuple:
+    return (f["pattern"], int(f["is_regex"]), f["match"], f["exclude"], f["min_cents"], f["max_cents"], f["sign"])
 
 
 @app.get("/api/rules")
 def list_rules():
     d = require_unlocked()
     rows = d.conn.execute(
-        """SELECT r.id, r.pattern, r.is_regex, r.sign, r.origin, r.priority, r.category_id,
+        """SELECT r.id, r.pattern, r.is_regex, COALESCE(r.match, CASE r.is_regex WHEN 1 THEN 'regex' ELSE 'contains' END) AS match,
+                  r.exclude, r.min_cents, r.max_cents, r.sign, r.origin, r.priority, r.category_id,
                   c.name AS category, c.color AS category_color
            FROM rules r JOIN categories c ON c.id = r.category_id
            ORDER BY CASE r.origin WHEN 'default' THEN 1 ELSE 0 END, r.priority, r.id DESC"""
@@ -576,10 +586,10 @@ def list_rules():
 def create_rule(body: RuleIn):
     d = require_unlocked()
     with d.lock:
-        pattern = _check_rule(d, body)
+        f = _check_rule(d, body)
         cur = d.conn.execute(
-            "INSERT INTO rules(pattern, is_regex, category_id, priority, sign, origin) VALUES (?,?,?,?,?, 'user')",
-            (pattern, int(body.is_regex), body.category_id, max(1, min(body.priority, 99)), body.sign),
+            f"INSERT INTO rules({_RULE_COLS}, category_id, priority, origin) VALUES (?,?,?,?,?,?,?,?,?, 'user')",
+            (*_rule_values(f), body.category_id, max(1, min(body.priority, 99))),
         )
         changed = categorize.categorize_all(d.conn)
         save_or_conflict()
@@ -590,11 +600,11 @@ def create_rule(body: RuleIn):
 def update_rule(rule_id: int, body: RuleIn):
     d = require_unlocked()
     with d.lock:
-        pattern = _check_rule(d, body)
+        f = _check_rule(d, body)
         d.conn.execute(
-            "UPDATE rules SET pattern=?, is_regex=?, category_id=?, sign=?, "
+            "UPDATE rules SET pattern=?, is_regex=?, match=?, exclude=?, min_cents=?, max_cents=?, sign=?, category_id=?, "
             "origin=CASE origin WHEN 'default' THEN 'user' ELSE origin END WHERE id=?",
-            (pattern, int(body.is_regex), body.category_id, body.sign, rule_id),
+            (*_rule_values(f), body.category_id, rule_id),
         )
         changed = categorize.categorize_all(d.conn)
         save_or_conflict()
@@ -614,6 +624,10 @@ def delete_rule(rule_id: int):
 class RulePreviewIn(BaseModel):
     pattern: str
     is_regex: bool = False
+    match: str | None = None
+    exclude: str | None = None
+    min_cents: int | None = None
+    max_cents: int | None = None
     sign: str | None = None
 
 
@@ -621,11 +635,11 @@ class RulePreviewIn(BaseModel):
 def rule_preview(body: RulePreviewIn):
     d = require_unlocked()
     try:
-        pattern = categorize.validate_pattern(body.pattern, body.is_regex)
+        fields = categorize.validate_rule_fields(body.model_dump())
     except ValueError as e:
         raise HTTPException(400, str(e))
     with d.lock:
-        return categorize.preview_rule(d.conn, pattern, body.is_regex, body.sign)
+        return categorize.preview_rule(d.conn, fields)
 
 
 @app.post("/api/rules/recategorize")
@@ -641,6 +655,10 @@ class TxCategoryIn(BaseModel):
     category_id: int | None
     rule_pattern: str | None = None  # si fourni : crée une règle à partir de la correction
     rule_is_regex: bool = False
+    rule_match: str | None = None
+    rule_exclude: str | None = None
+    rule_min_cents: int | None = None
+    rule_max_cents: int | None = None
     rule_sign: str | None = None
 
 
@@ -670,13 +688,14 @@ def set_category(tx_id: int, body: TxCategoryIn):
         )
         changed = 0
         if body.rule_pattern and body.category_id is not None:
-            rule = RuleIn(pattern=body.rule_pattern, is_regex=body.rule_is_regex,
+            rule = RuleIn(pattern=body.rule_pattern, is_regex=body.rule_is_regex, match=body.rule_match,
+                          exclude=body.rule_exclude, min_cents=body.rule_min_cents, max_cents=body.rule_max_cents,
                           category_id=body.category_id, sign=body.rule_sign)
-            pattern = _check_rule(d, rule)
+            f = _check_rule(d, rule)
             d.conn.execute(
-                "INSERT INTO rules(pattern, is_regex, category_id, priority, created_from_correction, sign, origin) "
-                "VALUES (?,?,?,10,1,?, 'correction')",
-                (pattern, int(rule.is_regex), rule.category_id, rule.sign),
+                f"INSERT INTO rules({_RULE_COLS}, category_id, priority, created_from_correction, origin) "
+                "VALUES (?,?,?,?,?,?,?,?,10,1, 'correction')",
+                (*_rule_values(f), rule.category_id),
             )
         changed = categorize.categorize_all(d.conn)
         save_or_conflict()

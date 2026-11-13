@@ -368,18 +368,19 @@
         <p class="small muted">Elles passent avant tout le reste. Une correction manuelle peut en créer une.</p>
         <ul id="rule-list" class="list"></ul>
         <p id="rule-empty" class="muted small" hidden>Aucune règle personnelle pour l'instant.</p>
-        <h3>Ajouter une règle</h3>
+        <h3 id="rule-form-title">Ajouter une règle</h3>
         <form id="rule-form" class="grid">
-          <label>Si le libellé contient <input type="text" id="rule-pattern" maxlength="200" required placeholder="ex. FREE MOBILE"></label>
-          <label>Type de motif
-            <select id="rule-regex"><option value="0">Mot(s)-clé(s)</option><option value="1">Expression régulière</option></select>
-          </label>
-          <label>Pour
-            <select id="rule-sign"><option value="">Dépenses et revenus</option><option value="-">Dépenses seulement</option><option value="+">Revenus seulement</option></select>
-          </label>
+          <label>Si le libellé <select id="rule-match"><option value="contains">contient (mots entiers)</option><option value="starts">commence par</option><option value="equals">est identique à</option><option value="regex">expression régulière</option></select></label>
+          <label>Texte <input type="text" id="rule-pattern" maxlength="200" required placeholder="ex. TENUE DE COMPTE"></label>
+          <label>Et ne contient pas <input type="text" id="rule-exclude" maxlength="200" placeholder="facultatif, ex. REMISE, ANNULATION"></label>
+          <label>Pour <select id="rule-sign"><option value="">Dépenses et revenus</option><option value="-">Dépenses seulement</option><option value="+">Revenus seulement</option></select></label>
+          <label>Montant minimum (€) <input type="text" id="rule-min" inputmode="decimal" placeholder="facultatif"></label>
+          <label>Montant maximum (€) <input type="text" id="rule-max" inputmode="decimal" placeholder="facultatif"></label>
           <label>Alors classer en <select id="rule-category" required></select></label>
           <p id="rule-preview" class="wide small muted"></p>
-          <div class="wide"><button type="submit">Créer la règle</button> <span id="rule-msg" class="small"></span></div>
+          <div class="wide row"><button type="submit" id="rule-submit">Créer la règle</button>
+            <button type="button" id="rule-cancel" class="ghost" hidden>Annuler la modification</button>
+            <span id="rule-msg" class="small"></span></div>
         </form>
       </div>
 
@@ -459,7 +460,17 @@
       <label>Catégorie <select id="cd-category"></select></label>
       <label class="check"><input type="checkbox" id="cd-make-rule" checked> Classer aussi les opérations similaires (créer une règle)</label>
       <div id="cd-rule-box">
-        <label>Si le libellé contient <input type="text" id="cd-pattern" maxlength="200"></label>
+        <label>Si le libellé <select id="cd-match"><option value="contains">contient (mots entiers)</option><option value="starts">commence par</option><option value="equals">est identique à</option><option value="regex">expression régulière</option></select></label>
+        <label>Texte <input type="text" id="cd-pattern" maxlength="200"></label>
+        <details id="cd-more">
+          <summary>Plus d'options (exclusions, sens, montant)</summary>
+          <label>Et ne contient pas <input type="text" id="cd-exclude" maxlength="200" placeholder="facultatif, ex. REMISE"></label>
+          <label>Pour <select id="cd-sign"><option value="">Dépenses et revenus</option><option value="-">Dépenses seulement</option><option value="+">Revenus seulement</option></select></label>
+          <div class="grid">
+            <label>Montant min. (€) <input type="text" id="cd-min" inputmode="decimal" placeholder="facultatif"></label>
+            <label>Montant max. (€) <input type="text" id="cd-max" inputmode="decimal" placeholder="facultatif"></label>
+          </div>
+        </details>
         <p id="cd-preview" class="small muted"></p>
       </div>
       <p id="cd-error" class="error" role="alert"></p>
