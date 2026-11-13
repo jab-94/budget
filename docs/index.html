@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <!-- Politique de sécurité : la page ne peut charger que ses propres fichiers et ne peut
+       contacter que Firebase (connexion + coffre CHIFFRÉ). Aucun CDN, aucune police externe. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'self'; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Budget">
+  <title>Budget</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon-192.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="stylesheet" href="app.css">
+  <!-- Chargé avant l'affichage pour appliquer le thème sans « flash » (pas de script inline : CSP). -->
+  <script src="js/theme.js"></script>
+  <script type="module" src="js/app.js"></script>
+</head>
+<body class="locked">
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">€</span>
+      <div>
+        <strong>Budget</strong>
+        <span class="brand-sub" title="Les données sont chiffrées sur cet appareil avant tout envoi"><span class="live-dot"></span>Chiffré de bout en bout</span>
+      </div>
+    </div>
+    <nav id="tabs" class="nav" hidden>
+      <p class="nav-title">Menu</p>
+      <button data-tab="dashboard"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z"/></svg>Tableau de bord</button>
+      <button data-tab="ops"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>Opérations</button>
+      <button data-tab="budgets"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9h-9z M14 3.3A9 9 0 0 1 20.7 10H14z"/></svg>Budgets</button>
+      <button data-tab="income"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5M4 19h16M8 15l4-4 3 3 5-6"/></svg>Revenus</button>
+      <button data-tab="insights"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg>Suggestions<span id="nav-insights-count" class="nav-count" hidden></span></button>
+      <button data-tab="import"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 19h14"/></svg>Importer</button>
+      <p class="nav-title">Réglages</p>
+      <button data-tab="categories"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h7v7H4zM15.5 5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7zM4 15h7v5H4zM14 15h6v5h-6z"/></svg>Catégories</button>
+      <button data-tab="accounts"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9l9-5 9 5M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/></svg>Comptes</button>
+    </nav>
+    <div class="sidebar-foot">
+      <div class="theme-switch" role="group" aria-label="Thème">
+        <button type="button" data-theme-choice="light" title="Thème clair"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8zM12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5"/></svg></button>
+        <button type="button" data-theme-choice="auto" title="Comme le système"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H4zM9 20h6M12 16v4"/></svg></button>
+        <button type="button" data-theme-choice="dark" title="Thème sombre"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg></button>
+      </div>
+      <button id="lock-btn" class="ghost lock-btn" hidden><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 11V8a5 5 0 0 1 10 0v3M5 11h14v9H5z"/></svg>Verrouiller</button>
+    </div>
+  </aside>
+
+  <main>
+    <!-- ===== Écran de déverrouillage / création du coffre ===== -->
+    <section id="lock-screen" class="card narrow" hidden>
+      <!-- 1. Connexion au compte (Firebase) -->
+      <form id="login-form" autocomplete="on" hidden>
+        <h2>Connexion</h2>
+        <p class="muted small">Votre compte sert à retrouver votre coffre sur tous vos appareils.
+          Il ne permet pas de le lire : seul le mot de passe du coffre le déchiffre.</p>
+        <label>E-mail <input type="email" id="login-email" autocomplete="username" required></label>
+        <label>Mot de passe du compte <input type="password" id="login-pw" autocomplete="current-password" required></label>
+        <button type="submit" id="login-submit">Se connecter</button>
+        <p id="login-error" class="error" role="alert"></p>
+      </form>
+      <!-- 2. Coffre : création ou déverrouillage -->
+      <div id="vault-box" hidden>
+        <h2 id="lock-title">Déverrouiller</h2>
+        <p id="lock-intro" class="muted"></p>
+        <div id="lock-warnings"></div>
+        <form id="lock-form" autocomplete="off">
+          <label>Mot de passe du coffre
+            <input type="password" id="pw" autocomplete="off" required>
+          </label>
+          <label id="pw2-wrap" hidden>Confirmer le mot de passe du coffre
+            <input type="password" id="pw2" autocomplete="off">
+          </label>
+          <p id="pw-help" class="muted small" hidden></p>
+          <button type="submit" id="lock-submit">Ouvrir</button>
+          <p id="lock-error" class="error" role="alert"></p>
+        </form>
+        <p class="small muted">Connecté : <span id="who"></span> · <button type="button" id="logout-btn" class="link">Se déconnecter</button></p>
+      </div>
+    </section>
+
+    <!-- ===== Tableau de bord ===== -->
+    <section id="tab-dashboard" class="tab" hidden>
+      <div class="pagehead card">
+        <div class="month-nav">
+          <button type="button" id="dash-prev" class="icon-round" aria-label="Mois précédent">‹</button>
+          <button type="button" id="dash-next" class="icon-round" aria-label="Mois suivant">›</button>
+          <label class="month-pick">
+            <span id="dash-month-label" class="month-label"></span>
+            <select id="dash-month" aria-label="Choisir le mois"></select>
+          </label>
+        </div>
+        <div class="row">
+          <select id="dash-account" aria-label="Compte"></select>
+          <button type="button" class="primary" data-goto="import">+ Importer</button>
+        </div>
+      </div>
+
+      <div id="dash-empty" class="card empty" hidden>
+        <h2>Aucune opération pour l'instant</h2>
+        <p class="muted">Importez un relevé (PDF ou CSV) pour voir votre tableau de bord.</p>
+        <button type="button" class="primary" data-goto="import">Importer un relevé</button>
+      </div>
+
+      <div id="dash-grid" class="dash-grid">
+        <!-- Solde du mois -->
+        <article class="card hero span-2">
+          <div class="card-head"><h2>Solde du mois</h2><span id="dash-uncat" class="pill pill-muted" hidden></span></div>
+          <div class="hero-row">
+            <p class="amount-xl" id="dash-net"></p>
+            <div class="hero-note">
+              <p id="dash-rate" class="rate"></p>
+              <p class="muted small">revenus − dépenses du mois, hors virements entre vos comptes et placements</p>
+            </div>
+          </div>
+          <div id="dash-stack" class="stack" role="img"></div>
+          <ul id="dash-stack-legend" class="stack-legend"></ul>
+        </article>
+        <!-- Revenus -->
+        <article class="card">
+          <div class="card-head"><h2>Revenus</h2></div>
+          <p class="amount-l" id="dash-income"></p>
+          <p id="dash-income-delta" class="muted small"></p>
+          <ul id="dash-incomes" class="simple-list"></ul>
+          <div id="dash-salary" class="remaining-box" hidden></div>
+        </article>
+        <!-- Évolution -->
+        <article class="card span-2">
+          <div class="card-head">
+            <h2 id="dash-evo-title">Évolution</h2>
+            <div class="row">
+              <button type="button" id="dash-evo-clear" class="chip" hidden>× Toutes catégories</button>
+              <select id="dash-range" aria-label="Période">
+                <option value="auto" selected>Auto</option><option value="6">6 mois</option><option value="12">12 mois</option><option value="24">24 mois</option>
+              </select>
+            </div>
+          </div>
+          <ul id="dash-evo-legend" class="legend"></ul>
+          <div id="dash-chart" class="chart"></div>
+          <details class="small"><summary>Voir en tableau</summary><div class="table-wrap"><table class="tx" id="dash-table"></table></div></details>
+        </article>
+        <!-- Budgets -->
+        <article class="card">
+          <div class="card-head"><h2>Budgets</h2><button type="button" class="link" data-goto="budgets">Gérer</button></div>
+          <p id="dash-budget-summary" class="muted small"></p>
+          <ul id="dash-budgets" class="budget-list"></ul>
+        </article>
+        <!-- Dépenses par catégorie -->
+        <article class="card">
+          <div class="card-head"><h2>Dépenses par catégorie</h2></div>
+          <p class="amount-l" id="dash-expenses"></p>
+          <p id="dash-expenses-delta" class="muted small"></p>
+          <ul id="dash-cats" class="cat-bars"></ul>
+          <p class="muted small">Cliquez sur une catégorie pour voir son évolution.</p>
+        </article>
+        <!-- Suggestions (aperçu) -->
+        <article class="card span-2">
+          <div class="card-head"><h2>Suggestions d'économies</h2><button type="button" class="link" data-goto="insights">Tout voir</button></div>
+          <ul id="dash-suggestions" class="suggestion-list compact"></ul>
+        </article>
+
+        <!-- À venir -->
+        <article class="card">
+          <div class="card-head"><h2>À venir</h2><span id="dash-upcoming-total" class="muted small"></span></div>
+          <div id="dash-remaining"></div>
+          <ul id="dash-upcoming" class="upcoming-list"></ul>
+        </article>
+
+        <!-- Plus grosses dépenses -->
+        <article class="card span-2">
+          <div class="card-head"><h2>Plus grosses dépenses du mois</h2><button type="button" class="link" data-goto="ops">Toutes les opérations</button></div>
+          <ul id="dash-top" class="simple-list"></ul>
+        </article>
+      </div>
+    </section>
+
+    <!-- ===== Budgets ===== -->
+    <section id="tab-budgets" class="tab" hidden>
+      <div class="card">
+        <h2>Budgets mensuels</h2>
+        <p class="muted small">Un plafond par catégorie de dépense. Alerte à 80 %, puis en cas de dépassement.
+          Laissez vide pour ne pas suivre une catégorie.</p>
+        <div id="bud-vs-income" class="info" hidden></div>
+        <p id="bud-month" class="small"></p>
+        <ul id="bud-list" class="budget-edit"></ul>
+        <p id="bud-msg" class="small"></p>
+      </div>
+    </section>
+
+    <!-- ===== Revenus variables ===== -->
+    <section id="tab-income" class="tab" hidden>
+      <div class="card">
+        <div class="card-head"><h2 id="inc-title">Salaire variable</h2><span id="inc-month" class="muted small"></span></div>
+        <p id="inc-empty" class="muted" hidden></p>
+        <div id="inc-body">
+          <ul id="inc-kpis" class="kpis"></ul>
+          <p id="inc-rule" class="muted small"></p>
+          <ul id="inc-legend" class="legend"></ul>
+          <div id="inc-chart" class="chart"></div>
+          <details class="small"><summary>Voir en tableau</summary><div class="table-wrap"><table class="tx" id="inc-table"></table></div></details>
+        </div>
+      </div>
+      <div class="card">
+        <h2>À quoi sert le revenu de référence prudent ?</h2>
+        <ul class="plain-list muted small">
+          <li>C'est le montant sur lequel vous pouvez raisonnablement compter chaque mois, même si celui-ci est moins bon.</li>
+          <li><strong>Reste à vivre</strong> : tant que votre salaire du mois n'est pas arrivé, c'est ce montant qui est compté comme « attendu ».</li>
+          <li><strong>Budgets</strong> : la page Budgets compare le total de vos plafonds à ce revenu.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2>Revenus suivis</h2>
+        <p class="muted small">Catégories prises en compte dans ce calcul (par défaut : Salaire). Pour que votre salaire soit bien
+          classé, corrigez une fois son virement en « Salaire » en cochant « créer une règle ».</p>
+        <div id="inc-cats" class="row"></div>
+        <p id="inc-cats-msg" class="small"></p>
+      </div>
+    </section>
+
+    <!-- ===== Suggestions d'économies ===== -->
+    <section id="tab-insights" class="tab" hidden>
+      <div id="ins-remaining-card" class="card" hidden>
+        <div class="card-head"><h2>Reste à vivre prévisionnel</h2><span id="ins-asof" class="muted small"></span></div>
+        <p class="amount-xl" id="ins-remaining"></p>
+        <p id="ins-perday" class="rate"></p>
+        <ul id="ins-remaining-detail" class="stack-legend"></ul>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>Suggestions d'économies</h2><button type="button" id="ins-restore" class="link" hidden></button></div>
+        <p class="muted small">Calculées sur cet ordinateur à partir de vos opérations, par des règles simples : aucune donnée n'est envoyée.</p>
+        <ul id="ins-list" class="suggestion-list"></ul>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>Prélèvements et abonnements récurrents</h2><span id="ins-rec-total" class="muted small"></span></div>
+        <p class="muted small">Repérés automatiquement : même libellé, intervalle régulier, montant stable (≈ = montant variable).</p>
+        <div class="table-wrap">
+          <table class="tx">
+            <thead><tr><th>Libellé</th><th class="desktop-only">Fréquence</th><th class="num">Montant</th>
+              <th class="num desktop-only">Par an</th><th>Prochaine</th></tr></thead>
+            <tbody id="ins-rec-body"></tbody>
+          </table>
+        </div>
+        <p id="ins-rec-empty" class="muted" hidden>Aucune récurrence repérée pour l'instant : il faut au moins 3 mois d'historique.</p>
+      </div>
+    </section>
+
+    <!-- ===== Onglet Opérations ===== -->
+    <section id="tab-ops" class="tab" hidden>
+      <div class="card">
+        <div class="row space">
+          <h2>Opérations</h2>
+          <div class="row">
+            <select id="ops-account" aria-label="Compte"></select>
+            <select id="ops-category" aria-label="Catégorie"></select>
+            <input type="month" id="ops-month" aria-label="Mois">
+          </div>
+        </div>
+        <p id="ops-summary" class="muted small"></p>
+        <div class="table-wrap">
+          <table class="tx">
+            <thead><tr><th class="desktop-only">Date</th><th>Libellé</th><th class="desktop-only">Catégorie</th><th class="num">Montant</th><th></th></tr></thead>
+            <tbody id="ops-body"></tbody>
+          </table>
+        </div>
+        <p id="ops-empty" class="muted" hidden>Aucune opération pour ce filtre.</p>
+      </div>
+
+      <div class="card">
+        <h2>Saisie manuelle</h2>
+        <form id="manual-form" class="grid">
+          <label>Compte <select id="m-account" required></select></label>
+          <label>Date <input type="date" id="m-date" required></label>
+          <label class="wide">Libellé <input type="text" id="m-label" maxlength="300" required></label>
+          <label>Montant (€) <input type="text" id="m-amount" inputmode="decimal" placeholder="12,50" required></label>
+          <label>Sens
+            <select id="m-sign"><option value="-1">Dépense</option><option value="1">Revenu</option></select>
+          </label>
+          <div class="wide"><button type="submit">Ajouter</button> <span id="m-msg" class="small"></span></div>
+        </form>
+      </div>
+    </section>
+
+    <!-- ===== Onglet Importer ===== -->
+    <section id="tab-import" class="tab" hidden>
+      <div class="card">
+        <h2>Importer un relevé</h2>
+        <p class="muted small">Le fichier est lu en mémoire sur cet ordinateur, puis oublié. Rien n'est enregistré
+          avant que vous ayez vérifié et validé les opérations.</p>
+        <div class="grid">
+          <label>Compte <select id="i-account"></select></label>
+          <label>Fichier (PDF ou CSV) <input type="file" id="i-file" accept=".pdf,.csv,.txt,application/pdf,text/csv"></label>
+        </div>
+        <p id="i-error" class="error" role="alert"></p>
+      </div>
+
+      <div id="i-options" class="card" hidden>
+        <div id="i-pdf-opts" hidden>
+          <label>Modèle de relevé
+            <select id="i-parser"></select>
+          </label>
+        </div>
+        <div id="i-csv-opts" hidden>
+          <p id="i-preset" class="small"></p>
+          <details id="i-map-box">
+            <summary>Choisir les colonnes à la main</summary>
+            <p class="small muted">Indiquez quelle colonne contient chaque information :</p>
+            <div class="grid" id="i-mapping"></div>
+            <button type="button" id="i-remap" class="ghost">Relire avec ces colonnes</button>
+          </details>
+        </div>
+      </div>
+
+      <div id="i-review" class="card" hidden>
+        <h2>Vérification avant enregistrement</h2>
+        <div id="i-coherence"></div>
+        <div class="grid">
+          <label>Solde de début (€) <input type="text" id="i-open" inputmode="decimal" placeholder="facultatif"></label>
+          <label>Solde de fin (€) <input type="text" id="i-close" inputmode="decimal" placeholder="facultatif"></label>
+        </div>
+        <div id="i-warnings"></div>
+        <p id="i-counts" class="small muted"></p>
+        <div class="table-wrap">
+          <table class="tx">
+            <thead><tr><th><input type="checkbox" id="i-all" aria-label="Tout cocher"></th>
+              <th>Date</th><th>Libellé</th><th class="num">Montant</th><th></th></tr></thead>
+            <tbody id="i-body"></tbody>
+          </table>
+        </div>
+        <div class="row">
+          <button type="button" id="i-commit">Enregistrer</button>
+          <button type="button" id="i-cancel" class="ghost">Annuler</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Onglet Catégories et règles ===== -->
+    <section id="tab-categories" class="tab" hidden>
+      <div class="card">
+        <div class="row space">
+          <h2>Catégories</h2>
+          <button type="button" id="recat-btn" class="ghost small-btn">Reclasser tout</button>
+        </div>
+        <p id="cat-summary" class="small muted"></p>
+        <ul id="cat-list" class="list"></ul>
+        <form id="cat-form" class="grid">
+          <label>Nouvelle catégorie <input type="text" id="cat-name" maxlength="40" required></label>
+          <label>Type
+            <select id="cat-kind">
+              <option value="expense">Dépense</option>
+              <option value="income">Revenu</option>
+              <option value="transfer">Hors budget (virement, placement)</option>
+            </select>
+          </label>
+          <label>Couleur <input type="color" id="cat-color" value="#5b8def"></label>
+          <div class="wide"><button type="submit">Ajouter la catégorie</button></div>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Mes règles</h2>
+        <p class="small muted">Elles passent avant tout le reste. Une correction manuelle peut en créer une.</p>
+        <ul id="rule-list" class="list"></ul>
+        <p id="rule-empty" class="muted small" hidden>Aucune règle personnelle pour l'instant.</p>
+        <h3>Ajouter une règle</h3>
+        <form id="rule-form" class="grid">
+          <label>Si le libellé contient <input type="text" id="rule-pattern" maxlength="200" required placeholder="ex. FREE MOBILE"></label>
+          <label>Type de motif
+            <select id="rule-regex"><option value="0">Mot(s)-clé(s)</option><option value="1">Expression régulière</option></select>
+          </label>
+          <label>Pour
+            <select id="rule-sign"><option value="">Dépenses et revenus</option><option value="-">Dépenses seulement</option><option value="+">Revenus seulement</option></select>
+          </label>
+          <label>Alors classer en <select id="rule-category" required></select></label>
+          <p id="rule-preview" class="wide small muted"></p>
+          <div class="wide"><button type="submit">Créer la règle</button> <span id="rule-msg" class="small"></span></div>
+        </form>
+      </div>
+
+      <div class="card">
+        <details>
+          <summary>Règles par défaut (<span id="default-count"></span>)</summary>
+          <p class="small muted">Enseignes courantes. Le motif le plus précis l'emporte (« UBER EATS » avant « UBER »).
+            Modifier une règle par défaut la transforme en règle personnelle.</p>
+          <ul id="default-list" class="list compact"></ul>
+        </details>
+      </div>
+    </section>
+
+    <!-- ===== Onglet Comptes ===== -->
+    <section id="tab-accounts" class="tab" hidden>
+      <div class="card">
+        <h2>Mes comptes</h2>
+        <ul id="acc-list" class="list"></ul>
+        <p id="acc-empty" class="muted" hidden>Aucun compte. Créez-en un ci-dessous pour commencer.</p>
+      </div>
+      <div class="card">
+        <h2>Ajouter un compte</h2>
+        <form id="acc-form" class="grid">
+          <label>Nom <input type="text" id="acc-name" maxlength="60" placeholder="ex. Compte joint" required></label>
+          <label>Banque
+            <select id="acc-bank">
+              <option>LCL</option><option>Boursobank</option><option>Trade Republic</option><option>Autre</option>
+            </select>
+          </label>
+          <label>Type
+            <select id="acc-kind">
+              <option value="courant">Compte courant</option>
+              <option value="joint">Compte joint</option>
+              <option value="epargne">Épargne</option>
+              <option value="investissement">Investissement</option>
+            </select>
+          </label>
+          <div class="wide"><button type="submit">Créer le compte</button></div>
+        </form>
+      </div>
+      <div class="card">
+        <h2>Sauvegarde et export</h2>
+        <div class="export-grid">
+          <div>
+            <h3>Sauvegarde chiffrée <span class="pill pill-good">recommandé</span></h3>
+            <p class="muted small">Une copie de tout le coffre, protégée par le même mot de passe, à ranger hors ligne
+              (clé USB, disque). Votre coffre est déjà synchronisé en ligne : cette copie est une sécurité en plus.</p>
+            <button type="button" id="exp-backup">Télécharger la sauvegarde</button>
+          </div>
+          <div>
+            <h3>Export CSV <span class="pill pill-warn">! en clair</span></h3>
+            <p class="muted small">Toutes les opérations dans un tableau lisible par Excel. Ce fichier n'est <strong>pas chiffré</strong> :
+              supprimez-le après usage.</p>
+            <button type="button" id="exp-csv" class="ghost">Exporter les opérations (.csv)</button>
+          </div>
+        </div>
+        <h3>Restaurer une sauvegarde</h3>
+        <p class="muted small">Remplace TOUT le contenu actuel du coffre par celui de la sauvegarde (il vous sera demandé
+          le mot de passe avec lequel elle a été faite).</p>
+        <input type="file" id="restore-file" accept=".json,application/json">
+        <p id="exp-msg" class="small"></p>
+      </div>
+      <div class="card danger-zone">
+        <h2>Zone sensible</h2>
+        <p class="small muted">Efface toutes les opérations, comptes, règles et budgets du coffre. Irréversible.</p>
+        <button type="button" id="wipe-btn" class="danger">Tout supprimer</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+  <!-- Fenêtre de correction de catégorie -->
+  <dialog id="cat-dialog">
+    <form id="cat-dialog-form" method="dialog">
+      <h2>Classer l'opération</h2>
+      <p id="cd-label" class="cd-label"></p>
+      <label>Catégorie <select id="cd-category"></select></label>
+      <label class="check"><input type="checkbox" id="cd-make-rule" checked> Classer aussi les opérations similaires (créer une règle)</label>
+      <div id="cd-rule-box">
+        <label>Si le libellé contient <input type="text" id="cd-pattern" maxlength="200"></label>
+        <p id="cd-preview" class="small muted"></p>
+      </div>
+      <p id="cd-error" class="error" role="alert"></p>
+      <div class="row">
+        <button type="submit" id="cd-save" value="save">Enregistrer</button>
+        <button type="button" id="cd-auto" class="ghost" hidden>Revenir au classement automatique</button>
+        <button type="button" id="cd-cancel" class="ghost">Annuler</button>
+      </div>
+    </form>
+  </dialog>
+</body>
+</html>

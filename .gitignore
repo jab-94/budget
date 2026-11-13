@@ -17,3 +17,6 @@ __pycache__/
 
 # Faux relevés de test (données inventées) : autorisés
 !tests/fixtures/*.pdf
+
+# Version web : dépendances de construction (docs/vendor est versionné)
+tools/web-vendor/node_modules/

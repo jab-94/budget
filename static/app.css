@@ -428,3 +428,8 @@ dialog::backdrop { background: rgb(0 0 0 / .45); }
   table.tx { font-size: 14px; }
   .lock-btn svg { display: none; }
 }
+
+/* Correctifs : une barre de navigation longue défile au lieu d'élargir la page (mobile) ;
+   un message seul dans une liste à colonnes occupe toute la largeur. */
+.shell > *, .sidebar, .nav { min-width: 0; max-width: 100%; }
+.upcoming-list li.muted, .suggestion-list li.muted { display: block; }

@@ -1,0 +1,19 @@
+rules_version = '2';
+// Règles de sécurité du projet Firebase « budget ».
+// - Seul le compte propriétaire (son UID) peut lire ou écrire SON coffre.
+// - Tout le reste de la base est interdit, à tous.
+// Rappel : le coffre est chiffré dans le navigateur avant envoi ; même avec ces
+// droits, Firebase/Google ne voit qu'un bloc illisible.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /vaults/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid && uid == "UID_DU_PROPRIETAIRE";
+      match /chunks/{chunk} {
+        allow read, write: if request.auth != null && request.auth.uid == uid && uid == "UID_DU_PROPRIETAIRE";
+      }
+    }
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
