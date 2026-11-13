@@ -27,7 +27,8 @@ from datetime import date
 from .base import ParsedStatement, ParsedTransaction, parse_amount
 
 DATE_START = re.compile(r"^\s*(\d{2}[/.]\d{2}(?:[/.]\d{2,4})?)(?=\s)")
-TRAILING_DATE = re.compile(r"\s+\d{2}[/.]\d{2}(?:[/.]\d{2,4})?\s*$")
+TRAILING_DATE = re.compile(r"\s+(\d{2}[/.]\d{2}(?:[/.]\d{2,4})?)\s*$")
+LEADING_DATE = re.compile(r"^\s*(\d{2}[/.]\d{2}(?:[/.]\d{2,4})?)\s+")
 AMOUNT = re.compile(r"(?<![\d,.])-?\d{1,3}(?:[   .]\d{3})*,\d{2}(?![\d,%])")
 PERIOD = re.compile(r"(\d{2}[/.]\d{2}[/.]\d{4})\D{1,20}?(\d{2}[/.]\d{2}[/.]\d{4})")
 # « du 01/03/2026 au 31/03/2026 », y compris mots collés (« 01/03/2026au »).
@@ -212,14 +213,22 @@ class GenericPdfParser:
 
     def _make_tx(self, line: Line, dm, amounts, cols, year_hint, st) -> ParsedTransaction | None:
         text = line.text
-        iso = self._date_with_year(dm.group(1), year_hint, st)
+        # Libellé = texte entre la date d'opération et le premier montant, sans la date de
+        # valeur (avant ou après le libellé). L'ANNÉE de la date de valeur sert à dater
+        # l'opération quand la colonne DATE n'a que « JJ.MM » (LCL).
+        label_part = text[dm.end() : amounts[0].start()]
+        value_raw = None
+        lead = LEADING_DATE.match(label_part)
+        if lead:
+            value_raw = lead.group(1)
+            label_part = " " + label_part[lead.end():]
+        trail = TRAILING_DATE.search(label_part)
+        if trail:
+            value_raw = value_raw or trail.group(1)
+            label_part = label_part[: trail.start()]
+        iso = self._date_with_year(dm.group(1), year_hint, st, value_raw)
         if iso is None:
             return None
-        # Libellé = texte entre la date d'opération et le premier montant,
-        # sans la date de valeur (avant ou après le libellé).
-        label_part = text[dm.end() : amounts[0].start()]
-        label_part = re.sub(r"^\s*\d{2}[/.]\d{2}(?:[/.]\d{2,4})?\s+", " ", label_part)
-        label_part = TRAILING_DATE.sub("", label_part)
         label = " ".join(label_part.split()) or "(sans libellé)"
 
         m = amounts[0]
@@ -238,20 +247,48 @@ class GenericPdfParser:
             sign = 1 if any(h in label.upper() for h in self.credit_hints) else -1
         return ParsedTransaction(date=iso, label=label, amount_cents=sign * value, uncertain_sign=uncertain)
 
-    def _date_with_year(self, raw: str, year_hint: int, st: ParsedStatement) -> str | None:
+    def _date_with_year(self, raw: str, year_hint: int, st: ParsedStatement, value_raw: str | None = None) -> str | None:
+        """Date complète. Sans année (« 31.12 »), on prend l'année la plus plausible : au plus près
+        de la date de valeur si elle en a une (« 31.12.25 »), sinon de la période du relevé."""
         parts = re.split(r"[/.]", raw)
-        try:
-            if len(parts) == 3:
-                y = int(parts[2]) + (2000 if len(parts[2]) == 2 else 0)
-                return date(y, int(parts[1]), int(parts[0])).isoformat()
-            d, mth = int(parts[0]), int(parts[1])
-            y = year_hint
-            # Relevé à cheval sur deux années (ex. décembre -> janvier).
-            if st.period_start and st.period_end and st.period_start[:4] != st.period_end[:4]:
-                y = int(st.period_start[:4]) if mth >= int(st.period_start[5:7]) else int(st.period_end[:4])
-            return date(y, mth, d).isoformat()
-        except ValueError:
+        if len(parts) == 3:
+            try:
+                return date(int(parts[2]) + (2000 if len(parts[2]) == 2 else 0), int(parts[1]), int(parts[0])).isoformat()
+            except ValueError:
+                return None
+        d, mth = int(parts[0]), int(parts[1])
+        value_iso = None
+        vp = re.split(r"[/.]", value_raw) if value_raw else []
+        if len(vp) == 3:
+            try:
+                value_iso = date(int(vp[2]) + (2000 if len(vp[2]) == 2 else 0), int(vp[1]), int(vp[0])).isoformat()
+            except ValueError:
+                value_iso = None
+        base = int(value_iso[:4]) if value_iso else year_hint
+        candidates = []
+        for y in (base, base - 1, base + 1):
+            try:
+                candidates.append(date(y, mth, d).isoformat())
+            except ValueError:
+                continue
+        if not candidates:
             return None
+
+        def distance(iso: str) -> int:
+            if value_iso:
+                return abs((date.fromisoformat(iso) - date.fromisoformat(value_iso)).days)
+            if st.period_start and st.period_end:
+                if iso < st.period_start:
+                    return (date.fromisoformat(st.period_start) - date.fromisoformat(iso)).days
+                if iso > st.period_end:
+                    return (date.fromisoformat(iso) - date.fromisoformat(st.period_end)).days
+            return 0
+
+        best = candidates[0]
+        for c in candidates[1:]:
+            if distance(c) < distance(best):
+                best = c
+        return best
 
     @staticmethod
     def _assign_balances(balances: list[tuple[str, int]], st: ParsedStatement) -> None:

@@ -247,3 +247,35 @@ def test_period_line_is_never_a_transaction_even_in_generic_mode():
 """
     st = GenericPdfParser().parse_pages([page])
     assert [(t.date, t.amount_cents) for t in st.transactions] == [("2026-03-10", 10000)]
+
+
+# --- Année manquante (« 31.12 ») : relevé de janvier contenant des opérations de décembre ------
+LCL_JANVIER = """
+                  RELEVE DE COMPTE
+                                                     du 02.01.2026 au 30.01.2026 - N° 001
+      DATE                 LIBELLE                VALEUR    DEBIT     CREDIT
+      31.12                            ANCIEN SOLDE                       100,00
+      31.12 CB BOULANGERIE                        31.12.25      4,50         .
+      31.12 PRLV SEPA FREE MOBILE                 31.12.25     19,99         .
+      05.01 VIR INST SALAIRE                      05.01.26             2 400,00
+      28.01 CB PHARMACIE                          28.01.26     12,00         .
+      31.01                           SOLDE EN EUROS                    2 463,51
+"""
+
+
+def test_year_taken_from_value_date_when_operation_date_has_no_year():
+    from app.importers.banks import LclParser
+
+    st = LclParser().parse_pages([LCL_JANVIER])
+    assert [t.date for t in st.transactions] == ["2025-12-31", "2025-12-31", "2026-01-05", "2026-01-28"]
+
+
+def test_year_from_period_when_no_value_date():
+    page = """
+ RELEVE du 02/01/2026 au 30/01/2026
+ Date   Libellé          Débit      Crédit
+ 31/12  CB BOULANGERIE   4,50
+ 15/01  CB PHARMACIE     12,00
+"""
+    st = GenericPdfParser().parse_pages([page])
+    assert [t.date for t in st.transactions] == ["2025-12-31", "2026-01-15"]

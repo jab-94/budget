@@ -98,7 +98,9 @@ class Store {
     this.revision = v.revision;
     this.data = data;
     this.pending = Boolean(v.pending);
-    if (this.pending) await this.save().catch(() => {});
+    const { migrate } = await import("./migrations.js");
+    const repaired = await migrate(this.data);
+    if (this.pending || repaired) await this.save().catch(() => {});
     this.touch();
   }
 

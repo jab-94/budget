@@ -3,10 +3,11 @@
 // Chaque ligne = texte + abscisse réelle de chaque caractère : un libellé long qui
 // décale le montant dans le texte ne transforme pas un débit en crédit.
 
-import { parseAmount, plain, todayIso, validDate } from "./core.js";
+import { daysBetween, parseAmount, plain, todayIso, validDate } from "./core.js";
 
 const DATE_START = /^\s*(\d{2}[/.]\d{2}(?:[/.]\d{2,4})?)(?=\s)/;
-const TRAILING_DATE = /\s+\d{2}[/.]\d{2}(?:[/.]\d{2,4})?\s*$/;
+const TRAILING_DATE = /\s+(\d{2}[/.]\d{2}(?:[/.]\d{2,4})?)\s*$/;
+const LEADING_DATE = /^\s*(\d{2}[/.]\d{2}(?:[/.]\d{2,4})?)\s+/;
 const AMOUNT = /(?<![\d,.])-?\d{1,3}(?:[   .]\d{3})*,\d{2}(?![\d,%])/g;
 const PERIOD = /(\d{2}[/.]\d{2}[/.]\d{4})\D{1,20}?(\d{2}[/.]\d{2}[/.]\d{4})/g;
 const PERIOD_DU_AU = /\bdu\s*(\d{2}[/.]\d{2}[/.]\d{4})\s*au\s*(\d{2}[/.]\d{2}[/.]\d{4})/gi;
@@ -133,10 +134,16 @@ export class GenericPdfParser {
 
   makeTx(line, dm, amounts, cols, yearHint, st) {
     const text = line.text;
-    const iso = this.dateWithYear(dm[1], yearHint, st);
-    if (!iso) return null;
     let labelPart = text.slice(dm.index + dm[0].length, amounts[0].index);
-    labelPart = labelPart.replace(/^\s*\d{2}[/.]\d{2}(?:[/.]\d{2,4})?\s+/, " ").replace(TRAILING_DATE, "");
+    // Date de valeur (avant ou après le libellé) : retirée du libellé, mais son ANNÉE sert
+    // à dater correctement l'opération quand la colonne DATE n'a que « JJ.MM » (LCL).
+    let valueRaw = null;
+    const lead = labelPart.match(LEADING_DATE);
+    if (lead) { valueRaw = lead[1]; labelPart = " " + labelPart.slice(lead[0].length); }
+    const trail = labelPart.match(TRAILING_DATE);
+    if (trail) { valueRaw = valueRaw || trail[1]; labelPart = labelPart.slice(0, trail.index); }
+    const iso = this.dateWithYear(dm[1], yearHint, st, valueRaw);
+    if (!iso) return null;
     const label = labelPart.split(/\s+/).filter(Boolean).join(" ") || "(sans libellé)";
     const m = amounts[0];
     const value = Math.abs(parseAmount(m[0]));
@@ -153,20 +160,41 @@ export class GenericPdfParser {
     return { date: iso, label, amount_cents: sign * value, uncertain_sign: uncertain, hint: null };
   }
 
-  dateWithYear(raw, yearHint, st) {
+  /**
+   * Date complète d'une opération. Si l'année manque (« 31.12 »), on choisit l'année la plus
+   * plausible : au plus près de la date de valeur si elle a une année (« 31.12.25 »), sinon au
+   * plus près de la période du relevé (une opération ne tombe pas 11 mois après son relevé).
+   */
+  dateWithYear(raw, yearHint, st, valueRaw = null) {
     const parts = raw.split(/[/.]/);
-    try {
-      if (parts.length === 3) {
-        const y = Number(parts[2]) + (parts[2].length === 2 ? 2000 : 0);
-        return validDate(y, Number(parts[1]), Number(parts[0]));
+    if (parts.length === 3) {
+      try { return validDate(Number(parts[2]) + (parts[2].length === 2 ? 2000 : 0), Number(parts[1]), Number(parts[0])); }
+      catch (_) { return null; }
+    }
+    const d = Number(parts[0]), mth = Number(parts[1]);
+    const vp = valueRaw ? valueRaw.split(/[/.]/) : [];
+    let valueIso = null;
+    if (vp.length === 3) {
+      try { valueIso = validDate(Number(vp[2]) + (vp[2].length === 2 ? 2000 : 0), Number(vp[1]), Number(vp[0])); } catch (_) { /* ignorée */ }
+    }
+    const base = valueIso ? Number(valueIso.slice(0, 4)) : yearHint;
+    const candidates = [];
+    for (const y of [base, base - 1, base + 1]) {
+      try { candidates.push(validDate(y, mth, d)); } catch (_) { /* 29/02 hors année bissextile… */ }
+    }
+    if (!candidates.length) return null;
+    const distance = (iso) => {
+      if (valueIso) return Math.abs(daysBetween(iso, valueIso));
+      if (st.period_start && st.period_end) {
+        if (iso < st.period_start) return daysBetween(iso, st.period_start);
+        if (iso > st.period_end) return daysBetween(st.period_end, iso);
+        return 0;
       }
-      const d = Number(parts[0]), mth = Number(parts[1]);
-      let y = yearHint;
-      if (st.period_start && st.period_end && st.period_start.slice(0, 4) !== st.period_end.slice(0, 4)) {
-        y = mth >= Number(st.period_start.slice(5, 7)) ? Number(st.period_start.slice(0, 4)) : Number(st.period_end.slice(0, 4));
-      }
-      return validDate(y, mth, d);
-    } catch (_) { return null; }
+      return 0;
+    };
+    let best = candidates[0];
+    for (const c of candidates.slice(1)) if (distance(c) < distance(best)) best = c;
+    return best;
   }
 
   assignBalances(balances, st) {

@@ -33,7 +33,9 @@ Deux versions, même logique métier :
   doit l'être de l'autre ; `tests-web/logic.test.mjs` vérifie que les résultats concordent.
 
 ## Calibrage des banques (d'après des extraits MASQUÉS, jamais de vrais relevés)
-- LCL : PDF (« Crédit Lyonnais », point « . » = débit, lignes REF/NATURE ignorées).
+- LCL : PDF (« Crédit Lyonnais », point « . » = débit, lignes REF/NATURE ignorées). Colonne DATE
+  sans année (« 31.12 ») : année prise sur la date de valeur (« 31.12.25 »), sinon la plus proche de la
+  période (bug vécu : 31/12/2026 au lieu de 2025 ; réparation auto des données : docs/js/migrations.js).
 - Boursobank : ✅ confirmé sur 47 vrais relevés (4 ans, tous cohérents, import par lot).
   PDF uniquement (pas d'export CSV) ; opérations après « MOUVEMENTS EN EUR »,
   colonnes = 2 mots après « Valeur », mots souvent collés.

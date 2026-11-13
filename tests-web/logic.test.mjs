@@ -92,3 +92,48 @@ test("import par lot : un même relevé choisi deux fois est reconnu comme doubl
   assert.deepEqual(second.map((t) => t.duplicate), ["exact", "exact"]);
   assert.ok(second.every((t) => !t.selected));
 });
+
+test("année manquante (« 31.12 ») : relevé de janvier contenant des opérations de décembre", async () => {
+  const { LclParser, GenericPdfParser } = await import("../docs/js/pdfparse.js");
+  const lcl = `
+                  RELEVE DE COMPTE
+                                                     du 02.01.2026 au 30.01.2026 - N° 001
+      DATE                 LIBELLE                VALEUR    DEBIT     CREDIT
+      31.12                            ANCIEN SOLDE                       100,00
+      31.12 CB BOULANGERIE                        31.12.25      4,50         .
+      31.12 PRLV SEPA FREE MOBILE                 31.12.25     19,99         .
+      05.01 VIR INST SALAIRE                      05.01.26             2 400,00
+      28.01 CB PHARMACIE                          28.01.26     12,00         .
+      31.01                           SOLDE EN EUROS                    2 463,51
+`;
+  const st = new LclParser().parsePages([lcl]);
+  assert.deepEqual(st.transactions.map((t) => t.date), ["2025-12-31", "2025-12-31", "2026-01-05", "2026-01-28"]);
+  assert.equal(st.transactions[0].label, "CB BOULANGERIE");
+  const generic = `
+ RELEVE du 02/01/2026 au 30/01/2026
+ Date   Libellé          Débit      Crédit
+ 31/12  CB BOULANGERIE   4,50
+ 15/01  CB PHARMACIE     12,00
+`;
+  assert.deepEqual(new GenericPdfParser().parsePages([generic]).transactions.map((t) => t.date), ["2025-12-31", "2026-01-15"]);
+});
+
+test("réparation : opérations importées avec la mauvaise année (31/12/2026 au lieu de 2025)", async () => {
+  const { migrate } = await import("../docs/js/migrations.js");
+  const { flagDuplicates } = await import("../docs/js/analytics.js");
+  const d = newData();
+  d.accounts.push({ id: 900, name: "LCL" });
+  d.statements.push({ id: 950, account_id: 900, source: "pdf", period_start: "2026-01-02", period_end: "2026-01-30" },
+    { id: 951, account_id: 900, source: "pdf", period_start: "2026-12-01", period_end: "2026-12-31" });
+  const t = (id, sid, date, label, cents) => ({ id, account_id: 900, statement_id: sid, date, label, amount_cents: cents, fingerprint: "x" });
+  d.transactions.push(t(1, 950, "2026-12-31", "CB BOULANGERIE", -450), t(2, 950, "2026-01-05", "VIR INST SALAIRE", 240000),
+    t(3, 951, "2026-12-31", "CB AUTRE", -100)); // ce dernier est réellement daté du 31/12/2026 : intact
+  const changed = await migrate(d);
+  assert.ok(changed > 0);
+  assert.deepEqual(d.transactions.map((x) => x.date), ["2025-12-31", "2026-01-05", "2026-12-31"]);
+  assert.equal(await migrate(d), 0); // une seule fois
+  // Réimporter le même relevé (correctement daté maintenant) : reconnu comme doublon.
+  const again = [{ date: "2025-12-31", label: "CB BOULANGERIE", amount_cents: -450 }, { date: "2026-01-05", label: "VIR INST SALAIRE", amount_cents: 240000 }];
+  await flagDuplicates(d, 900, again);
+  assert.deepEqual(again.map((x) => x.duplicate), ["exact", "exact"]);
+});
