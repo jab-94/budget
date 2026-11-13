@@ -38,7 +38,8 @@ Deux versions, même logique métier :
   période (bug vécu : 31/12/2026 au lieu de 2025 ; réparation auto des données : docs/js/migrations.js).
 - Boursobank : ✅ confirmé sur 47 vrais relevés (4 ans, tous cohérents, import par lot).
   PDF uniquement (pas d'export CSV) ; opérations après « MOUVEMENTS EN EUR »,
-  colonnes = 2 mots après « Valeur », mots souvent collés.
+  colonnes = 2 mots après « Valeur ». Les mots collés n'existaient que dans l'extraction pdfplumber de
+  l'extrait masqué : dans l'app web (pdf.js), les libellés ont bien leurs espaces (confirmé par l'utilisateur).
 - Trade Republic : CSV (23 colonnes confirmées), frais/taxes séparés, titres = Investissement.
 - Script de masquage pour calibrer : `tools/inspect_pdf.py` (PDF et CSV).
 
