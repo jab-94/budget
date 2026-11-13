@@ -1291,4 +1291,34 @@ async function loadBudgetsTab() {
   }));
 }
 
+// ================= Sauvegarde et export =================
+/** Télécharge un fichier produit par l'app locale (la requête ne sort pas de l'ordinateur). */
+async function downloadFrom(path, fallbackName) {
+  const res = await fetch(path, { headers: { "X-Budget-Token": TOKEN }, credentials: "same-origin", cache: "no-store" });
+  if (!res.ok) throw new Error("Export impossible.");
+  const name = (res.headers.get("Content-Disposition") || "").match(/filename="([^"]+)"/);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = el("a", { href: url, download: name ? name[1] : fallbackName });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  return name ? name[1] : fallbackName;
+}
+
+$("exp-backup").addEventListener("click", async () => {
+  try {
+    const n = await downloadFrom("/api/export/backup", "budget-sauvegarde.vault");
+    $("exp-msg").replaceChildren(el("span", { class: "ok-text" }, `✓ ${n} enregistré dans vos téléchargements.`));
+  } catch (e) { $("exp-msg").textContent = e.message; }
+});
+$("exp-csv").addEventListener("click", async () => {
+  if (!confirm("Ce fichier CSV ne sera PAS chiffré : toutes vos opérations y seront lisibles. Continuer ?")) return;
+  try {
+    const n = await downloadFrom("/api/export/csv", "budget-operations.csv");
+    $("exp-msg").replaceChildren(el("span", { class: "ok-text" }, `✓ ${n} enregistré dans vos téléchargements. Pensez à le supprimer après usage.`));
+  } catch (e) { $("exp-msg").textContent = e.message; }
+});
+
 refresh().catch((e) => { document.body.textContent = e.message; });

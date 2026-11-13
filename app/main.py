@@ -16,7 +16,7 @@ from datetime import date
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -802,6 +802,48 @@ def set_income_categories(body: IncomeCategoriesIn):
         income.set_tracked_categories(d.conn, body.category_ids)
         save_or_conflict()
     return {"ok": True}
+
+
+# --- Sauvegarde et export --------------------------------------------------------------------
+def _download(content: bytes, filename: str, media_type: str) -> Response:
+    return Response(content, media_type=media_type, headers={
+        "Content-Disposition": f'attachment; filename="{filename}"',
+        "Cache-Control": "no-store",
+    })
+
+
+@app.get("/api/export/backup")
+def export_backup():
+    """Copie du coffre CHIFFRÉ (même mot de passe). Restauration : la choisir comme emplacement du coffre."""
+    d = require_unlocked()
+    with d.lock:
+        d.save()  # s'assure que le fichier sur disque est à jour
+        raw = d.vault.path.read_bytes()
+    log.info("Sauvegarde chiffrée exportée.")
+    return _download(raw, f"budget-sauvegarde-{date.today().isoformat()}.vault", "application/octet-stream")
+
+
+@app.get("/api/export/csv")
+def export_csv():
+    """Toutes les opérations en CSV (EN CLAIR) : point-virgule et UTF-8 avec BOM pour Excel."""
+    import csv
+    import io
+
+    d = require_unlocked()
+    buf = io.StringIO()
+    w = csv.writer(buf, delimiter=";")
+    w.writerow(["date", "compte", "libelle", "montant", "categorie", "nature"])
+    for r in d.conn.execute(
+        """SELECT t.date, a.name, t.label, t.amount_cents, c.name, t.hint FROM transactions t
+           JOIN accounts a ON a.id = t.account_id LEFT JOIN categories c ON c.id = t.category_id
+           ORDER BY t.date, t.id"""
+    ):
+        cents = r[3]
+        amount = f"{'-' if cents < 0 else ''}{abs(cents) // 100},{abs(cents) % 100:02d}"
+        w.writerow([r[0], r[1], r[2], amount, r[4] or "", r[5] or ""])
+    log.info("Export CSV généré.")
+    return _download(("\ufeff" + buf.getvalue()).encode("utf-8"),
+                     f"budget-operations-{date.today().isoformat()}.csv", "text/csv; charset=utf-8")
 
 
 # --- Front -----------------------------------------------------------------------------
