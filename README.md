@@ -11,7 +11,49 @@ le fichier **chiffré** que vous pouvez placer dans iCloud Drive.
 
 ---
 
-## Installation (une seule fois par ordinateur)
+## Deux façons d'utiliser l'app
+
+| | **Version web** (`docs/`) | **Version locale** (`app/`, Python) |
+|---|---|---|
+| Accès | adresse GitHub Pages, sur PC, Mac et iPhone | sur l'ordinateur, sans Internet |
+| Installation | aucune | Python + lanceur |
+| Données | coffre **chiffré dans le navigateur**, synchronisé via Firebase | coffre chiffré dans un fichier (iCloud possible) |
+| Ce qui sort de l'appareil | un bloc chiffré illisible, vers Firebase | rien (sauf iCloud, si vous le choisissez) |
+
+## Version web
+
+- **Chiffrement de bout en bout** : vos données sont chiffrées **dans le navigateur**,
+  avec le mot de passe du coffre, **avant** tout envoi.
+  - Clé : PBKDF2-SHA256, 600 000 itérations. Chiffrement : AES-256-GCM.
+  - Firebase (Google) ne reçoit qu'un bloc illisible et un en-tête non secret
+    (sel, numéro de révision, date).
+- **Deux mots de passe distincts** :
+  - celui du **compte**, pour se connecter ; Firebase le connaît ;
+  - celui du **coffre**, qui chiffre les données ; il ne quitte jamais l'appareil.
+    **Ne prenez pas le même.**
+- **Synchronisation** entre PC, Mac et iPhone. Une modification faite ailleurs
+  n'est jamais écrasée : l'app demande de rouvrir le coffre pour récupérer la
+  dernière version.
+- **Hors ligne** : une copie chiffrée est gardée sur l'appareil, et les
+  modifications sont envoyées au retour du réseau.
+- **iPhone** : ouvrez l'adresse dans Safari, puis Partager › « Sur l'écran
+  d'accueil ».
+- **Sécurité de la page** : la politique de sécurité (CSP) n'autorise que les
+  trois adresses Firebase nécessaires. Aucun CDN, aucune police externe, aucune
+  télémétrie. Les bibliothèques (Firebase, pdf.js) sont copiées dans `docs/vendor`
+  et peuvent être reconstruites avec `tools/web-vendor/build.sh`.
+- **Règles Firestore** (`firestore.rules`) : seul votre compte peut lire ou écrire
+  votre coffre ; tout le reste est interdit.
+- **Tests** : `node --test tests-web/*.test.mjs` (chiffrement, mêmes résultats que la
+  version Python) et `tests/test_web_privacy.py` (garde-fous de confidentialité).
+
+**Ce qu'il faut savoir** : le code de la page est rechargé depuis GitHub. La
+sécurité dépend donc aussi de celle de votre compte GitHub (double authentification
+activée) et de votre compte Firebase.
+
+---
+
+## Version locale : installation (une seule fois par ordinateur)
 
 1. Installez **Python 3.11 ou plus récent** depuis python.org.
    Sous Windows, cochez « Add Python to PATH » pendant l'installation.
