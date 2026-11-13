@@ -278,7 +278,9 @@ export async function handle(method, fullPath, body, raw) {
     if (files.reduce((s, f) => s + f.bytes.byteLength, 0) > 5 * MAX_UPLOAD) fail(413, "Fichiers trop volumineux (100 Mo maximum au total).");
     const statements = [];
     const seen = [];
+    let done = 0;
     for (const f of files) {
+      if (typeof raw.onProgress === "function") raw.onProgress(done++, files.length);
       let st;
       try {
         if (f.fmt === "pdf") st = await parsePdf(new Uint8Array(f.bytes), null);

@@ -25,6 +25,9 @@ Deux versions, même logique métier :
 - **Augmenter `CACHE_VERSION` dans `docs/service-worker.js` à chaque publication** (`budget-v1`, `budget-v2`…),
   sinon les téléphones gardent l'ancienne version en cache.
 - Ajouter tout nouveau fichier JS à la liste `CORE` du service worker.
+- Service worker : RÉSEAU D'ABORD pour le code (HTML/CSS/js), cache d'abord seulement pour vendor/ et
+  les icônes. Ne jamais repasser le code en « cache d'abord » : la page et le code se désynchronisaient
+  après une mise à jour (bug vécu : import multiple qui ne lisait qu'un fichier).
 - Push sur `main` → GitHub Pages republie en ~1 min.
 - La logique métier existe en double (Python `app/` et JS `docs/js/`) : toute règle modifiée d'un côté
   doit l'être de l'autre ; `tests-web/logic.test.mjs` vérifie que les résultats concordent.

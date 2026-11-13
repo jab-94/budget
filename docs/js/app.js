@@ -150,6 +150,7 @@ $("lock-form").addEventListener("submit", async (ev) => {
 $("lock-btn").addEventListener("click", async () => {
   resetImport();
   store.lock();
+  if (window.__updateReady) { location.reload(); return; }
   peek = await store.peek(user.uid);
   await refresh();
 });
@@ -436,6 +437,9 @@ async function runBatchPreview() {
   $("i-error").replaceChildren(el("span", { class: "muted" }, `Lecture de ${imp.files.length} fichiers…`));
   try {
     const files = await Promise.all(imp.files.map(async (f) => ({ name: f.name, fmt: fmtOf(f), bytes: await f.arrayBuffer() })));
+    files.onProgress = (i, n) => {
+      $("i-error").replaceChildren(el("span", { class: "muted" }, `Lecture des relevés… ${i + 1} / ${n}`));
+    };
     const res = await api(`/api/import/preview-batch?account_id=${encodeURIComponent($("i-account").value)}`, { raw: files });
     imp.statements = res.statements;
   } catch (e) {
@@ -1445,5 +1449,15 @@ cloud.onUser(async (u) => {
   refresh().catch((e) => { document.body.textContent = e.message; });
 });
 if ("serviceWorker" in navigator) {
+  // Quand une nouvelle version de l'app prend la main, on recharge UNE fois (si le coffre est
+  // verrouillé) pour que la page et le code soient de la même version.
+  const hadController = Boolean(navigator.serviceWorker.controller);
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!hadController || reloaded) return;
+    reloaded = true;
+    if (!store.unlocked) location.reload();
+    else window.__updateReady = true; // coffre ouvert : rechargement au prochain verrouillage
+  });
   navigator.serviceWorker.register("service-worker.js").catch(() => { /* mode hors ligne indisponible */ });
 }
