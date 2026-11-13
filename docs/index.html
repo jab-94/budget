@@ -289,11 +289,12 @@
     <section id="tab-import" class="tab" hidden>
       <div class="card">
         <h2>Importer un relevé</h2>
-        <p class="muted small">Le fichier est lu en mémoire sur cet ordinateur, puis oublié. Rien n'est enregistré
-          avant que vous ayez vérifié et validé les opérations.</p>
+        <p class="muted small">Les fichiers sont lus sur cet appareil, puis oubliés. Rien n'est enregistré
+          avant que vous ayez vérifié et validé les opérations. Vous pouvez choisir <strong>plusieurs relevés d'un coup</strong>
+          (par exemple tous ceux d'un compte).</p>
         <div class="grid">
           <label>Compte <select id="i-account"></select></label>
-          <label>Fichier (PDF ou CSV) <input type="file" id="i-file" accept=".pdf,.csv,.txt,application/pdf,text/csv"></label>
+          <label>Relevé(s) PDF ou CSV <input type="file" id="i-file" multiple accept=".pdf,.csv,.txt,application/pdf,text/csv"></label>
         </div>
         <p id="i-error" class="error" role="alert"></p>
       </div>
@@ -317,8 +318,9 @@
 
       <div id="i-review" class="card" hidden>
         <h2>Vérification avant enregistrement</h2>
+        <div id="i-batch" hidden></div>
         <div id="i-coherence"></div>
-        <div class="grid">
+        <div class="grid" id="i-balances">
           <label>Solde de début (€) <input type="text" id="i-open" inputmode="decimal" placeholder="facultatif"></label>
           <label>Solde de fin (€) <input type="text" id="i-close" inputmode="decimal" placeholder="facultatif"></label>
         </div>

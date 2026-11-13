@@ -268,6 +268,80 @@ export async function handle(method, fullPath, body, raw) {
     return { ok: true, statement_id: sid, inserted: rows.length };
   }
 
+  // Plusieurs relevés d'un coup (raw = [{name, fmt, bytes}]). Aucun enregistrement ici.
+  if (p === "/api/import/preview-batch") {
+    const d = D();
+    const accountId = Number(q.get("account_id"));
+    accountOr404(d, accountId);
+    const files = raw || [];
+    if (!files.length) fail(400, "Aucun fichier.");
+    if (files.reduce((s, f) => s + f.bytes.byteLength, 0) > 5 * MAX_UPLOAD) fail(413, "Fichiers trop volumineux (100 Mo maximum au total).");
+    const statements = [];
+    const seen = [];
+    for (const f of files) {
+      let st;
+      try {
+        if (f.fmt === "pdf") st = await parsePdf(new Uint8Array(f.bytes), null);
+        else {
+          let info;
+          [st, info] = parseCsvStatement(new Uint8Array(f.bytes), null);
+          if (info.needs_mapping) throw new Error("Format CSV non reconnu : importez ce fichier seul pour choisir les colonnes.");
+        }
+      } catch (e) {
+        const msg = e && e.message && /^[A-ZÀ-Ý]/.test(e.message) && !(e instanceof TypeError) ? e.message : "Fichier illisible.";
+        if (msg === "Fichier illisible.") console.error("Import :", e);
+        statements.push({ name: f.name, fmt: f.fmt, error: msg, transactions: [], warnings: [] });
+        continue;
+      }
+      await flagDuplicates(d, accountId, st.transactions, seen);
+      seen.push(...st.transactions);
+      st.coherence = coherence(st.opening_balance_cents, st.closing_balance_cents, st.transactions);
+      statements.push({ ...st, name: f.name, fmt: f.fmt });
+    }
+    // Ordre chronologique, puis continuité : solde de fin d'un relevé = solde de début du suivant.
+    statements.sort((a, b) => (a.error ? 1 : 0) - (b.error ? 1 : 0) || String(a.period_start).localeCompare(String(b.period_start)));
+    let prev = null;
+    for (const st of statements) {
+      if (st.error) continue;
+      // Même relevé choisi deux fois (même période, mêmes soldes) : signalé comme doublon, sans fausse rupture.
+      if (prev && st.period_start === prev.period_start && st.period_end === prev.period_end
+          && st.opening_balance_cents === prev.opening_balance_cents && st.closing_balance_cents === prev.closing_balance_cents) {
+        st.duplicate_of = prev.name;
+        continue;
+      }
+      if (prev && prev.closing_balance_cents !== null && st.opening_balance_cents !== null) {
+        const diff = st.opening_balance_cents - prev.closing_balance_cents;
+        st.continuity = diff === 0 ? { status: "ok" } : { status: "gap", diff_cents: diff, previous: prev.name };
+      }
+      prev = st;
+    }
+    return { statements };
+  }
+  if (p === "/api/import/commit-batch") {
+    const d = D();
+    accountOr404(d, body.account_id);
+    let inserted = 0, statementsAdded = 0;
+    for (const st of body.statements) {
+      if (!["pdf", "csv"].includes(st.source)) fail(400, "Source invalide.");
+      if (!st.transactions.length) continue;
+      statementsAdded++;
+      const sid = store.nextId();
+      d.statements.push({ id: sid, account_id: body.account_id, source: st.source, period_start: st.period_start ?? null,
+        period_end: st.period_end ?? null, opening_balance_cents: st.opening_balance_cents ?? null,
+        closing_balance_cents: st.closing_balance_cents ?? null, imported_at: new Date().toISOString() });
+      for (const t of st.transactions) {
+        d.transactions.push({ id: store.nextId(), account_id: body.account_id, statement_id: sid, date: isoDate(t.date),
+          label: String(t.label || "").trim().slice(0, 300) || "(sans libellé)", amount_cents: Math.trunc(t.amount_cents),
+          category_id: null, category_locked: 0, category_source: null, fingerprint: String(t.fingerprint || "").slice(0, 64),
+          hint: HINTS.has(t.hint) ? t.hint : null });
+        inserted++;
+      }
+    }
+    categorizeAll(d);
+    await save(); // un seul envoi chiffré pour tout le lot
+    return { ok: true, inserted, statements: statementsAdded };
+  }
+
   // ---------- Opérations ----------
   if (p === "/api/transactions" && method === "GET") return listTransactions(D(), q);
   if (p === "/api/transactions" && method === "POST") {

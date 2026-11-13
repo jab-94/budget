@@ -339,17 +339,25 @@ function resetImport() {
   $("i-file").value = "";
   $("i-options").hidden = true;
   $("i-review").hidden = true;
+  $("i-batch").hidden = true;
+  $("i-balances").hidden = false;
   $("i-error").textContent = "";
 }
 
+const fmtOf = (f) => (/\.pdf$/i.test(f.name) || f.type === "application/pdf" ? "pdf" : "csv");
+
 $("i-file").addEventListener("change", () => {
-  const f = $("i-file").files[0];
-  if (!f) return;
-  const fmt = /\.pdf$/i.test(f.name) || f.type === "application/pdf" ? "pdf" : "csv";
-  imp = { file: f, fmt, parser: null, mapping: null };
-  runPreview();
+  const files = [...$("i-file").files];
+  if (!files.length) return;
+  if (files.length === 1) {
+    imp = { file: files[0], fmt: fmtOf(files[0]), parser: null, mapping: null };
+    runPreview();
+  } else {
+    imp = { batch: true, files };
+    runBatchPreview();
+  }
 });
-$("i-account").addEventListener("change", () => { if (imp) runPreview(); });
+$("i-account").addEventListener("change", () => { if (imp) (imp.batch ? runBatchPreview() : runPreview()); });
 $("i-parser").addEventListener("change", () => { imp.parser = $("i-parser").value; runPreview(); });
 $("i-remap").addEventListener("click", () => {
   const m = {};
@@ -403,6 +411,8 @@ async function renderImportOptions() {
 function renderReview() {
   const pv = imp.preview;
   $("i-review").hidden = false;
+  $("i-batch").hidden = true;
+  $("i-balances").hidden = false;
   $("i-open").value = centsToInput(pv.opening_balance_cents);
   $("i-close").value = centsToInput(pv.closing_balance_cents);
   $("i-warnings").replaceChildren(...pv.warnings.map((w) => el("p", { class: "warning" }, w)));
@@ -415,9 +425,78 @@ const HINT_LABEL = {
 };
 const hintTag = (h) => el("span", { class: "tag tag-hint" }, HINT_LABEL[h] || h);
 
+// ----- Plusieurs relevés d'un coup -----
+const shortName = (n) => (n.length > 34 ? n.slice(0, 31) + "…" : n);
+const periodLabel = (st) => (st.period_start && st.period_end
+  ? `du ${dateFr(st.period_start)} au ${dateFr(st.period_end)}` : "période inconnue");
+
+async function runBatchPreview() {
+  $("i-error").textContent = "";
+  if (!$("i-account").value) { $("i-error").textContent = "Créez d'abord un compte (onglet Comptes)."; return; }
+  $("i-error").replaceChildren(el("span", { class: "muted" }, `Lecture de ${imp.files.length} fichiers…`));
+  try {
+    const files = await Promise.all(imp.files.map(async (f) => ({ name: f.name, fmt: fmtOf(f), bytes: await f.arrayBuffer() })));
+    const res = await api(`/api/import/preview-batch?account_id=${encodeURIComponent($("i-account").value)}`, { raw: files });
+    imp.statements = res.statements;
+  } catch (e) {
+    $("i-error").textContent = e.message;
+    $("i-review").hidden = true;
+    return;
+  }
+  $("i-error").textContent = "";
+  imp.rows = imp.statements.flatMap((st, i) => st.transactions.map((t) => Object.assign(t, { _st: i })));
+  $("i-options").hidden = true;
+  $("i-balances").hidden = true;
+  $("i-batch").hidden = false;
+  $("i-review").hidden = false;
+  $("i-warnings").replaceChildren(...imp.statements.flatMap((st) => (st.warnings || []).map((w) =>
+    el("p", { class: "warning" }, `${shortName(st.name)} : ${w}`))));
+  renderRows();
+}
+
+/** Récapitulatif par relevé : cohérence (recalculée en direct) et continuité entre relevés. */
+function renderBatchSummary() {
+  let ok = 0, checked = 0;
+  const rows = imp.statements.map((st, i) => {
+    if (st.error) {
+      return el("tr", {}, el("td", {}, shortName(st.name)), el("td", { colspan: 3, class: "error" }, `✕ ${st.error}`));
+    }
+    const mine = imp.rows.filter((t) => t._st === i);
+    const sum = mine.reduce((s, t) => s + t.amount_cents, 0);
+    let coh;
+    if (st.opening_balance_cents === null || st.closing_balance_cents === null) coh = el("span", { class: "muted" }, "soldes non trouvés");
+    else {
+      checked++;
+      const diff = st.opening_balance_cents + sum - st.closing_balance_cents;
+      if (diff === 0) ok++;
+      coh = diff === 0 ? el("span", { class: "pill pill-good" }, "✓ Cohérent") : el("span", { class: "pill pill-bad" }, `✕ Écart ${money(diff)}`);
+    }
+    const cont = st.duplicate_of
+      ? el("div", { class: "small muted" }, `Même relevé que « ${shortName(st.duplicate_of)} » : ses opérations sont décochées.`)
+      : st.continuity && st.continuity.status === "gap"
+        ? el("div", { class: "small trend-up" }, `⚠ ne suit pas le relevé précédent (${money(st.continuity.diff_cents)}) : relevé manquant ?`) : null;
+    const sel = mine.filter((t) => t.selected).length;
+    return el("tr", {},
+      el("td", {}, shortName(st.name), el("div", { class: "muted small" }, periodLabel(st))),
+      el("td", { class: "num nowrap" }, `${sel} / ${mine.length}`),
+      el("td", {}, coh, cont));
+  });
+  const errors = imp.statements.filter((st) => st.error).length;
+  const gaps = imp.statements.filter((st) => st.continuity && st.continuity.status === "gap").length;
+  const twins = imp.statements.filter((st) => st.duplicate_of).length;
+  $("i-batch").replaceChildren(
+    el("p", { class: ok === checked && !gaps && !errors ? "ok-box" : "warning" },
+      `${imp.statements.length} relevés · ${ok}/${checked} cohérents` + (gaps ? ` · ${gaps} rupture(s) entre relevés` : "") +
+      (errors ? ` · ${errors} fichier(s) illisible(s)` : "") + (twins ? ` · ${twins} relevé(s) en double` : "")),
+    el("div", { class: "table-wrap" }, el("table", { class: "tx" },
+      el("thead", {}, el("tr", {}, el("th", {}, "Relevé"), el("th", { class: "num" }, "À enregistrer"), el("th", {}, "Contrôle"))),
+      el("tbody", {}, ...rows))));
+}
+
 function renderRows() {
   $("i-body").replaceChildren(...imp.rows.map((t) => {
     const tags = [];
+    if (imp.batch) tags.push(el("span", { class: "tag tag-dup" }, shortName(imp.statements[t._st].name)));
     if (t.duplicate === "exact") tags.push(el("span", { class: "tag tag-dup" }, "Déjà importée"));
     if (t.duplicate === "probable") tags.push(el("span", { class: "tag tag-warn" }, "Doublon probable"));
     if (t.uncertain_sign) tags.push(el("span", { class: "tag tag-warn" }, "Sens deviné"));
@@ -449,6 +528,7 @@ function updateCounts() {
     (dups ? ` · ${dups} doublon(s) décoché(s) d'office` : "");
   $("i-commit").textContent = `Enregistrer ${sel.length} opération(s)`;
   $("i-commit").disabled = sel.length === 0;
+  if (imp.batch) { $("i-coherence").replaceChildren(); renderBatchSummary(); return; }
 
   // Contrôle de cohérence : solde début + TOUTES les opérations du relevé = solde fin.
   const open = parseEuros($("i-open").value), close = parseEuros($("i-close").value);
@@ -469,6 +549,27 @@ function updateCounts() {
 $("i-commit").addEventListener("click", async () => {
   const sel = imp.rows.filter((t) => t.selected);
   $("i-commit").disabled = true;
+  if (imp.batch) {
+    try {
+      const r = await api("/api/import/commit-batch", { body: {
+        account_id: Number($("i-account").value),
+        statements: imp.statements.filter((st) => !st.error).map((st) => {
+          const i = imp.statements.indexOf(st);
+          return { source: st.fmt, period_start: st.period_start, period_end: st.period_end,
+            opening_balance_cents: st.opening_balance_cents, closing_balance_cents: st.closing_balance_cents,
+            transactions: sel.filter((t) => t._st === i).map((t) => ({ date: t.date, label: t.label, amount_cents: t.amount_cents,
+              fingerprint: t.fingerprint, hint: t.hint })) };
+        }),
+      } });
+      resetImport();
+      $("i-error").replaceChildren(el("span", { class: "ok-text" }, `${r.inserted} opération(s) enregistrée(s), ${r.statements} relevé(s).`));
+      await loadAccounts();
+    } catch (e) {
+      $("i-error").textContent = e.message;
+      $("i-commit").disabled = false;
+    }
+    return;
+  }
   try {
     const r = await api("/api/import/commit", { body: {
       account_id: Number($("i-account").value), source: imp.fmt,

@@ -78,3 +78,17 @@ test("CSV Trade Republic : frais séparés, montants arrondis, dividende = reven
   assert.deepEqual(st.transactions.map((t) => [t.amount_cents, t.hint]),
     [[-4999, "investissement"], [-100, "frais"], [420, "dividende"], [-63, "impot"]]);
 });
+
+test("import par lot : un même relevé choisi deux fois est reconnu comme doublon", async () => {
+  const { flagDuplicates } = await import("../docs/js/analytics.js");
+  const d = newData();
+  d.accounts.push({ id: 900, name: "Bourso" });
+  const mk = () => [{ date: "2026-03-02", label: "PRLV SEPA FREE MOBILE", amount_cents: -1999 },
+    { date: "2026-03-28", label: "VIR SALAIRE", amount_cents: 240000 }];
+  const first = mk(), second = mk();
+  await flagDuplicates(d, 900, first, []);
+  await flagDuplicates(d, 900, second, first);
+  assert.deepEqual(first.map((t) => t.duplicate), [null, null]);
+  assert.deepEqual(second.map((t) => t.duplicate), ["exact", "exact"]);
+  assert.ok(second.every((t) => !t.selected));
+});

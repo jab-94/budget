@@ -62,15 +62,20 @@ export function labelSimilarity(a, b) {
   return inter / Math.min(ta.size, tb.size);
 }
 
-export async function flagDuplicates(data, accountId, txs) {
+/**
+ * Marque les doublons : « exact » (même empreinte) ou « probable » (même montant, ±3 jours, libellé proche).
+ * batch : opérations des fichiers PRÉCÉDENTS du même lot d'import (même mois sélectionné deux fois…).
+ */
+export async function flagDuplicates(data, accountId, txs, batch = []) {
   const fps = await fingerprints(accountId, txs);
-  const existing = new Set(data.transactions.filter((t) => t.account_id === accountId).map((t) => t.fingerprint));
+  const known = [...data.transactions.filter((t) => t.account_id === accountId), ...batch];
+  const existing = new Set(known.map((t) => t.fingerprint));
   txs.forEach((t, i) => { t.fingerprint = fps[i]; t.duplicate = existing.has(fps[i]) ? "exact" : null; });
   const pending = txs.filter((t) => t.duplicate === null);
   if (pending.length) {
     const dates = pending.map((t) => t.date).sort();
     const lo = addDays(dates[0], -3), hi = addDays(dates[dates.length - 1], 3);
-    const rows = data.transactions.filter((t) => t.account_id === accountId && t.date >= lo && t.date <= hi);
+    const rows = known.filter((t) => t.date >= lo && t.date <= hi);
     for (const t of pending) {
       for (const r of rows) {
         if (r.amount_cents === t.amount_cents && Math.abs(daysBetween(r.date, t.date)) <= 3 && labelSimilarity(r.label, t.label) >= 0.5) {
