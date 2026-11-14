@@ -475,6 +475,7 @@ export async function handle(method, fullPath, body, raw) {
 
   // ---------- Tableau de bord, budgets, revenus, suggestions ----------
   if (p === "/api/stats/spending") return spendingStats(D(), monthOr400(q.get("month")), intOrNull(q.get("account_id")));
+  if (p === "/api/stats/income") return spendingStats(D(), monthOr400(q.get("month")), intOrNull(q.get("account_id")), "income");
   if (p === "/api/dashboard") {
     return dashboard(D(), monthOr400(q.get("month")), Math.max(3, Math.min(Number(q.get("months") || 12), 36)),
       intOrNull(q.get("account_id")), intOrNull(q.get("category_id")));

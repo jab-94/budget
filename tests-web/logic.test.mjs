@@ -271,3 +271,18 @@ test("carte Dépenses : semaine, mois, 12 mois", async () => {
   assert.equal(week.value_cents, 0);             // 22-28 oct. : aucune dépense
   assert.equal(spendingStats(d, "2026-09").ranges[1].value_cents, 90000);
 });
+
+test("carte Revenus : mêmes périodes, montants entrants", async () => {
+  const { spendingStats } = await import("../docs/js/analytics.js");
+  const d = newData();
+  d.accounts.push({ id: 900, name: "LCL" });
+  let id = 1000;
+  const add = (date, label, cents) => d.transactions.push({ id: id++, account_id: 900, date, label, amount_cents: cents, category_locked: 0 });
+  add("2026-09-28", "VIR SALAIRE", 200000);
+  add("2026-10-28", "VIR SALAIRE", 250000);
+  add("2026-10-05", "CB CARREFOUR", -9000);
+  categorizeAll(d);
+  const month = spendingStats(d, "2026-10", null, "income").ranges[1];
+  assert.equal(month.value_cents, 250000);
+  assert.equal(month.delta_pct, 25);
+});

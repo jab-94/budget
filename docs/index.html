@@ -25,7 +25,7 @@
     <div class="brand">
       <span class="brand-mark" aria-hidden="true"><img class="bm-light" src="brand-light-v1.png" alt="" width="34" height="34"><img class="bm-dark" src="brand-dark-v1.png" alt="" width="34" height="34"></span>
       <div>
-        <strong>Budget</strong>
+        <strong>Budget <span id="app-version" class="app-version" title="Version de l'app"></span></strong>
         <span class="brand-sub" title="Les données sont chiffrées sur cet appareil avant tout envoi"><span class="live-dot"></span>Chiffré de bout en bout</span>
       </div>
     </div>
@@ -114,7 +114,7 @@
 
       <div id="dash-grid" class="dash-grid">
         <!-- Dépenses : semaine / mois / 12 mois (carte animée) -->
-        <article class="card stat-card" id="stat-card" hidden>
+        <article class="card stat-card sc-expense" id="stat-card" hidden>
           <div class="sc-top">
             <div>
               <p class="sc-lab"></p>
@@ -136,6 +136,37 @@
             <button type="button" data-r="0">Semaine</button><button type="button" data-r="1">Mois</button><button type="button" data-r="2">12 mois</button>
           </div>
         </article>
+        <!-- Revenus : semaine / mois / 12 mois (carte animée) -->
+        <article class="card stat-card sc-income" id="stat-card-income" hidden>
+          <div class="sc-top">
+            <div>
+              <p class="sc-lab"></p>
+              <p class="sc-big">0 €</p>
+              <p class="sc-cmp muted small"></p>
+            </div>
+            <span class="sc-delta" title="Évolution par rapport à la période précédente"></span>
+          </div>
+          <div class="sc-cw">
+            <svg class="sc-chart" aria-hidden="true">
+              <defs><linearGradient id="sc-area-inc" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="sc-stop-top"/><stop offset="1" class="sc-stop-bottom"/></linearGradient></defs>
+              <path class="sc-fill" fill="url(#sc-area-inc)"/>
+              <path class="sc-line" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span class="sc-dot"></span>
+          </div>
+          <div class="sc-seg" role="group" aria-label="Période">
+            <span class="sc-pill"></span>
+            <button type="button" data-r="0">Semaine</button><button type="button" data-r="1">Mois</button><button type="button" data-r="2">12 mois</button>
+          </div>
+        </article>
+        <!-- Revenus -->
+        <article class="card">
+          <div class="card-head"><h2>Revenus</h2></div>
+          <p class="amount-l" id="dash-income"></p>
+          <p id="dash-income-delta" class="muted small"></p>
+          <ul id="dash-incomes" class="simple-list"></ul>
+          <div id="dash-salary" class="remaining-box" hidden></div>
+        </article>
         <!-- Solde du mois -->
         <article class="card hero span-2">
           <div class="card-head"><h2>Solde du mois</h2><span id="dash-uncat" class="pill pill-muted" hidden></span></div>
@@ -149,13 +180,11 @@
           <div id="dash-stack" class="stack" role="img"></div>
           <ul id="dash-stack-legend" class="stack-legend"></ul>
         </article>
-        <!-- Revenus -->
+        <!-- Budgets -->
         <article class="card">
-          <div class="card-head"><h2>Revenus</h2></div>
-          <p class="amount-l" id="dash-income"></p>
-          <p id="dash-income-delta" class="muted small"></p>
-          <ul id="dash-incomes" class="simple-list"></ul>
-          <div id="dash-salary" class="remaining-box" hidden></div>
+          <div class="card-head"><h2>Budgets</h2><button type="button" class="link" data-goto="budgets">Gérer</button></div>
+          <p id="dash-budget-summary" class="muted small"></p>
+          <ul id="dash-budgets" class="budget-list"></ul>
         </article>
         <!-- Évolution -->
         <article class="card span-2">
@@ -172,11 +201,13 @@
           <div id="dash-chart" class="chart"></div>
           <details class="small"><summary>Voir en tableau</summary><div class="table-wrap"><table class="tx" id="dash-table"></table></div></details>
         </article>
-        <!-- Budgets -->
+        <!-- Dépenses par catégorie -->
         <article class="card">
-          <div class="card-head"><h2>Budgets</h2><button type="button" class="link" data-goto="budgets">Gérer</button></div>
-          <p id="dash-budget-summary" class="muted small"></p>
-          <ul id="dash-budgets" class="budget-list"></ul>
+          <div class="card-head"><h2>Dépenses par catégorie</h2></div>
+          <p class="amount-l" id="dash-expenses"></p>
+          <p id="dash-expenses-delta" class="muted small"></p>
+          <ul id="dash-cats" class="cat-bars"></ul>
+          <p class="muted small">Cliquez sur une catégorie pour voir son évolution.</p>
         </article>
         <!-- Abonnements -->
         <article class="card span-2">
@@ -188,20 +219,6 @@
           <p id="dash-subs-more" class="small" hidden><button type="button" class="link" data-goto="subs"></button></p>
           <p id="dash-subs-empty" class="muted small" hidden>Aucun abonnement repéré : il faut au moins 3 mois de relevés.</p>
         </article>
-        <!-- Dépenses par catégorie -->
-        <article class="card">
-          <div class="card-head"><h2>Dépenses par catégorie</h2></div>
-          <p class="amount-l" id="dash-expenses"></p>
-          <p id="dash-expenses-delta" class="muted small"></p>
-          <ul id="dash-cats" class="cat-bars"></ul>
-          <p class="muted small">Cliquez sur une catégorie pour voir son évolution.</p>
-        </article>
-        <!-- Suggestions (aperçu) -->
-        <article class="card span-2">
-          <div class="card-head"><h2>Suggestions d'économies</h2><button type="button" class="link" data-goto="insights">Tout voir</button></div>
-          <ul id="dash-suggestions" class="suggestion-list compact"></ul>
-        </article>
-
         <!-- À venir -->
         <article class="card">
           <div class="card-head"><h2>À venir</h2><span id="dash-upcoming-total" class="muted small"></span></div>
@@ -209,8 +226,14 @@
           <ul id="dash-upcoming" class="upcoming-list"></ul>
         </article>
 
+        <!-- Suggestions (aperçu) -->
+        <article class="card span-all">
+          <div class="card-head"><h2>Suggestions d'économies</h2><button type="button" class="link" data-goto="insights">Tout voir</button></div>
+          <ul id="dash-suggestions" class="suggestion-list compact"></ul>
+        </article>
+
         <!-- Plus grosses dépenses -->
-        <article class="card span-2">
+        <article class="card span-all">
           <div class="card-head"><h2>Plus grosses dépenses du mois</h2><button type="button" class="link" data-goto="ops">Toutes les opérations</button></div>
           <ul id="dash-top" class="simple-list"></ul>
         </article>

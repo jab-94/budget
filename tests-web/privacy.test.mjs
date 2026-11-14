@@ -84,3 +84,9 @@ test("règles Firestore : seul le propriétaire", () => {
 test("pdf.js : pas d'exécution de code généré", () => {
   assert.ok(read("js/pdfparse.js").includes("isEvalSupported: false"));
 });
+
+test("le numéro de version affiché correspond au cache du service worker", () => {
+  const shown = read("js/version.js").match(/APP_VERSION = "(\d+)"/)[1];
+  const cache = read("service-worker.js").match(/CACHE_VERSION = "budget-v(\d+)"/)[1];
+  assert.equal(shown, cache, "augmenter APP_VERSION (js/version.js) en même temps que CACHE_VERSION");
+});

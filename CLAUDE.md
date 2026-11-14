@@ -24,6 +24,8 @@ l'utilisateur ; encore visible dans l'historique Git). Ne pas la recréer.
 ## Livraison de la version web (IMPORTANT)
 - **Augmenter `CACHE_VERSION` dans `docs/service-worker.js` à chaque publication** (`budget-v1`, `budget-v2`…),
   sinon les téléphones gardent l'ancienne version en cache.
+  Augmenter AUSSI `APP_VERSION` dans `docs/js/version.js` (même numéro, affiché « v15 » à côté du titre ;
+  un test vérifie qu'ils concordent).
 - Ajouter tout nouveau fichier JS à la liste `CORE` du service worker.
 - Icônes : iOS garde l'ancienne image en cache → à chaque nouvelle icône, CHANGER LE NOM des fichiers
   (`apple-touch-icon-v3.png`…) dans index.html, manifest.json et `CORE`. Générateur : `tools/icon/gen_icon.py`.
@@ -44,7 +46,8 @@ l'utilisateur ; encore visible dans l'historique Git). Ne pas la recréer.
 - Carte « Dépenses » animée en tête de l'accueil (`docs/js/statcard.js` + moteur de ressorts `docs/js/motion.js`,
   d'après le composant « Stat card » de designbookmark.com ; ressorts d'origine : points 200/17, chiffres 160/22,
   pastille 380/30, décalage 0,03 s). Données : `spendingStats()` (7 jours glissants, mois, 12 mois cumulés).
-  Pas de défilement automatique (choix de l'utilisateur).
+  Pas de défilement automatique (choix de l'utilisateur). Même carte pour les Revenus (`/api/stats/income`,
+  pastille verte quand ça monte).
 
 ## Calibrage des banques (d'après des extraits MASQUÉS, jamais de vrais relevés)
 - LCL : PDF (« Crédit Lyonnais », point « . » = débit, lignes REF/NATURE ignorées). Colonne DATE

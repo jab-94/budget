@@ -619,10 +619,11 @@ export function updateSubscription(data, body, today) {
   return pref;
 }
 
-// ================= Carte « Dépenses » de l'accueil (semaine / mois / 12 mois) =================
+// ================= Cartes « Dépenses » et « Revenus » de l'accueil (semaine / mois / 12 mois) =================
 // 12 points par période pour la courbe. Jour de référence = dernier jour du mois affiché, ou la
 // dernière opération connue si le mois est en cours.
-export function spendingStats(data, month = null, accountId = null) {
+export function spendingStats(data, month = null, accountId = null, kind = "expense") {
+  const field = kind === "income" ? "income_cents" : "expense_cents";
   const rows = enrich(data, accountId);
   if (!rows.length) return null;
   const available = monthsWithData(data, accountId);
@@ -631,8 +632,8 @@ export function spendingStats(data, month = null, accountId = null) {
   const y = Number(month.slice(0, 4)), mo = Number(month.slice(5, 7));
   const monthEnd = `${month}-${String(lastDayOfMonth(y, mo)).padStart(2, "0")}`;
   const ref = lastOp < monthEnd ? lastOp : monthEnd;
-  const spent = (from, to) => totals(rows.filter((r) => r.date >= from && r.date <= to)).expense_cents;
-  const monthSpent = (m) => totals(rows.filter((r) => r.date.slice(0, 7) === m)).expense_cents;
+  const spent = (from, to) => totals(rows.filter((r) => r.date >= from && r.date <= to))[field];
+  const monthSpent = (m) => totals(rows.filter((r) => r.date.slice(0, 7) === m))[field];
   const pct = (cur, prev) => (prev > 0 ? Math.round(((cur - prev) / prev) * 1000) / 10 : null);
 
   // Semaine : 12 fenêtres de 7 jours, la dernière se terminant au jour de référence.
@@ -650,7 +651,7 @@ export function spendingStats(data, month = null, accountId = null) {
   const coversPrevYear = available.length && available[0] <= monthAdd(month, -23);
 
   return {
-    month, ref_date: ref,
+    kind, month, ref_date: ref,
     ranges: [
       { key: "week", from: addDays(ref, -6), to: ref, value_cents: weeks[11], previous_cents: weeks[10],
         delta_pct: pct(weeks[11], weeks[10]), points: weeks },

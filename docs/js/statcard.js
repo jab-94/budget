@@ -4,7 +4,8 @@
 // l'autre (0,03 s d'écart). Mêmes ressorts que l'original : points 200/17, chiffres 160/22, pastille 380/30.
 import { S, after, atRest, clamp, register, start, step } from "./motion.js";
 
-export function mountStatCard(root, { format, describe }) {
+// upIsGood : une hausse est une bonne nouvelle (revenus) -> pastille verte ; sinon rouge (dépenses).
+export function mountStatCard(root, { format, describe, upIsGood = false }) {
   const q = (s) => root.querySelector(s);
   const chart = q(".sc-chart"), line = q(".sc-line"), fill = q(".sc-fill"), dot = q(".sc-dot");
   const big = q(".sc-big"), delta = q(".sc-delta"), pill = q(".sc-pill"), lab = q(".sc-lab"), cmp = q(".sc-cmp");
@@ -41,8 +42,9 @@ export function mountStatCard(root, { format, describe }) {
       lab.textContent = d.label;
       cmp.textContent = d.compare;
       delta.hidden = R.delta_pct === null;
-      delta.classList.toggle("up", (R.delta_pct ?? 0) > 0);
-      delta.classList.toggle("down", (R.delta_pct ?? 0) < 0);
+      const up = (R.delta_pct ?? 0) > 0, down = (R.delta_pct ?? 0) < 0;
+      delta.classList.toggle("bad", upIsGood ? down : up);
+      delta.classList.toggle("good", upIsGood ? up : down);
       const target = normalize(R.points);
       pts.forEach((p, k) => after(k * 0.03, () => { if (gen === g) { p.t = target[k]; start(); } }));
     }
