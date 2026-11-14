@@ -92,6 +92,7 @@ function showLock() {
       "Choisissez-le DIFFÉRENT de celui du compte. S'il est oublié, les données sont perdues définitivement."
     : "Entrez le mot de passe du coffre pour le déchiffrer sur cet appareil.";
   $("pw2-wrap").hidden = !creating;
+  $("pw").autocomplete = creating ? "new-password" : "current-password";
   $("pw-help").hidden = !creating;
   $("pw-help").textContent = `Au moins ${MIN_PASSWORD_LENGTH} caractères. Idéal : une phrase de 4 ou 5 mots.`;
   $("lock-submit").textContent = creating ? "Créer le coffre" : "Ouvrir";
@@ -105,13 +106,23 @@ function showLock() {
   $("pw").focus();
 }
 
+/**
+ * Après une connexion réussie : Safari (et les autres navigateurs) ne proposent d'enregistrer le mot de
+ * passe que s'ils « voient » une connexion aboutir. Le formulaire est masqué et une étape d'historique
+ * est ajoutée (même adresse), puis les champs sont vidés un peu plus tard.
+ */
+function offerToSavePassword(ids) {
+  try { history.pushState({ signedIn: Date.now() }, "", location.href); } catch (_) { /* sans importance */ }
+  setTimeout(() => { for (const id of ids) $(id).value = ""; }, 3000);
+}
+
 $("login-form").addEventListener("submit", async (ev) => {
   ev.preventDefault();
   $("login-error").textContent = "";
   $("login-submit").disabled = true;
   try {
     await cloud.login($("login-email").value.trim(), $("login-pw").value);
-    $("login-pw").value = "";
+    offerToSavePassword(["login-pw"]);
   } catch (e) {
     $("login-error").textContent = e.message;
   } finally {
@@ -137,7 +148,7 @@ $("lock-form").addEventListener("submit", async (ev) => {
   try {
     if (creating) await store.create(user.uid, pw);
     else await store.unlock(user.uid, pw, peek.remote);
-    $("pw").value = ""; $("pw2").value = "";
+    offerToSavePassword(["pw", "pw2"]);
     await refresh();
   } catch (e) {
     $("lock-error").textContent = e instanceof WrongPassword ? "Mot de passe du coffre incorrect." : e.message;

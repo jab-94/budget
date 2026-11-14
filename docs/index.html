@@ -60,8 +60,8 @@
         <h2>Connexion</h2>
         <p class="muted small">Votre compte sert à retrouver votre coffre sur tous vos appareils.
           Il ne permet pas de le lire : seul le mot de passe du coffre le déchiffre.</p>
-        <label>E-mail <input type="email" id="login-email" autocomplete="username" required></label>
-        <label>Mot de passe du compte <input type="password" id="login-pw" autocomplete="current-password" required></label>
+        <label>E-mail <input type="email" id="login-email" name="email" autocomplete="username" required></label>
+        <label>Mot de passe du compte <input type="password" id="login-pw" name="password" autocomplete="current-password" required></label>
         <button type="submit" id="login-submit">Se connecter</button>
         <p id="login-error" class="error" role="alert"></p>
       </form>
@@ -70,12 +70,16 @@
         <h2 id="lock-title">Déverrouiller</h2>
         <p id="lock-intro" class="muted"></p>
         <div id="lock-warnings"></div>
-        <form id="lock-form" autocomplete="off">
+        <form id="lock-form" autocomplete="on">
+          <!-- Identifiant fixe et invisible : le trousseau (iCloud, gestionnaire de mots de passe) range le
+               mot de passe du coffre sous « Coffre Budget », à part de celui du compte (rangé sous l'e-mail). -->
+          <input type="text" id="vault-user" name="username" autocomplete="username" value="Coffre Budget" readonly
+            tabindex="-1" aria-hidden="true" class="visually-hidden">
           <label>Mot de passe du coffre
-            <input type="password" id="pw" autocomplete="off" required>
+            <input type="password" id="pw" name="password" autocomplete="current-password" required>
           </label>
           <label id="pw2-wrap" hidden>Confirmer le mot de passe du coffre
-            <input type="password" id="pw2" autocomplete="off">
+            <input type="password" id="pw2" name="password-confirm" autocomplete="new-password">
           </label>
           <p id="pw-help" class="muted small" hidden></p>
           <button type="submit" id="lock-submit">Ouvrir</button>
