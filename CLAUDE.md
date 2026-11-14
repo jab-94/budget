@@ -25,6 +25,8 @@ l'utilisateur ; encore visible dans l'historique Git). Ne pas la recréer.
 - **Augmenter `CACHE_VERSION` dans `docs/service-worker.js` à chaque publication** (`budget-v1`, `budget-v2`…),
   sinon les téléphones gardent l'ancienne version en cache.
 - Ajouter tout nouveau fichier JS à la liste `CORE` du service worker.
+- Icônes : iOS garde l'ancienne image en cache → à chaque nouvelle icône, CHANGER LE NOM des fichiers
+  (`apple-touch-icon-v3.png`…) dans index.html, manifest.json et `CORE`. Générateur : `tools/icon/gen_icon.py`.
 - Service worker : RÉSEAU D'ABORD pour le code (HTML/CSS/js), cache d'abord seulement pour vendor/ et
   les icônes. Ne jamais repasser le code en « cache d'abord » : la page et le code se désynchronisaient
   après une mise à jour (bug vécu : import multiple qui ne lisait qu'un fichier).
