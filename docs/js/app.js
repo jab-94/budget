@@ -7,6 +7,8 @@ import { MIN_PASSWORD_LENGTH, store, WrongPassword } from "./store.js";
 import { mountStatCard } from "./statcard.js";
 import { APP_VERSION } from "./version.js";
 import { setupGlassTabBar } from "./tabbar.js";
+import { askConfirm, closeModal, openModal } from "./glass.js";
+import { setupGlassUi } from "./glassui.js";
 
 document.getElementById("app-version").textContent = `v${APP_VERSION}`;
 
@@ -197,6 +199,7 @@ function applyGlass(v, save = true) {
   $("glass-range").value = v;
   $("glass-value").textContent = glassLabel(v);
   if (save) { try { localStorage.setItem("glass-transparency", String(v / 100)); } catch (_) { /* rien */ } }
+  document.dispatchEvent(new CustomEvent("glass-transparency-change", { detail: v }));
 }
 {
   let saved = null;
@@ -211,10 +214,12 @@ $("glass-reset").addEventListener("click", () => {
 setupGlassTabBar({ showTab: (t) => showTab(t), current: () => currentTab })
   .then((b) => { glassBar = b; })
   .catch((e) => { console.warn("Barre d'onglets en verre indisponible :", e); });
+setupGlassUi().catch((e) => { console.warn("Éléments en verre indisponibles :", e); });
 
 function showTab(name) {
   currentTab = name;
   if (glassBar) glassBar.select(name);
+  document.dispatchEvent(new CustomEvent("tab-shown", { detail: name }));
   for (const b of document.querySelectorAll("#tabs button")) b.classList.toggle("active", b.dataset.tab === name);
   for (const s of document.querySelectorAll(".tab")) s.hidden = s.id !== "tab-" + name;
   if (name === "ops") loadOps();
@@ -302,7 +307,7 @@ async function deleteAccount(a) {
   const msg = a.tx_count
     ? `Supprimer « ${a.name} » et ses ${a.tx_count} opération(s) ? C'est irréversible.`
     : `Supprimer « ${a.name} » ?`;
-  if (!confirm(msg)) return;
+  if (!(await askConfirm(msg, { confirmLabel: "Supprimer", destructive: true }))) return;
   await api(`/api/accounts/${a.id}`, { method: "DELETE" });
   await loadAccounts();
 }
@@ -370,7 +375,7 @@ async function loadOps() {
     el("td", {}, el("button", {
       class: "icon-btn", title: "Supprimer", "aria-label": "Supprimer",
       onclick: async () => {
-        if (!confirm("Supprimer cette opération ?")) return;
+        if (!(await askConfirm("Supprimer cette opération ?", { confirmLabel: "Supprimer", destructive: true }))) return;
         await api(`/api/transactions/${r.id}`, { method: "DELETE" });
         loadOps(); loadAccounts();
       },
@@ -398,11 +403,11 @@ function openTxDialog(r) {
       (o.account_id !== r.account_id ? ` · ${accounts.find((a) => a.id === o.account_id)?.name || "autre compte"}` : "");
   }
   $("tx-error").textContent = "";
-  $("tx-dialog").showModal();
+  openModal("tx-dialog");
 }
 async function txDone(promise) {
   try { await promise; } catch (e) { $("tx-error").textContent = e.message; return; }
-  $("tx-dialog").close();
+  closeModal("tx-dialog");
   loadOps(); loadAccounts();
 }
 $("tx-form").addEventListener("submit", (ev) => {
@@ -415,11 +420,13 @@ $("tx-form").addEventListener("submit", (ev) => {
   } }));
 });
 $("tx-restore").addEventListener("click", () => txDone(api(`/api/transactions/${txEdit.id}/restore`, { method: "POST" })));
-$("tx-delete").addEventListener("click", () => {
-  if (confirm("Supprimer cette opération ?")) txDone(api(`/api/transactions/${txEdit.id}`, { method: "DELETE" }));
+$("tx-delete").addEventListener("click", async () => {
+  if (await askConfirm("Supprimer cette opération ?", { confirmLabel: "Supprimer", destructive: true })) {
+    txDone(api(`/api/transactions/${txEdit.id}`, { method: "DELETE" }));
+  }
 });
-$("tx-cancel").addEventListener("click", () => $("tx-dialog").close());
-$("tx-cat").addEventListener("click", () => { $("tx-dialog").close(); openCategoryDialog(txEdit); });
+$("tx-cancel").addEventListener("click", () => closeModal("tx-dialog"));
+$("tx-cat").addEventListener("click", () => { closeModal("tx-dialog"); openCategoryDialog(txEdit); });
 
 $("m-date").value = new Date().toISOString().slice(0, 10);
 $("manual-form").addEventListener("submit", async (ev) => {
@@ -762,7 +769,7 @@ async function openCategoryDialog(r) {
   $("cd-exclude").value = ""; $("cd-sign").value = ""; $("cd-min").value = ""; $("cd-max").value = "";
   $("cd-more").open = false;
   $("cd-preview").textContent = "";
-  $("cat-dialog").showModal();
+  openModal("cat-dialog");
   const s = await api(`/api/transactions/${r.id}/suggest`);
   $("cd-pattern").value = s.pattern;
   updateDialogPreview();
@@ -785,10 +792,10 @@ $("cd-make-rule").addEventListener("change", () => {
 });
 for (const id of ["cd-pattern", "cd-exclude", "cd-min", "cd-max"]) $(id).addEventListener("input", () => debouncedPreview(updateDialogPreview));
 for (const id of ["cd-match", "cd-sign"]) $(id).addEventListener("change", () => debouncedPreview(updateDialogPreview));
-$("cd-cancel").addEventListener("click", () => $("cat-dialog").close());
+$("cd-cancel").addEventListener("click", () => closeModal("cat-dialog"));
 $("cd-auto").addEventListener("click", async () => {
   await api(`/api/transactions/${cdTx.id}/auto`, { method: "POST" });
-  $("cat-dialog").close();
+  closeModal("cat-dialog");
   loadOps();
 });
 $("cd-sub").addEventListener("click", async () => {
@@ -811,7 +818,7 @@ $("cat-dialog-form").addEventListener("submit", async (ev) => {
   }
   try {
     await api(`/api/transactions/${cdTx.id}/category`, { method: "PUT", body });
-    $("cat-dialog").close();
+    closeModal("cat-dialog");
     loadOps();
   } catch (e) { $("cd-error").textContent = e.message; }
 });
@@ -834,7 +841,8 @@ async function loadCategoriesTab() {
     el("div", { class: "row" },
       el("button", { class: "ghost small-btn", onclick: (ev) => editCategory(c, ev.target.closest("li")) }, "Modifier"),
       el("button", { class: "ghost small-btn", onclick: async () => {
-        if (!confirm(`Supprimer « ${c.name} » et ses ${c.rule_count} règle(s) ? Ses opérations seront reclassées automatiquement.`)) return;
+        if (!(await askConfirm(`Supprimer « ${c.name} » et ses ${c.rule_count} règle(s) ? Ses opérations seront reclassées automatiquement.`,
+          { confirmLabel: "Supprimer", destructive: true }))) return;
         await api(`/api/categories/${c.id}`, { method: "DELETE" });
         loadCategoriesTab();
       } }, "Supprimer")))));
@@ -980,8 +988,9 @@ function subItem(x) {
   if (x.status === "resilie") {
     actions.push(el("button", { type: "button", class: "ghost small-btn", onclick: () => subUpdate({ id: x.id, status: "auto" }) }, "Pas résilié finalement"));
   } else {
-    actions.push(el("button", { type: "button", class: "ghost small-btn", onclick: () => {
-      if (confirm(`Noter « ${x.name} » comme résilié ? Vous serez alerté s'il est encore prélevé ensuite.`)) subUpdate({ id: x.id, status: "cancelled" });
+    actions.push(el("button", { type: "button", class: "ghost small-btn", onclick: async () => {
+      if (await askConfirm(`Noter « ${x.name} » comme résilié ? Vous serez alerté s'il est encore prélevé ensuite.`,
+        { confirmLabel: "Résilié" })) subUpdate({ id: x.id, status: "cancelled" });
     } }, "Je l'ai résilié"));
   }
   if (x.origin === "manuel" && x.status !== "resilie") {

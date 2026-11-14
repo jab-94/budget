@@ -56,6 +56,12 @@ l'utilisateur ; encore visible dans l'historique Git). Ne pas la recréer.
   (dessin des lentilles dans un worker ; reste limité par connect-src).
   Réglage « Apparence » (onglet Comptes, téléphone) : curseur de transparence → `--lg-transparency` sur <html>
   (0 teintée, 0,5 normale, 1 transparente), gardé en localStorage `glass-transparency`, appliqué tôt par theme.js.
+- Autres éléments en verre (téléphone seulement, `docs/js/glass.js` + `docs/js/glassui.js`) : en-tête collant
+  (remplace la barre latérale), fenêtres « Modifier / Classer l'opération » en feuilles (`openModal`/`closeModal` :
+  le <form> passe dans la feuille puis revient dans sa <dialog>), questions en alertes iOS (`askConfirm`, sauf
+  export CSV et restauration qui gardent confirm()), thème en SegmentedControl et transparence en Slider
+  (Comptes › Apparence), recherche en SearchField, listes compte/catégorie en Menu. Les contrôles d'origine
+  restent dans la page (masqués) et gardent leurs écouteurs ; le verre les pilote. Ordinateur inchangé.
 
 ## Calibrage des banques (d'après des extraits MASQUÉS, jamais de vrais relevés)
 - LCL : PDF (« Crédit Lyonnais », point « . » = débit, lignes REF/NATURE ignorées). Colonne DATE

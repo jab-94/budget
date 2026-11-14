@@ -6,13 +6,11 @@ const MAIN = ["dashboard", "ops", "subs", "import"];
 const SHORT = { dashboard: "Accueil", ops: "Opérations", subs: "Abonnements", import: "Importer" };
 const MORE_ICON = "M5 12h.01M12 12h.01M19 12h.01";
 
+import { loadGlass } from "./glass.js";
+
 export async function setupGlassTabBar({ showTab, current }) {
-  if (!matchMedia("(max-width: 860px)").matches) return null;
-  const link = document.createElement("link");
-  link.rel = "stylesheet";
-  link.href = "vendor/liquidglass.css";
-  document.head.prepend(link); // avant app.css : nos règles gardent la priorité
-  const lg = await import("../vendor/liquidglass.js");
+  const lg = await loadGlass();
+  if (!lg) return null;
   const { h } = lg;
 
   const navButtons = [...document.querySelectorAll("#tabs button[data-tab]")];
