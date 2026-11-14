@@ -6,7 +6,7 @@ import { categorizeAll, previewRule, suggestPattern, validateRuleFields } from "
 import { coherence, dashboard, flagDuplicates, incomeAnalysis, insights, manualFingerprint, subscriptionIdOf, subscriptions,
   updateSubscription } from "./analytics.js";
 import { parseCsvStatement } from "./csvparse.js";
-import { validDate } from "./core.js";
+import { stripAccents, validDate } from "./core.js";
 import { availableParsers, parsePdf } from "./pdfparse.js";
 import { store } from "./store.js";
 
@@ -89,13 +89,39 @@ function listTransactions(d, q) {
   const cat = q.get("category");
   if (cat === "none") rows = rows.filter((t) => t.category_id === null || t.category_id === undefined);
   else if (cat) rows = rows.filter((t) => t.category_id === Number(cat));
+  if (q.get("from")) rows = rows.filter((t) => t.date >= q.get("from"));
+  if (q.get("to")) rows = rows.filter((t) => t.date <= q.get("to"));
+  if (q.get("sign") === "-") rows = rows.filter((t) => t.amount_cents < 0);
+  if (q.get("sign") === "+") rows = rows.filter((t) => t.amount_cents > 0);
+  const num = (k) => (q.get(k) && Number.isFinite(Number(q.get(k))) ? Number(q.get(k)) : null);
+  const min = num("min"), max = num("max");
+  if (min !== null) rows = rows.filter((t) => Math.abs(t.amount_cents) >= min);
+  if (max !== null) rows = rows.filter((t) => Math.abs(t.amount_cents) <= max);
+  const search = searchTokens(q.get("q"));
+  if (search.length) {
+    rows = rows.filter((t) => {
+      const hay = searchText(`${t.label} ${t.note || ""} ${cats.get(t.category_id)?.name || ""} ${accs.get(t.account_id)?.name || ""}`);
+      return search.every((w) => (w.cents !== null && Math.abs(t.amount_cents) === w.cents) || hay.includes(w.text));
+    });
+  }
   const limit = Math.max(1, Math.min(Number(q.get("limit") || 500), 5000));
   return [...rows].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : b.id - a.id)).slice(0, limit).map((t) => {
     const c = cats.get(t.category_id);
     return { id: t.id, account_id: t.account_id, account: accs.get(t.account_id)?.name ?? "", date: t.date, label: t.label,
       amount_cents: t.amount_cents, hint: t.hint ?? null, category_source: t.category_source ?? null,
       category_locked: t.category_locked ? 1 : 0, category_id: t.category_id ?? null, category: c ? c.name : null,
-      category_color: c ? c.color : null, statement_id: t.statement_id ?? null };
+      category_color: c ? c.color : null, statement_id: t.statement_id ?? null, note: t.note ?? null,
+      original: t.original ?? null };
+  });
+}
+
+// Recherche : majuscules sans accents ; un mot qui ressemble à un montant (« 13,49 », « 50 ») trouve
+// aussi les opérations de ce montant exact, au centime près, dépense ou revenu.
+const searchText = (s) => stripAccents(String(s)).toUpperCase().replace(/\s+/g, " ");
+export function searchTokens(query) {
+  return searchText(query || "").split(" ").filter(Boolean).slice(0, 10).map((w) => {
+    const m = w.match(/^[-+]?(\d+)(?:[.,](\d{1,2}))?$/);
+    return { text: w, cents: m ? Number(m[1]) * 100 + Number((m[2] || "0").padEnd(2, "0")) : null };
   });
 }
 
@@ -373,6 +399,43 @@ export async function handle(method, fullPath, body, raw) {
     categorizeAll(d);
     await save();
     return { id: t.id };
+  }
+  if (seg[1] === "transactions" && seg.length === 3 && method === "PUT") {
+    // Modifier une opération. L'empreinte anti-doublon n'est PAS recalculée : en réimportant le même
+    // relevé, l'opération d'origine reste reconnue (pas de doublon).
+    const d = D();
+    const t = d.transactions.find((x) => x.id === id(2));
+    if (!t) fail(404, "Opération introuvable.");
+    const label = String(body.label ?? t.label).trim().slice(0, 300);
+    if (!label) fail(400, "Libellé obligatoire.");
+    const iso = isoDate(body.date ?? t.date);
+    const cents = body.amount_cents === undefined ? t.amount_cents : Math.trunc(Number(body.amount_cents));
+    if (!Number.isFinite(cents) || cents === 0 || Math.abs(cents) > 1e11) fail(400, "Montant invalide.");
+    let accountId = t.account_id;
+    if (body.account_id !== undefined && body.account_id !== t.account_id) {
+      if (t.statement_id) fail(400, "Une opération importée d'un relevé reste sur le compte de ce relevé.");
+      accountOr404(d, body.account_id);
+      accountId = body.account_id;
+    }
+    const note = String(body.note ?? t.note ?? "").trim().slice(0, 300) || null;
+    if (!t.original && (iso !== t.date || label !== t.label || cents !== t.amount_cents || accountId !== t.account_id)) {
+      t.original = { date: t.date, label: t.label, amount_cents: t.amount_cents, account_id: t.account_id };
+    }
+    Object.assign(t, { date: iso, label, amount_cents: cents, account_id: accountId, note });
+    if (t.original && t.original.date === t.date && t.original.label === t.label && t.original.amount_cents === t.amount_cents
+      && t.original.account_id === t.account_id) delete t.original;
+    categorizeAll(d);
+    await save();
+    return { ok: true };
+  }
+  if (seg[1] === "transactions" && seg[3] === "restore" && method === "POST") {
+    const d = D();
+    const t = d.transactions.find((x) => x.id === id(2));
+    if (!t) fail(404, "Opération introuvable.");
+    if (t.original) { Object.assign(t, t.original); delete t.original; }
+    categorizeAll(d);
+    await save();
+    return { ok: true };
   }
   if (seg[1] === "transactions" && seg.length === 3 && method === "DELETE") {
     const d = D();

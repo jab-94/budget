@@ -296,6 +296,20 @@
             <input type="month" id="ops-month" aria-label="Mois">
           </div>
         </div>
+        <div class="ops-search">
+          <input type="search" id="ops-q" placeholder="Rechercher : libellé, montant (13,49), catégorie, note…" aria-label="Rechercher" autocomplete="off">
+        </div>
+        <details id="ops-more" class="ops-more">
+          <summary>Plus de filtres</summary>
+          <div class="grid">
+            <label>Sens <select id="ops-sign"><option value="">Dépenses et revenus</option><option value="-">Dépenses</option><option value="+">Revenus</option></select></label>
+            <label>Montant min. (€) <input type="text" id="ops-min" inputmode="decimal" placeholder="ex. 50"></label>
+            <label>Montant max. (€) <input type="text" id="ops-max" inputmode="decimal" placeholder="ex. 200"></label>
+            <label>Du <input type="date" id="ops-from"></label>
+            <label>Au <input type="date" id="ops-to"></label>
+            <div class="wide"><button type="button" id="ops-reset" class="ghost small-btn">Effacer tous les filtres</button></div>
+          </div>
+        </details>
         <p id="ops-summary" class="muted small"></p>
         <div class="table-wrap">
           <table class="tx">
@@ -304,6 +318,7 @@
           </table>
         </div>
         <p id="ops-empty" class="muted" hidden>Aucune opération pour ce filtre.</p>
+        <p class="muted small">Touchez un libellé pour modifier l'opération (date, montant, libellé, note…), ou sa catégorie pour la reclasser.</p>
       </div>
 
       <div class="card">
@@ -489,6 +504,30 @@
 </div>
 
   <!-- Fenêtre de correction de catégorie -->
+  <dialog id="tx-dialog">
+    <form id="tx-form" method="dialog">
+      <h2>Modifier l'opération</h2>
+      <div class="grid">
+        <label>Date <input type="date" id="tx-date" required></label>
+        <label>Compte <select id="tx-account"></select></label>
+        <label class="wide">Libellé <input type="text" id="tx-label" maxlength="300" required></label>
+        <label>Montant (€) <input type="text" id="tx-amount" inputmode="decimal" required></label>
+        <label>Sens <select id="tx-sign"><option value="-1">Dépense</option><option value="1">Revenu</option></select></label>
+        <label class="wide">Note (facultatif) <input type="text" id="tx-note" maxlength="300" placeholder="ex. cadeau anniversaire Léa"></label>
+      </div>
+      <p class="small">Catégorie : <button type="button" id="tx-cat" class="link"></button></p>
+      <p id="tx-imported" class="muted small" hidden>Opération importée d'un relevé : si vous réimportez ce relevé, elle sera toujours reconnue (pas de doublon).</p>
+      <p id="tx-original" class="warning small" hidden></p>
+      <p id="tx-error" class="error" role="alert"></p>
+      <div class="row">
+        <button type="submit">Enregistrer</button>
+        <button type="button" id="tx-restore" class="ghost" hidden>Rétablir l'original</button>
+        <button type="button" id="tx-delete" class="ghost danger-text">Supprimer</button>
+        <button type="button" id="tx-cancel" class="ghost">Annuler</button>
+      </div>
+    </form>
+  </dialog>
+
   <dialog id="cat-dialog">
     <form id="cat-dialog-form" method="dialog">
       <h2>Classer l'opération</h2>

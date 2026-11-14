@@ -148,7 +148,7 @@ h3 { font-size: 15px; margin: 16px 0 4px; }
 
 /* ---------- Formulaires et boutons ---------- */
 label { display: block; margin: 10px 0; font-weight: 500; font-size: 14px; }
-input[type=text], input[type=password], input[type=date], input[type=month], input[type=file], select {
+input[type=text], input[type=search], input[type=password], input[type=date], input[type=month], input[type=file], select {
   display: block; width: 100%; margin-top: 4px; font: inherit; font-size: 15px;
   color: var(--text); background: var(--surface-2);
   border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px;
@@ -451,3 +451,14 @@ dialog::backdrop { background: rgb(0 0 0 / .45); }
 .sub-body .link-like { color: var(--accent); cursor: pointer; }
 .cat-edit { width: 100%; padding: 6px 0; }
 .cat-edit .error:empty { display: none; }
+
+/* ----- Opérations : recherche et modification ----- */
+.ops-search input { width: 100%; }
+.ops-more { margin: 8px 0 4px; }
+.ops-more .grid { margin-top: 8px; }
+button.op-label { background: none; border: 0; padding: 0; margin: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+button.op-label:hover { color: var(--accent); text-decoration: underline; }
+.op-note { color: var(--accent); }
+.danger-text { color: var(--bad-text) !important; }
+#tx-dialog .grid { margin-bottom: 8px; }
+#tx-error:empty { display: none; }

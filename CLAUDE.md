@@ -1,13 +1,13 @@
 # Budget — contexte du projet pour Claude Code
 
 Suivi de budget personnel, **confidentialité d'abord** (contrainte n°1 de l'utilisateur).
-Deux versions, même logique métier :
 
-| | Version web (principale) | Version locale |
-|---|---|---|
-| Dossier | `docs/` (GitHub Pages : https://jab-94.github.io/budget/) | `app/` (Python, FastAPI, 127.0.0.1) |
-| Données | coffre chiffré dans le navigateur, synchronisé via Firebase (projet `budget-app-a4f61`) | fichier `.vault` chiffré |
-| Tests | `node --test tests-web/*.test.mjs` + `tests/test_web_privacy.py` | `.venv/bin/python -m pytest` |
+**Seule la version web compte** : `docs/` (GitHub Pages : https://jab-94.github.io/budget/), coffre chiffré
+dans le navigateur, synchronisé via Firebase (projet `budget-app-a4f61`).
+Tests : `node --test tests-web/*.test.mjs` + `.venv/bin/python -m pytest tests/test_web_privacy.py`.
+
+⚠ La version locale Python (`app/`, `static/`, `tests/` sauf `test_web_privacy.py`) est **ABANDONNÉE**
+(l'utilisateur l'a supprimée de sa machine, novembre 2026) : ne plus la modifier ni la tenir à parité.
 
 ## Règles non négociables
 - Les données ne sortent JAMAIS en clair : chiffrement dans le navigateur (PBKDF2-SHA256
@@ -29,15 +29,17 @@ Deux versions, même logique métier :
   les icônes. Ne jamais repasser le code en « cache d'abord » : la page et le code se désynchronisaient
   après une mise à jour (bug vécu : import multiple qui ne lisait qu'un fichier).
 - Push sur `main` → GitHub Pages republie en ~1 min.
-- La logique métier existe en double (Python `app/` et JS `docs/js/`) : toute règle modifiée d'un côté
-  doit l'être de l'autre ; `tests-web/logic.test.mjs` vérifie que les résultats concordent.
-- Catégories et règles par défaut : source = Python (`app/db.py`, `app/categorize.py`), puis
-  `.venv/bin/python tools/gen_web_defaults.py` régénère `docs/js/defaults.js`. Nouvelles catégories dans un
-  coffre existant : étape `seed_defaults` (Python) + migration dans `docs/js/migrations.js` (web).
-- Abonnements (`subscriptions()` dans `docs/js/analytics.js` et `app/subscriptions.py`) : règle de
+- Catégories et règles par défaut : `docs/js/defaults.js` (généré jusqu'ici depuis le Python par
+  `tools/gen_web_defaults.py` ; désormais on peut le modifier directement). Nouvelles catégories dans un
+  coffre existant : migration dans `docs/js/migrations.js`.
+- Opérations : recherche (`q` : mots sur libellé + note + catégorie + compte, un nombre = montant exact),
+  filtres sens / montant min-max / dates. Modification (PUT /api/transactions/:id) : date, libellé, montant,
+  compte (seulement si saisie manuelle), note ; valeurs d'origine gardées dans `original` (« Rétablir »).
+  L'empreinte anti-doublon n'est PAS recalculée, pour que le réimport du relevé reste reconnu.
+- Abonnements (`subscriptions()` dans `docs/js/analytics.js`) : règle de
   l'utilisateur = même commerçant, MÊME montant, au moins 3 mois différents (~1 mois d'écart). Loyer,
   impôts, crédits, espèces exclus du repérage auto. Préférences (confirmé, ignoré, résilié, nom, fréquence)
-  dans `settings.subscriptions`. Interface web uniquement (onglet « Abonnements »).
+  dans `settings.subscriptions` (onglet « Abonnements »).
 
 ## Calibrage des banques (d'après des extraits MASQUÉS, jamais de vrais relevés)
 - LCL : PDF (« Crédit Lyonnais », point « . » = débit, lignes REF/NATURE ignorées). Colonne DATE

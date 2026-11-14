@@ -287,12 +287,27 @@ $("wipe-btn").addEventListener("click", async () => {
 $("ops-account").addEventListener("change", loadOps);
 $("ops-category").addEventListener("change", loadOps);
 $("ops-month").addEventListener("change", loadOps);
+let opsTimer = null;
+for (const id of ["ops-q", "ops-min", "ops-max"]) $(id).addEventListener("input", () => { clearTimeout(opsTimer); opsTimer = setTimeout(loadOps, 250); });
+for (const id of ["ops-sign", "ops-from", "ops-to"]) $(id).addEventListener("change", loadOps);
+$("ops-reset").addEventListener("click", () => {
+  for (const id of ["ops-q", "ops-min", "ops-max", "ops-sign", "ops-from", "ops-to", "ops-month", "ops-category", "ops-account"]) $(id).value = "";
+  loadOps();
+});
 
 async function loadOps() {
   const p = new URLSearchParams();
   if ($("ops-account").value) p.set("account_id", $("ops-account").value);
   if ($("ops-month").value) p.set("month", $("ops-month").value);
   if ($("ops-category").value) p.set("category", $("ops-category").value);
+  if ($("ops-q").value.trim()) p.set("q", $("ops-q").value.trim());
+  for (const [id, key] of [["ops-sign", "sign"], ["ops-from", "from"], ["ops-to", "to"]]) if ($(id).value) p.set(key, $(id).value);
+  for (const [id, key] of [["ops-min", "min"], ["ops-max", "max"]]) {
+    const c = $(id).value.trim() ? parseEuros($(id).value) : null;
+    if (c !== null) p.set(key, Math.abs(c));
+  }
+  const extra = ["ops-sign", "ops-min", "ops-max", "ops-from", "ops-to"].filter((id) => $(id).value).length;
+  $("ops-more").querySelector("summary").textContent = extra ? `Plus de filtres (${extra} actif${extra > 1 ? "s" : ""})` : "Plus de filtres";
   const rows = await api(`/api/transactions?${p}`);
   const income = rows.filter((r) => r.amount_cents > 0).reduce((s, r) => s + r.amount_cents, 0);
   const spent = rows.filter((r) => r.amount_cents < 0).reduce((s, r) => s + r.amount_cents, 0);
@@ -302,7 +317,10 @@ async function loadOps() {
   $("ops-empty").hidden = rows.length > 0;
   $("ops-body").replaceChildren(...rows.map((r) => el("tr", {},
     el("td", { class: "nowrap desktop-only" }, dateFr(r.date)),
-    el("td", {}, r.label, el("div", { class: "muted small" }, r.account, r.hint ? " · " : "", r.hint ? HINT_LABEL[r.hint] || r.hint : ""),
+    el("td", {}, el("button", { type: "button", class: "op-label", title: "Modifier l'opération", onclick: () => openTxDialog(r) }, r.label),
+      r.note ? el("div", { class: "small op-note" }, r.note) : null,
+      el("div", { class: "muted small" }, r.account, r.hint ? " · " : "", r.hint ? HINT_LABEL[r.hint] || r.hint : "",
+        r.original ? el("span", { class: "tag tag-dup", title: "Modifiée à la main" }, "modifiée") : null),
       // Sur téléphone, la date et la catégorie passent sous le libellé (colonnes masquées).
       el("div", { class: "mobile-only" }, el("span", { class: "muted small" }, dateFr(r.date)), categoryChip(r))),
     el("td", { class: "desktop-only" }, categoryChip(r)),
@@ -316,6 +334,50 @@ async function loadOps() {
       },
     }, "×")))));
 }
+
+// ---------- Modifier une opération ----------
+let txEdit = null;
+function openTxDialog(r) {
+  txEdit = r;
+  $("tx-date").value = r.date;
+  $("tx-label").value = r.label;
+  $("tx-amount").value = centsToInput(Math.abs(r.amount_cents));
+  $("tx-sign").value = r.amount_cents < 0 ? "-1" : "1";
+  $("tx-note").value = r.note || "";
+  $("tx-account").replaceChildren(...accounts.map((a) => el("option", { value: a.id, selected: a.id === r.account_id }, a.name)));
+  $("tx-account").disabled = Boolean(r.statement_id);
+  $("tx-cat").textContent = r.category || "À classer";
+  $("tx-imported").hidden = !r.statement_id;
+  const o = r.original;
+  $("tx-original").hidden = !o;
+  $("tx-restore").hidden = !o;
+  if (o) {
+    $("tx-original").textContent = `Modifiée à la main. À l'origine : ${dateFr(o.date)} · ${o.label} · ${money(o.amount_cents)}` +
+      (o.account_id !== r.account_id ? ` · ${accounts.find((a) => a.id === o.account_id)?.name || "autre compte"}` : "");
+  }
+  $("tx-error").textContent = "";
+  $("tx-dialog").showModal();
+}
+async function txDone(promise) {
+  try { await promise; } catch (e) { $("tx-error").textContent = e.message; return; }
+  $("tx-dialog").close();
+  loadOps(); loadAccounts();
+}
+$("tx-form").addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  const cents = parseEuros($("tx-amount").value);
+  if (cents === null || cents === 0) { $("tx-error").textContent = "Montant illisible."; return; }
+  txDone(api(`/api/transactions/${txEdit.id}`, { method: "PUT", body: {
+    date: $("tx-date").value, label: $("tx-label").value, amount_cents: Math.abs(cents) * Number($("tx-sign").value),
+    account_id: Number($("tx-account").value), note: $("tx-note").value,
+  } }));
+});
+$("tx-restore").addEventListener("click", () => txDone(api(`/api/transactions/${txEdit.id}/restore`, { method: "POST" })));
+$("tx-delete").addEventListener("click", () => {
+  if (confirm("Supprimer cette opération ?")) txDone(api(`/api/transactions/${txEdit.id}`, { method: "DELETE" }));
+});
+$("tx-cancel").addEventListener("click", () => $("tx-dialog").close());
+$("tx-cat").addEventListener("click", () => { $("tx-dialog").close(); openCategoryDialog(txEdit); });
 
 $("m-date").value = new Date().toISOString().slice(0, 10);
 $("manual-form").addEventListener("submit", async (ev) => {

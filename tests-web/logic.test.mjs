@@ -236,3 +236,11 @@ test("nouvelles catégories (cadeaux, primes…) et migration d'un coffre exista
   assert.equal(name(d.transactions[0]), "Primes");
   assert.equal(addCategoriesV4(d), 0);
 });
+
+test("recherche d'opérations : mots et montants", async () => {
+  const { searchTokens } = await import("../docs/js/backend.js");
+  assert.deepEqual(searchTokens("  Netflix 13,49 "), [{ text: "NETFLIX", cents: null }, { text: "13,49", cents: 1349 }]);
+  assert.deepEqual(searchTokens("50").map((w) => w.cents), [5000]);
+  assert.deepEqual(searchTokens("12.5").map((w) => w.cents), [1250]);
+  assert.deepEqual(searchTokens("Électricité").map((w) => w.text), ["ELECTRICITE"]);
+});
