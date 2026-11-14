@@ -62,6 +62,9 @@ l'utilisateur ; encore visible dans l'historique Git). Ne pas la recréer.
   export CSV et restauration qui gardent confirm()), thème en SegmentedControl et transparence en Slider
   (Comptes › Apparence), recherche en SearchField, listes compte/catégorie en Menu. Les contrôles d'origine
   restent dans la page (masqués) et gardent leurs écouteurs ; le verre les pilote. Ordinateur inchangé.
+- Bouton « + Importer » de l'accueil : `.rainbow-btn` (composant « Rainbow Button » shadcn/Tailwind refait en CSS pur,
+  pas de Tailwind/React/TS dans ce projet). Sombre en thème clair, blanc en thème sombre ; animation coupée si
+  « réduire les animations ».
 
 ## Calibrage des banques (d'après des extraits MASQUÉS, jamais de vrais relevés)
 - LCL : PDF (« Crédit Lyonnais », point « . » = débit, lignes REF/NATURE ignorées). Colonne DATE
