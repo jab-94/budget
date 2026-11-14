@@ -3,7 +3,7 @@
 // seules les sauvegardes CHIFFRÉES passent par store.save() -> Firebase.
 
 import { categorizeAll, previewRule, suggestPattern, validateRuleFields } from "./categorize.js";
-import { coherence, dashboard, flagDuplicates, incomeAnalysis, insights, manualFingerprint, subscriptionIdOf, subscriptions,
+import { coherence, dashboard, flagDuplicates, incomeAnalysis, insights, manualFingerprint, spendingStats, subscriptionIdOf, subscriptions,
   updateSubscription } from "./analytics.js";
 import { parseCsvStatement } from "./csvparse.js";
 import { stripAccents, validDate } from "./core.js";
@@ -474,6 +474,7 @@ export async function handle(method, fullPath, body, raw) {
   }
 
   // ---------- Tableau de bord, budgets, revenus, suggestions ----------
+  if (p === "/api/stats/spending") return spendingStats(D(), monthOr400(q.get("month")), intOrNull(q.get("account_id")));
   if (p === "/api/dashboard") {
     return dashboard(D(), monthOr400(q.get("month")), Math.max(3, Math.min(Number(q.get("months") || 12), 36)),
       intOrNull(q.get("account_id")), intOrNull(q.get("category_id")));

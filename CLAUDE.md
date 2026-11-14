@@ -41,6 +41,10 @@ l'utilisateur ; encore visible dans l'historique Git). Ne pas la recréer.
   l'utilisateur = même commerçant, MÊME montant, au moins 3 mois différents (~1 mois d'écart). Loyer,
   impôts, crédits, espèces exclus du repérage auto. Préférences (confirmé, ignoré, résilié, nom, fréquence)
   dans `settings.subscriptions` (onglet « Abonnements »).
+- Carte « Dépenses » animée en tête de l'accueil (`docs/js/statcard.js` + moteur de ressorts `docs/js/motion.js`,
+  d'après le composant « Stat card » de designbookmark.com ; ressorts d'origine : points 200/17, chiffres 160/22,
+  pastille 380/30, décalage 0,03 s). Données : `spendingStats()` (7 jours glissants, mois, 12 mois cumulés).
+  Pas de défilement automatique (choix de l'utilisateur).
 
 ## Calibrage des banques (d'après des extraits MASQUÉS, jamais de vrais relevés)
 - LCL : PDF (« Crédit Lyonnais », point « . » = débit, lignes REF/NATURE ignorées). Colonne DATE

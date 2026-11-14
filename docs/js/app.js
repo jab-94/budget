@@ -4,6 +4,7 @@
 import * as cloud from "./cloud.js";
 import { ApiError, exportBackup, exportCsv, handle } from "./backend.js";
 import { MIN_PASSWORD_LENGTH, store, WrongPassword } from "./store.js";
+import { mountStatCard } from "./statcard.js";
 
 /** Même interface que l'ancienne API serveur, mais tout se passe dans le navigateur. */
 async function api(path, options = {}) {
@@ -188,7 +189,7 @@ function showTab(name) {
   for (const s of document.querySelectorAll(".tab")) s.hidden = s.id !== "tab-" + name;
   if (name === "ops") loadOps();
   if (name === "categories") loadCategoriesTab();
-  if (name === "dashboard") loadDashboard();
+  if (name === "dashboard") { loadDashboard(); statCard.relayout(); }
   if (name === "budgets") loadBudgetsTab();
   if (name === "insights") loadInsightsTab();
   if (name === "income") loadIncomeTab();
@@ -1072,6 +1073,27 @@ async function loadDashSubs() {
   $("dash-subs-more").querySelector("button").textContent = `Voir les ${active.length} abonnements →`;
 }
 
+// Carte « Dépenses » animée en tête de l'accueil.
+const EUR0 = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+const statCard = mountStatCard($("stat-card"), {
+  format: (euros) => EUR0.format(Math.round(euros)),
+  describe: (R) => {
+    const dm = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+    if (R.key === "week") return { label: "Dépenses · 7 derniers jours", compare: `${dm(R.from)} → ${dm(R.to)} · vs 7 jours d'avant` };
+    if (R.key === "month") return { label: `Dépenses · ${monthLabel(R.month)}`, compare: `vs ${monthLabel(R.previous_month)}` };
+    const my = (m) => `${monthShort(m)} ${m.slice(0, 4)}`;
+    return { label: "Dépenses · 12 derniers mois",
+      compare: `${my(R.from_month)} → ${my(R.to_month)}` + (R.previous_cents !== null ? " · vs 12 mois d'avant" : "") };
+  },
+});
+
+async function loadStatCard() {
+  const p = new URLSearchParams();
+  if (dash.month) p.set("month", dash.month);
+  if (dash.account) p.set("account_id", dash.account);
+  statCard.update(await api(`/api/stats/spending?${p}`));
+}
+
 async function loadDashboard() {
   // « Auto » : la période couvre les mois disponibles, entre 6 et 12 mois.
   let range = dash.range;
@@ -1087,6 +1109,7 @@ async function loadDashboard() {
   if (dash.category) p.set("category_id", dash.category);
   const d = await api(`/api/dashboard?${p}`);
   loadDashSubs();
+  loadStatCard();
   const firstLoad = !dash.data;
   dash.data = d;
   dash.month = d.month;

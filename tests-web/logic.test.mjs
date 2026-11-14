@@ -244,3 +244,30 @@ test("recherche d'opérations : mots et montants", async () => {
   assert.deepEqual(searchTokens("12.5").map((w) => w.cents), [1250]);
   assert.deepEqual(searchTokens("Électricité").map((w) => w.text), ["ELECTRICITE"]);
 });
+
+test("carte Dépenses : semaine, mois, 12 mois", async () => {
+  const { spendingStats } = await import("../docs/js/analytics.js");
+  const d = newData();
+  d.accounts.push({ id: 900, name: "LCL" });
+  let id = 1000;
+  const add = (date, label, cents) => d.transactions.push({ id: id++, account_id: 900, date, label, amount_cents: cents, category_locked: 0 });
+  for (let m = 1; m <= 10; m++) {
+    const mm = String(m).padStart(2, "0");
+    add(`2026-${mm}-05`, "CB CARREFOUR", -10000 * m);   // 100 €, 200 €, … 1 000 € en octobre
+    add(`2026-${mm}-28`, "VIR SALAIRE", 250000);         // revenu : ne compte pas
+  }
+  add("2026-10-20", "VIR INTERNE VERS LIVRET", -50000);  // hors budget : ne compte pas
+  categorizeAll(d);
+  const s = spendingStats(d, "2026-10");
+  const [week, month, year] = s.ranges;
+  assert.equal(s.ref_date, "2026-10-28");
+  assert.equal(month.value_cents, 100000);
+  assert.equal(month.previous_cents, 90000);
+  assert.equal(month.delta_pct, 11.1);
+  assert.equal(month.points.length, 12);
+  assert.equal(year.value_cents, 550000);
+  assert.equal(year.delta_pct, null);            // pas 2 ans d'historique
+  assert.equal(year.points[11], 550000);         // cumul
+  assert.equal(week.value_cents, 0);             // 22-28 oct. : aucune dépense
+  assert.equal(spendingStats(d, "2026-09").ranges[1].value_cents, 90000);
+});

@@ -113,6 +113,29 @@
       </div>
 
       <div id="dash-grid" class="dash-grid">
+        <!-- Dépenses : semaine / mois / 12 mois (carte animée) -->
+        <article class="card stat-card" id="stat-card" hidden>
+          <div class="sc-top">
+            <div>
+              <p class="sc-lab"></p>
+              <p class="sc-big">0 €</p>
+              <p class="sc-cmp muted small"></p>
+            </div>
+            <span class="sc-delta" title="Évolution par rapport à la période précédente"></span>
+          </div>
+          <div class="sc-cw">
+            <svg class="sc-chart" aria-hidden="true">
+              <defs><linearGradient id="sc-area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="sc-stop-top"/><stop offset="1" class="sc-stop-bottom"/></linearGradient></defs>
+              <path class="sc-fill" fill="url(#sc-area)"/>
+              <path class="sc-line" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span class="sc-dot"></span>
+          </div>
+          <div class="sc-seg" role="group" aria-label="Période">
+            <span class="sc-pill"></span>
+            <button type="button" data-r="0">Semaine</button><button type="button" data-r="1">Mois</button><button type="button" data-r="2">12 mois</button>
+          </div>
+        </article>
         <!-- Solde du mois -->
         <article class="card hero span-2">
           <div class="card-head"><h2>Solde du mois</h2><span id="dash-uncat" class="pill pill-muted" hidden></span></div>
@@ -187,7 +210,7 @@
         </article>
 
         <!-- Plus grosses dépenses -->
-        <article class="card span-all">
+        <article class="card span-2">
           <div class="card-head"><h2>Plus grosses dépenses du mois</h2><button type="button" class="link" data-goto="ops">Toutes les opérations</button></div>
           <ul id="dash-top" class="simple-list"></ul>
         </article>

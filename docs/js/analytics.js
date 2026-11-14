@@ -618,3 +618,46 @@ export function updateSubscription(data, body, today) {
   if (Object.keys(pref).length) data.settings.subscriptions[id] = pref; else delete data.settings.subscriptions[id];
   return pref;
 }
+
+// ================= Carte « Dépenses » de l'accueil (semaine / mois / 12 mois) =================
+// 12 points par période pour la courbe. Jour de référence = dernier jour du mois affiché, ou la
+// dernière opération connue si le mois est en cours.
+export function spendingStats(data, month = null, accountId = null) {
+  const rows = enrich(data, accountId);
+  if (!rows.length) return null;
+  const available = monthsWithData(data, accountId);
+  month = month || available[available.length - 1];
+  const lastOp = rows.reduce((m, r) => (r.date > m ? r.date : m), "");
+  const y = Number(month.slice(0, 4)), mo = Number(month.slice(5, 7));
+  const monthEnd = `${month}-${String(lastDayOfMonth(y, mo)).padStart(2, "0")}`;
+  const ref = lastOp < monthEnd ? lastOp : monthEnd;
+  const spent = (from, to) => totals(rows.filter((r) => r.date >= from && r.date <= to)).expense_cents;
+  const monthSpent = (m) => totals(rows.filter((r) => r.date.slice(0, 7) === m)).expense_cents;
+  const pct = (cur, prev) => (prev > 0 ? Math.round(((cur - prev) / prev) * 1000) / 10 : null);
+
+  // Semaine : 12 fenêtres de 7 jours, la dernière se terminant au jour de référence.
+  const weeks = [];
+  for (let i = 11; i >= 0; i--) { const to = addDays(ref, -7 * i); weeks.push(spent(addDays(to, -6), to)); }
+  // Mois : les 12 mois jusqu'au mois affiché.
+  const months = [];
+  for (let i = 11; i >= 0; i--) months.push(monthSpent(monthAdd(month, -i)));
+  // 12 mois glissants : cumul mois par mois ; comparaison avec les 12 mois d'avant si l'historique les couvre.
+  const cumul = [];
+  months.reduce((s, v) => { cumul.push(s + v); return s + v; }, 0);
+  const yearTotal = cumul[11];
+  let prevYear = 0;
+  for (let i = 12; i < 24; i++) prevYear += monthSpent(monthAdd(month, -i));
+  const coversPrevYear = available.length && available[0] <= monthAdd(month, -23);
+
+  return {
+    month, ref_date: ref,
+    ranges: [
+      { key: "week", from: addDays(ref, -6), to: ref, value_cents: weeks[11], previous_cents: weeks[10],
+        delta_pct: pct(weeks[11], weeks[10]), points: weeks },
+      { key: "month", month, value_cents: months[11], previous_cents: months[10], previous_month: monthAdd(month, -1),
+        delta_pct: pct(months[11], months[10]), points: months },
+      { key: "year", from_month: monthAdd(month, -11), to_month: month, value_cents: yearTotal,
+        previous_cents: coversPrevYear ? prevYear : null, delta_pct: coversPrevYear ? pct(yearTotal, prevYear) : null, points: cumul },
+    ],
+  };
+}
