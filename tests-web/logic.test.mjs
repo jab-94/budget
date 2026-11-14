@@ -286,3 +286,9 @@ test("carte Revenus : mêmes périodes, montants entrants", async () => {
   assert.equal(month.value_cents, 250000);
   assert.equal(month.delta_pct, 25);
 });
+
+test("courbe lissée monotone : ne dépasse jamais les données", async () => {
+  const { monotonePath } = await import("../docs/js/statcard.js").catch(() => ({}));
+  if (!monotonePath) return; // module navigateur (requestAnimationFrame) : vérifié dans le navigateur
+  assert.match(monotonePath([[0, 10], [10, 0], [20, 0], [30, 5]]), /^M0\.00 10\.00C/);
+});

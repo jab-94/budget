@@ -1123,8 +1123,21 @@ const statDescribe = (what) => (R) => {
       compare: `${my(R.from_month)} → ${my(R.to_month)}` + (R.previous_cents !== null ? " · vs 12 mois d'avant" : "") };
 };
 const formatEuros = (euros) => EUR0.format(Math.round(euros));
-const statCard = mountStatCard($("stat-card"), { format: formatEuros, describe: statDescribe("Dépenses") });
-const incomeCard = mountStatCard($("stat-card-income"), { format: formatEuros, describe: statDescribe("Revenus"), upIsGood: true });
+const statPointLabel = (R, i) => {
+  const dm = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+  if (R.key === "week") { const to = addDaysIso(R.to, -7 * (11 - i)); return `${dm(addDaysIso(to, -6))} → ${dm(to)}`; }
+  if (R.key === "month") return monthLabel(monthAdd(R.month, i - 11));
+  return `cumul jusqu'à ${monthLabel(monthAdd(R.to_month, i - 11))}`;
+};
+function addDaysIso(iso, n) {
+  const d = new Date(`${iso}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+const statCard = mountStatCard($("stat-card"), { format: formatEuros, describe: statDescribe("Dépenses"),
+  pointLabel: statPointLabel, pointNote: "dépensé" });
+const incomeCard = mountStatCard($("stat-card-income"), { format: formatEuros, describe: statDescribe("Revenus"), upIsGood: true,
+  pointLabel: statPointLabel, pointNote: "reçu" });
 
 async function loadStatCard() {
   const p = new URLSearchParams();
@@ -1182,6 +1195,14 @@ async function loadDashboard() {
   loadDashSalary();
 }
 
+/** Donne sa largeur à une barre au prochain affichage, pour qu'elle se remplisse en douceur. */
+function growTo(node, pctWidth, delay = 0) {
+  node.style.width = "0%";
+  if (delay) node.style.setProperty("--delay", `${delay}s`);
+  requestAnimationFrame(() => requestAnimationFrame(() => { node.style.width = `${pctWidth}%`; }));
+  return node;
+}
+
 function renderHero(d) {
   const t = d.totals;
   amountNode(t.net_cents, $("dash-net")).classList.toggle("is-neg", t.net_cents < 0);
@@ -1211,7 +1232,7 @@ function renderHero(d) {
   const stack = $("dash-stack");
   stack.replaceChildren(...segs.map((sg) => {
     const span = el("span", { class: sg.cls, title: `${sg.name} : ${money(sg.cents)}` });
-    span.style.width = `${(sg.cents / base) * 100}%`;
+    growTo(span, (sg.cents / base) * 100);
     if (sg.color) span.style.setProperty("--seg", sg.color);
     return span;
   }));
@@ -1246,8 +1267,7 @@ function budgetRow(b) {
   const st = BUDGET_STATUS[b.budget_status];
   const dot = el("span", { class: "dot" });
   if (b.color) dot.style.setProperty("--dot", b.color);
-  const fill = el("span");
-  fill.style.width = `${Math.min(100, b.budget_pct)}%`;
+  const fill = growTo(el("span"), Math.min(100, b.budget_pct));
   return el("li", {},
     el("div", { class: "budget-top" },
       el("span", { class: "cat-name" }, dot, el("span", {}, b.name)),
@@ -1274,11 +1294,11 @@ function renderCategories(d) {
   $("dash-expenses-delta").replaceChildren(delta || "");
   const max = Math.max(1, ...d.expenses_by_category.map((c) => c.amount_cents));
   const total = d.totals.expense_cents || 1;
-  $("dash-cats").replaceChildren(...d.expenses_by_category.slice(0, 8).map((c) => {
-    const dot = el("span", { class: "dot" });
-    if (c.color) dot.style.setProperty("--dot", c.color);
-    const fill = el("span");
-    fill.style.width = `${(c.amount_cents / max) * 100}%`;
+  $("dash-cats").replaceChildren(...d.expenses_by_category.slice(0, 8).map((c, i) => {
+    const dot = el("span", { class: "cat-badge", "aria-hidden": "true" }, (c.name || "?").slice(0, 1).toUpperCase());
+    if (c.color) dot.style.setProperty("--badge", c.color);
+    const fill = growTo(el("span"), (c.amount_cents / max) * 100, 0.1 + i * 0.06);
+    if (c.color) fill.style.setProperty("--fill", c.color);
     let trend = "";
     if (c.avg3_cents) {
       const v = (c.amount_cents - c.avg3_cents) / c.avg3_cents * 100;
@@ -1336,9 +1356,9 @@ const compactEur = (cents) => {
   return v >= 10000 ? `${Math.round(v / 1000)} k€` : `${new Intl.NumberFormat("fr-FR").format(Math.round(v))} €`;
 };
 
-/** Colonne à bout arrondi (4px) côté valeur, carrée côté ligne de base. */
+/** Colonne à bout rond côté valeur, carrée côté ligne de base. */
 function columnPath(x, y, w, h) {
-  const r = Math.min(4, h, w / 2);
+  const r = Math.min(w / 2, h);
   const b = y + h;
   return `M${x},${b} V${y + r} Q${x},${y} ${x + r},${y} H${x + w - r} Q${x + w},${y} ${x + w},${y + r} V${b} Z`;
 }
@@ -1387,7 +1407,9 @@ function renderEvolution(d) {
       if (v <= 0) return;
       const x = x0 + (band - groupW) / 2 + j * (barW + 2);
       const y = yOf(v);
-      root.append(svg("path", { class: cls, d: columnPath(x, y, barW, pad.t + ph - y), "pointer-events": "none" }));
+      const bar = svg("path", { class: cls, d: columnPath(x, y, barW, pad.t + ph - y), "pointer-events": "none" });
+      bar.style.setProperty("--i", i);
+      root.append(bar);
     });
     if (i % every === 0 || p.month === d.month) {
       const lab = svg("text", { class: "axis", x: x0 + band / 2, y: H - 8, "text-anchor": "middle" });
@@ -1671,7 +1693,9 @@ function renderIncomeChart(inc) {
     root.append(hit);
     if (p.amount_cents > 0) {
       const y = yOf(p.amount_cents);
-      root.append(svg("path", { class: "bar-income", d: columnPath(x0 + (band - barW) / 2, y, barW, pad.t + ph - y), "pointer-events": "none" }));
+      const bar = svg("path", { class: "bar-income", d: columnPath(x0 + (band - barW) / 2, y, barW, pad.t + ph - y), "pointer-events": "none" });
+      bar.style.setProperty("--i", i);
+      root.append(bar);
     }
     const lab = svg("text", { class: "axis", x: x0 + band / 2, y: H - 8, "text-anchor": "middle" });
     lab.textContent = (series.length > 8 && i % 2) ? "" : monthShort(p.month);

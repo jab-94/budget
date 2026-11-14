@@ -67,6 +67,10 @@ l'utilisateur ; encore visible dans l'historique Git). Ne pas la recréer.
   « réduire les animations ».
 - Boutons d'action (style de base `button`) : même style sans arc-en-ciel, tokens `--btn-bg`/`--btn-ink`
   (noir en clair, blanc en sombre), coins 12 px ; `.ghost`, `.link`, `.danger` gardent leur style.
+- Thème des graphiques (d'après le composant « Earnings » d'easyui, React/Tailwind/framer-motion refait en CSS/JS) :
+  revenus #6d7cff, dépenses #ffb44c (tokens --series-1/2, --chart-*), barres à bout rond qui montent, jauges fines
+  arrondies qui se remplissent (`growTo`), barre empilée à segments séparés, pastilles ▲/▼ vertes/roses, initiale
+  teintée par catégorie, courbe monotone (`monotonePath` dans statcard.js) et curseur au doigt sur les cartes animées.
 
 ## Calibrage des banques (d'après des extraits MASQUÉS, jamais de vrais relevés)
 - LCL : PDF (« Crédit Lyonnais », point « . » = débit, lignes REF/NATURE ignorées). Colonne DATE
