@@ -2,7 +2,8 @@
 # Usage : python3 tools/icon/gen_icon.py dark > icone.html   (ou light), puis capture 1024x1024 de #ic.
 import sys
 
-dark = (sys.argv[1] if len(sys.argv) > 1 else "dark") == "dark"
+mode = sys.argv[1] if len(sys.argv) > 1 else "dark"   # dark | light | mid (verre gris, jour comme nuit)
+dark = mode in ("dark", "mid")
 R = 230  # rayon proche de la découpe iOS (~22,4 %)
 
 
@@ -18,7 +19,9 @@ corner_tr = (ring("#ff5a1f", 10, 16, "b6", .9) + ring("#ff2f4a", 16, 22, "b14", 
              + ring("#2b5bff", 54, 38, "b14", .95))
 corner_bl = (ring("#ff5a1f", 10, 14, "b6", .85) + ring("#ff2f4a", 16, 20, "b14", .55) + ring("#ffffff", 30, 22, "b6", .9)
              + ring("#1fc8ff", 52, 36, "b14", .95))
-bg = ('<stop offset="0" stop-color="#1b1e26"/><stop offset=".65" stop-color="#0b0c10"/><stop offset="1" stop-color="#050608"/>'
+bg = ('<stop offset="0" stop-color="#a3aab8"/><stop offset=".55" stop-color="#7c8392"/><stop offset="1" stop-color="#5d6371"/>'
+      if mode == "mid" else
+      '<stop offset="0" stop-color="#1b1e26"/><stop offset=".65" stop-color="#0b0c10"/><stop offset="1" stop-color="#050608"/>'
       if dark else '<stop offset="0" stop-color="#ffffff"/><stop offset=".7" stop-color="#eef0f4"/><stop offset="1" stop-color="#e2e5eb"/>')
 glyph = "url(#glyph)" if dark else "#0b0d12"
 print(f'''<!doctype html><html><head><meta charset="utf-8"><style>html,body{{margin:0;background:#000}}svg{{display:block}}</style></head><body>
