@@ -188,6 +188,26 @@ async function showApp() {
 }
 
 let glassBar = null;
+
+// Transparence de la barre en verre (réglage d'affichage, gardé sur cet appareil ; appliqué au
+// chargement par theme.js pour éviter un saut à l'ouverture).
+function glassLabel(v) { return v <= 20 ? "teintée" : v >= 80 ? "transparente" : v === 50 ? "normale" : `${v} %`; }
+function applyGlass(v, save = true) {
+  document.documentElement.style.setProperty("--lg-transparency", String(v / 100));
+  $("glass-range").value = v;
+  $("glass-value").textContent = glassLabel(v);
+  if (save) { try { localStorage.setItem("glass-transparency", String(v / 100)); } catch (_) { /* rien */ } }
+}
+{
+  let saved = null;
+  try { saved = localStorage.getItem("glass-transparency"); } catch (_) { /* rien */ }
+  applyGlass(saved !== null && !Number.isNaN(Number(saved)) ? Math.round(Number(saved) * 100) : 50, false);
+}
+$("glass-range").addEventListener("input", () => applyGlass(Number($("glass-range").value)));
+$("glass-reset").addEventListener("click", () => {
+  applyGlass(50, false);
+  try { localStorage.removeItem("glass-transparency"); } catch (_) { /* rien */ }
+});
 setupGlassTabBar({ showTab: (t) => showTab(t), current: () => currentTab })
   .then((b) => { glassBar = b; })
   .catch((e) => { console.warn("Barre d'onglets en verre indisponible :", e); });

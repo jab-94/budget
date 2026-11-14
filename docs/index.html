@@ -507,6 +507,13 @@
 
     <!-- ===== Onglet Comptes ===== -->
     <section id="tab-accounts" class="tab" hidden>
+      <div class="card phone-only">
+        <div class="card-head"><h2>Apparence</h2><button type="button" id="glass-reset" class="link">Par défaut</button></div>
+        <label for="glass-range">Transparence de la barre d'onglets : <strong id="glass-value"></strong></label>
+        <input type="range" id="glass-range" min="0" max="100" step="5" value="50">
+        <div class="range-labels small muted"><span>Teintée</span><span>Normale</span><span>Transparente</span></div>
+        <p class="muted small">Réglage gardé sur ce téléphone seulement.</p>
+      </div>
       <div class="card">
         <h2>Mes comptes</h2>
         <ul id="acc-list" class="list"></ul>

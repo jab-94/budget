@@ -539,3 +539,8 @@ button.op-label:hover { color: var(--accent); text-decoration: underline; }
 .shell { --pad: 16px; padding: max(var(--pad), env(safe-area-inset-top, 0px)) max(var(--pad), env(safe-area-inset-right, 0px))
   var(--pad) max(var(--pad), env(safe-area-inset-left, 0px)); }
 @media (max-width: 860px) { .shell { --pad: 10px; } }
+
+/* ----- Réglage de transparence de la barre en verre (téléphone seulement) ----- */
+@media (min-width: 861px) { .phone-only { display: none !important; } }
+#glass-range { width: 100%; margin: 12px 0 4px; accent-color: var(--accent); }
+.range-labels { display: flex; justify-content: space-between; }

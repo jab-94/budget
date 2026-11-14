@@ -54,6 +54,8 @@ l'utilisateur ; encore visible dans l'historique Git). Ne pas la recréer.
   Chargé seulement sur téléphone (`docs/js/tabbar.js`) ; l'ordinateur garde le menu latéral. Onglets :
   Accueil, Opérations, Abonnements, Importer, Plus (feuille avec les autres pages). CSP : worker-src 'self' blob:
   (dessin des lentilles dans un worker ; reste limité par connect-src).
+  Réglage « Apparence » (onglet Comptes, téléphone) : curseur de transparence → `--lg-transparency` sur <html>
+  (0 teintée, 0,5 normale, 1 transparente), gardé en localStorage `glass-transparency`, appliqué tôt par theme.js.
 
 ## Calibrage des banques (d'après des extraits MASQUÉS, jamais de vrais relevés)
 - LCL : PDF (« Crédit Lyonnais », point « . » = débit, lignes REF/NATURE ignorées). Colonne DATE
