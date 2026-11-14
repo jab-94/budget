@@ -45,12 +45,20 @@ function header(lg) {
 
 function theme(lg) {
   const box = $("glass-theme");
-  const current = () => document.documentElement.dataset.theme || "auto";
-  const seg = lg.mount(box, "SegmentedControl", { "aria-label": "Thème",
-    items: [{ value: "light", label: "Clair" }, { value: "auto", label: "Auto" }, { value: "dark", label: "Sombre" }],
-    value: current(),
-    onValueChange: (v) => { document.querySelector(`[data-theme-choice="${v}"]`).click(); seg.update({ value: current() }); } });
   $("glass-theme-row").hidden = false;
+  const current = () => document.documentElement.dataset.theme || "auto";
+  let seg = null;
+  // Monté seulement quand la page Comptes est visible : la pastille se mesure sur l'option choisie
+  // (montée dans une page masquée, elle resterait sous « Clair »).
+  const mountNow = () => {
+    if (seg || !box.offsetParent) return;
+    seg = lg.mount(box, "SegmentedControl", { "aria-label": "Thème",
+      items: [{ value: "light", label: "Clair" }, { value: "auto", label: "Auto" }, { value: "dark", label: "Sombre" }],
+      value: current(),
+      onValueChange: (v) => { document.querySelector(`[data-theme-choice="${v}"]`).click(); seg.update({ value: current() }); } });
+  };
+  mountNow();
+  document.addEventListener("tab-shown", (e) => { if (e.detail === "accounts") requestAnimationFrame(mountNow); });
 }
 
 function transparency(lg) {

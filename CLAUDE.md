@@ -65,6 +65,8 @@ l'utilisateur ; encore visible dans l'historique Git). Ne pas la recréer.
 - Bouton « + Importer » de l'accueil : `.rainbow-btn` (composant « Rainbow Button » shadcn/Tailwind refait en CSS pur,
   pas de Tailwind/React/TS dans ce projet). Sombre en thème clair, blanc en thème sombre ; animation coupée si
   « réduire les animations ».
+- Boutons d'action (style de base `button`) : même style sans arc-en-ciel, tokens `--btn-bg`/`--btn-ink`
+  (noir en clair, blanc en sombre), coins 12 px ; `.ghost`, `.link`, `.danger` gardent leur style.
 
 ## Calibrage des banques (d'après des extraits MASQUÉS, jamais de vrais relevés)
 - LCL : PDF (« Crédit Lyonnais », point « . » = débit, lignes REF/NATURE ignorées). Colonne DATE

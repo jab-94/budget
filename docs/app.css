@@ -157,19 +157,28 @@ h3 { font-size: 15px; margin: 16px 0 4px; }
 
 /* ---------- Formulaires et boutons ---------- */
 label { display: block; margin: 10px 0; font-weight: 500; font-size: 14px; }
-input[type=text], input[type=search], input[type=password], input[type=date], input[type=month], input[type=file], select {
+input[type=text], input[type=search], input[type=email], input[type=password], input[type=date], input[type=month], input[type=file], select {
   display: block; width: 100%; margin-top: 4px; font: inherit; font-size: 15px;
   color: var(--text); background: var(--surface-2);
   border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px;
 }
 input[type=color] { margin-top: 4px; width: 48px; height: 38px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); }
 input:focus, select:focus, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+/* Boutons d'action : même style que le bouton « Importer » arc-en-ciel, sans le dégradé —
+   noir en thème clair, blanc en thème sombre (tokens --btn-*, redéfinis plus bas pour le sombre). */
+:root { --btn-bg: #121213; --btn-ink: #ffffff; --btn-hi: rgb(255 255 255 / .14); }
+:root[data-theme="dark"] { --btn-bg: #ffffff; --btn-ink: #121213; --btn-hi: rgb(255 255 255 / .9); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --btn-bg: #ffffff; --btn-ink: #121213; --btn-hi: rgb(255 255 255 / .9); } }
 button {
   font: inherit; font-weight: 600; cursor: pointer;
-  padding: 9px 16px; border-radius: 10px; border: 1px solid transparent;
-  background: var(--accent); color: var(--accent-text);
+  padding: 9px 18px; border-radius: 12px; border: 1px solid transparent;
+  background: var(--btn-bg); color: var(--btn-ink);
+  transition: transform .12s ease, opacity .15s ease;
 }
-button.primary { background: var(--accent); color: var(--accent-text); }
+/* Léger reflet en haut, seulement sur les boutons pleins (pas les boutons bordés, liens, icônes…). */
+button:is([type="submit"], .primary, #exp-backup, #i-commit) { box-shadow: inset 0 1px 0 var(--btn-hi), 0 1px 2px rgb(16 24 40 / .12); min-height: 44px; }
+button:active { transform: scale(.97); }
+button.primary { background: var(--btn-bg); color: var(--btn-ink); }
 button.ghost { background: transparent; color: var(--accent); border-color: var(--border); }
 button.link { background: none; border: 0; padding: 0; color: var(--accent); font-weight: 500; font-size: 14px; }
 button.danger { background: var(--bad); color: #fff; }
