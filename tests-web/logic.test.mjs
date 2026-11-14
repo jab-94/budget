@@ -173,3 +173,66 @@ test("anciennes règles (sans type) : toujours « contient » ou expression rég
   assert.ok(ruleMatches(old, "PRLV SEPA NETFLIX", " PRLV SEPA NETFLIX ", -1349));
   assert.equal(prepareRule({ pattern: "net.lix", is_regex: true }).match, "regex");
 });
+
+test("abonnements (mêmes cas que tests/test_subscriptions.py)", async () => {
+  const { subscriptions, updateSubscription, subscriptionIdOf } = await import("../docs/js/analytics.js");
+  const d = newData();
+  d.accounts.push({ id: 900, name: "LCL" });
+  let id = 1000;
+  const add = (date, label, cents) => d.transactions.push({ id: id++, account_id: 900, date, label, amount_cents: cents, category_locked: 0 });
+  ["2026-01", "2026-02", "2026-03", "2026-04", "2026-05", "2026-06"].forEach((m, i) => {
+    add(`${m}-10`, "PRLV SEPA NETFLIX", i < 4 ? -1349 : -1599);
+    if (i < 2) add(`${m}-12`, "PRLV SEPA DEEZER", -1199);
+    if (i < 3) add(`${m}-14`, "PRLV SEPA SPOTIFY", -1099);
+    add(`${m}-02`, "VIR LOYER APPARTEMENT", -85000);
+    add(`${m}-03`, "PRLV SEPA BASIC FIT", -2999);
+    add(`${m}-${String(5 + i).padStart(2, "0")}`, "CB BOULANGERIE DES AMIS", -120);
+    add(`${m}-${20 + i}`, "CB BOULANGERIE DES AMIS", -120);
+  });
+  add("2026-06-28", "VIR SALAIRE", 250000);
+  categorizeAll(d);
+  let out = subscriptions(d);
+  let by = Object.fromEntries(out.items.map((x) => [x.key, x]));
+  assert.deepEqual(Object.keys(by).sort(), ["BASIC FIT", "NETFLIX", "SPOTIFY"]);
+  assert.deepEqual([by.NETFLIX.amount_cents, by.NETFLIX.price_change_cents, by.NETFLIX.count, by.NETFLIX.status], [1599, 250, 6, "actif"]);
+  assert.equal(by.NETFLIX.next_date, "2026-07-10");
+  assert.equal(by.SPOTIFY.status, "arrete");
+  assert.deepEqual(out.totals, { count: 2, monthly_cents: 1599 + 2999, yearly_cents: (1599 + 2999) * 12 });
+
+  updateSubscription(d, { id: by["BASIC FIT"].id, status: "ignored" }, "2026-07-01");
+  updateSubscription(d, { id: by.NETFLIX.id, status: "cancelled", cancelled_on: "2026-05-20", name: "Netflix (famille)" }, "2026-07-01");
+  updateSubscription(d, { id: subscriptionIdOf({ label: "PRLV SEPA DEEZER", account_id: 900, amount_cents: -1199 }), status: "confirmed" }, "2026-07-01");
+  out = subscriptions(d);
+  by = Object.fromEntries(out.items.map((x) => [x.key, x]));
+  assert.deepEqual(Object.keys(by).sort(), ["DEEZER", "NETFLIX", "SPOTIFY"]);
+  assert.deepEqual(out.ignored.map((x) => x.name), ["Basic Fit"]);
+  assert.equal(by.NETFLIX.status, "resilie");
+  assert.deepEqual(by.NETFLIX.charged_after_cancel, [{ date: "2026-06-10", amount_cents: 1599 }]);
+  assert.equal(by.DEEZER.origin, "manuel");
+  const s = Object.fromEntries(insights(d, "2026-06").suggestions.map((x) => [x.kind, x]));
+  assert.equal(s["abonnement-resilie"].severity, "bad");
+  assert.throws(() => updateSubscription(d, { id: "x", status: "confirmed" }, "2026-07-01"));
+});
+
+test("nouvelles catégories (cadeaux, primes…) et migration d'un coffre existant", async () => {
+  const { addCategoriesV4 } = await import("../docs/js/migrations.js");
+  const d = newData();
+  d.accounts.push({ id: 900, name: "LCL" });
+  let id = 1000;
+  for (const [label, cents] of [["VIR PRIME EXCEPTIONNELLE", 50000], ["VIR INTERESSEMENT 2025", 120000],
+    ["PRLV ECHEANCE PRET IMMO", -95000], ["CB AMAZON PRIME", -699]]) {
+    d.transactions.push({ id: id++, account_id: 900, date: "2026-03-05", label, amount_cents: cents, category_locked: 0 });
+  }
+  categorizeAll(d);
+  const name = (t) => d.categories.find((c) => c.id === t.category_id)?.name ?? null;
+  assert.deepEqual(d.transactions.map(name), ["Primes", "Intéressement et participation", "Mensualités de prêt", "Abonnements"]);
+  // Coffre créé avant ces catégories : elles sont ajoutées avec leurs règles, et les opérations reclassées.
+  const removed = new Set(["Primes", "Cadeaux"]);
+  const gone = new Set(d.categories.filter((c) => removed.has(c.name)).map((c) => c.id));
+  d.categories = d.categories.filter((c) => !removed.has(c.name));
+  d.rules = d.rules.filter((r) => !gone.has(r.category_id));
+  for (const t of d.transactions) if (gone.has(t.category_id)) t.category_id = null;
+  assert.equal(addCategoriesV4(d), 2);
+  assert.equal(name(d.transactions[0]), "Primes");
+  assert.equal(addCategoriesV4(d), 0);
+});

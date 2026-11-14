@@ -3,7 +3,8 @@
 // seules les sauvegardes CHIFFRÉES passent par store.save() -> Firebase.
 
 import { categorizeAll, previewRule, suggestPattern, validateRuleFields } from "./categorize.js";
-import { coherence, dashboard, flagDuplicates, incomeAnalysis, insights, manualFingerprint } from "./analytics.js";
+import { coherence, dashboard, flagDuplicates, incomeAnalysis, insights, manualFingerprint, subscriptionIdOf, subscriptions,
+  updateSubscription } from "./analytics.js";
 import { parseCsvStatement } from "./csvparse.js";
 import { validDate } from "./core.js";
 import { availableParsers, parsePdf } from "./pdfparse.js";
@@ -60,6 +61,15 @@ function checkRule(d, body) {
   if (!d.categories.some((c) => c.id === body.category_id)) fail(404, "Catégorie introuvable.");
   return fields;
 }
+
+// Catégories dont l'appli se sert par leur nom : on peut changer leur type et leur couleur, pas leur nom.
+export const PROTECTED_CATEGORIES = new Set(["Abonnements", "Frais bancaires", "Impôts", "Investissement", "Logement",
+  "Revenus financiers", "Salaire", "Santé", "Transports", "Virements internes"]);
+
+const localToday = () => {
+  const n = new Date();
+  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`;
+};
 
 function checkCategory(body) {
   const name = String(body.name || "").trim();
@@ -136,7 +146,7 @@ export async function handle(method, fullPath, body, raw) {
     const order = { expense: 0, income: 1, transfer: 2 };
     return {
       categories: [...d.categories].sort((a, b) => order[a.kind] - order[b.kind] || a.name.localeCompare(b.name, "fr")).map((c) => ({
-        ...c, tx_count: d.transactions.filter((t) => t.category_id === c.id).length,
+        ...c, protected: PROTECTED_CATEGORIES.has(c.name), tx_count: d.transactions.filter((t) => t.category_id === c.id).length,
         rule_count: d.rules.filter((r) => r.category_id === c.id).length })),
       uncategorized: d.transactions.filter((t) => t.category_id === null || t.category_id === undefined).length,
     };
@@ -156,6 +166,10 @@ export async function handle(method, fullPath, body, raw) {
     const cat = d.categories.find((x) => x.id === id(2));
     if (!cat) fail(404, "Catégorie introuvable.");
     if (d.categories.some((x) => x.name === c.name && x.id !== cat.id)) fail(409, "Une catégorie porte déjà ce nom.");
+    if (PROTECTED_CATEGORIES.has(cat.name) && c.name !== cat.name) {
+      fail(400, `« ${cat.name} » sert au fonctionnement de l'appli : son type et sa couleur peuvent changer, pas son nom.`);
+    }
+    if (c.color === null) c.color = cat.color;
     Object.assign(cat, c);
     await save();
     return { ok: true };
@@ -431,6 +445,25 @@ export async function handle(method, fullPath, body, raw) {
     d.settings.irregular_income_categories = [...new Set(body.category_ids)].sort((a, b) => a - b);
     await save();
     return { ok: true };
+  }
+  // ---------- Abonnements ----------
+  if (p === "/api/subscriptions" && method === "GET") return subscriptions(D());
+  if (p === "/api/subscriptions/update" && method === "POST") {
+    const d = D();
+    try { updateSubscription(d, body, localToday()); } catch (e) { fail(400, e.message); }
+    await save();
+    return { ok: true };
+  }
+  if (p === "/api/subscriptions/mark" && method === "POST") {
+    const d = D();
+    const t = d.transactions.find((x) => x.id === body.transaction_id);
+    if (!t) fail(404, "Opération introuvable.");
+    if (t.amount_cents >= 0) fail(400, "Seule une dépense peut être un abonnement.");
+    const sid = subscriptionIdOf(t);
+    if (!sid) fail(400, "Libellé trop générique pour suivre cet abonnement.");
+    updateSubscription(d, { id: sid, status: "confirmed" }, localToday());
+    await save();
+    return { id: sid };
   }
   if (p === "/api/insights" && method === "GET") return insights(D(), monthOr400(q.get("month")), intOrNull(q.get("account_id")));
   if (p === "/api/insights/dismiss" && method === "POST") {

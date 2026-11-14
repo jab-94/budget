@@ -31,6 +31,13 @@ Deux versions, même logique métier :
 - Push sur `main` → GitHub Pages republie en ~1 min.
 - La logique métier existe en double (Python `app/` et JS `docs/js/`) : toute règle modifiée d'un côté
   doit l'être de l'autre ; `tests-web/logic.test.mjs` vérifie que les résultats concordent.
+- Catégories et règles par défaut : source = Python (`app/db.py`, `app/categorize.py`), puis
+  `.venv/bin/python tools/gen_web_defaults.py` régénère `docs/js/defaults.js`. Nouvelles catégories dans un
+  coffre existant : étape `seed_defaults` (Python) + migration dans `docs/js/migrations.js` (web).
+- Abonnements (`subscriptions()` dans `docs/js/analytics.js` et `app/subscriptions.py`) : règle de
+  l'utilisateur = même commerçant, MÊME montant, au moins 3 mois différents (~1 mois d'écart). Loyer,
+  impôts, crédits, espèces exclus du repérage auto. Préférences (confirmé, ignoré, résilié, nom, fréquence)
+  dans `settings.subscriptions`. Interface web uniquement (onglet « Abonnements »).
 
 ## Calibrage des banques (d'après des extraits MASQUÉS, jamais de vrais relevés)
 - LCL : PDF (« Crédit Lyonnais », point « . » = débit, lignes REF/NATURE ignorées). Colonne DATE

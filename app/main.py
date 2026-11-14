@@ -21,7 +21,7 @@ from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import categorize, config, dashboard, dedup, importers, income, insights, report
+from . import categorize, config, dashboard, dedup, importers, income, insights, report, subscriptions
 from .db import Database
 from .security import SESSION_TOKEN, SecurityMiddleware
 from .vault import VaultConflict, VaultError, WrongPassword, find_icloud_conflict_copies
@@ -489,6 +489,11 @@ def _check_category(body: CategoryIn) -> tuple[str, str, str | None]:
     return name, body.kind, color
 
 
+# Catégories dont l'appli se sert par leur nom : on peut changer leur type et leur couleur, pas leur nom.
+PROTECTED_CATEGORIES = {"Abonnements", "Frais bancaires", "Impôts", "Investissement", "Logement",
+                        "Revenus financiers", "Salaire", "Santé", "Transports", "Virements internes"}
+
+
 @app.get("/api/categories/stats")
 def categories_stats():
     d = require_unlocked()
@@ -499,7 +504,8 @@ def categories_stats():
            FROM categories c ORDER BY c.kind, c.name"""
     ).fetchall()
     uncategorized = d.conn.execute("SELECT COUNT(*) FROM transactions WHERE category_id IS NULL").fetchone()[0]
-    return {"categories": [dict(r) for r in rows], "uncategorized": uncategorized}
+    return {"categories": [{**dict(r), "protected": r["name"] in PROTECTED_CATEGORIES} for r in rows],
+            "uncategorized": uncategorized}
 
 
 @app.post("/api/categories")
@@ -520,6 +526,13 @@ def update_category(cat_id: int, body: CategoryIn):
     d = require_unlocked()
     name, kind, color = _check_category(body)
     with d.lock:
+        cur = d.conn.execute("SELECT name, color FROM categories WHERE id=?", (cat_id,)).fetchone()
+        if cur is None:
+            raise HTTPException(404, "Catégorie introuvable.")
+        if cur["name"] in PROTECTED_CATEGORIES and name != cur["name"]:
+            raise HTTPException(400, f"« {cur['name']} » sert au fonctionnement de l'appli : "
+                                     "son type et sa couleur peuvent changer, pas son nom.")
+        color = color or cur["color"]
         try:
             d.conn.execute("UPDATE categories SET name=?, kind=?, color=? WHERE id=?", (name, kind, color, cat_id))
         except sqlite3.IntegrityError:
@@ -767,6 +780,56 @@ def list_budgets():
            WHERE c.kind = 'expense' ORDER BY c.name"""
     ).fetchall()
     return [dict(r) for r in rows]
+
+
+# --- Abonnements ------------------------------------------------------------------------------
+@app.get("/api/subscriptions")
+def get_subscriptions():
+    d = require_unlocked()
+    with d.lock:
+        return subscriptions.subscriptions(d.conn)
+
+
+class SubscriptionIn(BaseModel):
+    id: str
+    status: str | None = None
+    name: str | None = None
+    cadence: str | None = None
+    cancelled_on: str | None = None
+
+
+@app.post("/api/subscriptions/update")
+def update_subscription(body: SubscriptionIn):
+    d = require_unlocked()
+    with d.lock:
+        try:
+            subscriptions.update_subscription(d.conn, body.model_dump(), date.today().isoformat())
+        except ValueError as e:
+            raise HTTPException(400, str(e))
+        save_or_conflict()
+    return {"ok": True}
+
+
+class SubscriptionMarkIn(BaseModel):
+    transaction_id: int
+
+
+@app.post("/api/subscriptions/mark")
+def mark_subscription(body: SubscriptionMarkIn):
+    d = require_unlocked()
+    with d.lock:
+        t = d.conn.execute("SELECT label, account_id, amount_cents FROM transactions WHERE id=?",
+                           (body.transaction_id,)).fetchone()
+        if t is None:
+            raise HTTPException(404, "Opération introuvable.")
+        if t["amount_cents"] >= 0:
+            raise HTTPException(400, "Seule une dépense peut être un abonnement.")
+        sid = subscriptions.subscription_id_of(t["label"], t["account_id"], t["amount_cents"])
+        if sid is None:
+            raise HTTPException(400, "Libellé trop générique pour suivre cet abonnement.")
+        subscriptions.update_subscription(d.conn, {"id": sid, "status": "confirmed"}, date.today().isoformat())
+        save_or_conflict()
+    return {"id": sid}
 
 
 # --- Suggestions d'économies ----------------------------------------------------------------

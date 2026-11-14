@@ -1,4 +1,5 @@
 // Généré à partir de la version Python (app/db.py, app/categorize.py) : ne pas modifier à la main.
+// Régénérer avec : .venv/bin/python tools/gen_web_defaults.py
 export const DEFAULT_CATEGORIES = [
  {
   "name": "Alimentation",
@@ -84,8 +85,44 @@ export const DEFAULT_CATEGORIES = [
   "name": "Investissement",
   "kind": "transfer",
   "color": "#7f8fa6"
+ },
+ {
+  "name": "Cadeaux",
+  "kind": "expense",
+  "color": "#d46a9f"
+ },
+ {
+  "name": "Mensualités de prêt",
+  "kind": "expense",
+  "color": "#8d7a6b"
+ },
+ {
+  "name": "Cadeaux reçus",
+  "kind": "income",
+  "color": "#c98bd6"
+ },
+ {
+  "name": "Remboursements",
+  "kind": "income",
+  "color": "#6aa7c9"
+ },
+ {
+  "name": "Primes",
+  "kind": "income",
+  "color": "#3fae7f"
+ },
+ {
+  "name": "Intéressement et participation",
+  "kind": "income",
+  "color": "#4fb59a"
+ },
+ {
+  "name": "Prêts entre proches",
+  "kind": "transfer",
+  "color": "#b3a58c"
  }
 ];
-export const DEFAULT_RULES = [{"category": "Alimentation", "sign": null, "patterns": ["CARREFOUR", "LECLERC", "AUCHAN", "INTERMARCHE", "LIDL", "ALDI", "MONOPRIX", "FRANPRIX", "CASINO", "SUPER U", "HYPER U", "MAGASINS U", "PICARD", "BIOCOOP", "NATURALIA", "GRAND FRAIS", "NETTO", "LEADER PRICE", "G20", "SPAR", "PROXI", "BOULANGERIE", "BOUCHERIE", "PRIMEUR", "FROMAGERIE", "LA VIE CLAIRE", "THIRIET"]}, {"category": "Restaurants", "sign": null, "patterns": ["RESTAURANT", "MCDONALD", "MC DONALD", "BURGER KING", "KFC", "QUICK", "DELIVEROO", "UBER EATS", "JUST EAT", "STARBUCKS", "BRASSERIE", "PIZZA", "SUSHI", "CAFE", "BISTRO", "PAUL"]}, {"category": "Transports", "sign": null, "patterns": ["SNCF", "OUIGO", "TRAINLINE", "RATP", "NAVIGO", "IDF MOBILITES", "UBER", "BOLT", "HEETCH", "G7", "TAXI", "BLABLACAR", "LIME", "VELIB", "ESSO", "SHELL", "AVIA", "STATION", "CARBURANT", "PEAGE", "VINCI AUTOROUTES", "SANEF", "APRR", "ASF", "PARKING", "INDIGO", "AIR FRANCE", "TRANSAVIA", "EASYJET", "RYANAIR", "VUELING"]}, {"category": "Abonnements", "sign": null, "patterns": ["NETFLIX", "SPOTIFY", "DEEZER", "DISNEY", "CANAL", "AMAZON PRIME", "PRIME VIDEO", "APPLE COM BILL", "ICLOUD", "YOUTUBE", "FREE MOBILE", "FREE TELECOM", "FREEBOX", "ORANGE", "SOSH", "SFR", "RED BY SFR", "BOUYGUES", "B AND YOU", "OPENAI", "ADOBE", "MICROSOFT", "GOOGLE STORAGE", "AUDIBLE", "MOLOTOV"]}, {"category": "Logement", "sign": null, "patterns": ["LOYER", "EDF", "ENGIE", "VEOLIA", "SUEZ", "EAU DE PARIS", "SYNDIC", "FONCIA", "NEXITY", "ASSURANCE HABITATION", "GAZ", "ELECTRICITE", "OHM ENERGIE", "MINT ENERGIE", "EKWATEUR"]}, {"category": "Santé", "sign": null, "patterns": ["PHARMACIE", "PHARMA", "MEDECIN", "DOCTEUR", "DOCTOLIB", "CPAM", "AMELI", "MUTUELLE", "HARMONIE", "ALAN", "DENTISTE", "DENTAIRE", "OPTIQUE", "OPTICIEN", "KINE", "LABORATOIRE", "HOPITAL", "CLINIQUE", "OSTEO"]}, {"category": "Loisirs", "sign": null, "patterns": ["FNAC", "CULTURA", "DECATHLON", "CINEMA", "UGC", "PATHE", "GAUMONT", "MK2", "STEAM", "PLAYSTATION", "NINTENDO", "BASIC FIT", "FITNESS PARK", "NEONESS", "AIRBNB", "BOOKING", "TICKETMASTER", "FNAC SPECTACLES", "MUSEE", "LIBRAIRIE"]}, {"category": "Shopping", "sign": null, "patterns": ["AMAZON", "AMZN", "ZALANDO", "VINTED", "IKEA", "LEROY MERLIN", "CASTORAMA", "DARTY", "BOULANGER", "ZARA", "H M", "UNIQLO", "KIABI", "SEPHORA", "ACTION", "LA REDOUTE", "CDISCOUNT", "ALIEXPRESS", "SHEIN", "APPLE STORE"]}, {"category": "Espèces", "sign": "-", "patterns": ["RETRAIT", "RETRAIT DAB", "DAB"]}, {"category": "Frais bancaires", "sign": "-", "patterns": ["COTISATION", "FRAIS", "COMMISSION", "AGIOS", "INTERETS DEBITEURS", "FRAIS TENUE", "OPTION", "OFFRE GROUPEE"]}, {"category": "Impôts", "sign": null, "patterns": ["DGFIP", "IMPOT", "IMPOTS", "TRESOR PUBLIC", "TAXE FONCIERE", "TAXE HABITATION", "URSSAF", "PRELEVEMENT A LA SOURCE"]}, {"category": "Salaire", "sign": "+", "patterns": ["SALAIRE", "PAIE", "REMUNERATION"]}, {"category": "Autres revenus", "sign": "+", "patterns": ["CAF", "FRANCE TRAVAIL", "POLE EMPLOI"]}, {"category": "Virements internes", "sign": null, "patterns": ["VIR INTERNE", "VIREMENT INTERNE", "VIR CPTE A CPTE", "VIREMENT DE COMPTE A COMPTE"]}];
+export const DEFAULT_RULES = [{"category": "Alimentation", "sign": null, "patterns": ["CARREFOUR", "LECLERC", "AUCHAN", "INTERMARCHE", "LIDL", "ALDI", "MONOPRIX", "FRANPRIX", "CASINO", "SUPER U", "HYPER U", "MAGASINS U", "PICARD", "BIOCOOP", "NATURALIA", "GRAND FRAIS", "NETTO", "LEADER PRICE", "G20", "SPAR", "PROXI", "BOULANGERIE", "BOUCHERIE", "PRIMEUR", "FROMAGERIE", "LA VIE CLAIRE", "THIRIET"]}, {"category": "Restaurants", "sign": null, "patterns": ["RESTAURANT", "MCDONALD", "MC DONALD", "BURGER KING", "KFC", "QUICK", "DELIVEROO", "UBER EATS", "JUST EAT", "STARBUCKS", "BRASSERIE", "PIZZA", "SUSHI", "CAFE", "BISTRO", "PAUL"]}, {"category": "Transports", "sign": null, "patterns": ["SNCF", "OUIGO", "TRAINLINE", "RATP", "NAVIGO", "IDF MOBILITES", "UBER", "BOLT", "HEETCH", "G7", "TAXI", "BLABLACAR", "LIME", "VELIB", "ESSO", "SHELL", "AVIA", "STATION", "CARBURANT", "PEAGE", "VINCI AUTOROUTES", "SANEF", "APRR", "ASF", "PARKING", "INDIGO", "AIR FRANCE", "TRANSAVIA", "EASYJET", "RYANAIR", "VUELING"]}, {"category": "Abonnements", "sign": null, "patterns": ["NETFLIX", "SPOTIFY", "DEEZER", "DISNEY", "CANAL", "AMAZON PRIME", "PRIME VIDEO", "APPLE COM BILL", "ICLOUD", "YOUTUBE", "FREE MOBILE", "FREE TELECOM", "FREEBOX", "ORANGE", "SOSH", "SFR", "RED BY SFR", "BOUYGUES", "B AND YOU", "OPENAI", "ADOBE", "MICROSOFT", "GOOGLE STORAGE", "AUDIBLE", "MOLOTOV"]}, {"category": "Logement", "sign": null, "patterns": ["LOYER", "EDF", "ENGIE", "VEOLIA", "SUEZ", "EAU DE PARIS", "SYNDIC", "FONCIA", "NEXITY", "ASSURANCE HABITATION", "GAZ", "ELECTRICITE", "OHM ENERGIE", "MINT ENERGIE", "EKWATEUR"]}, {"category": "Santé", "sign": null, "patterns": ["PHARMACIE", "PHARMA", "MEDECIN", "DOCTEUR", "DOCTOLIB", "CPAM", "AMELI", "MUTUELLE", "HARMONIE", "ALAN", "DENTISTE", "DENTAIRE", "OPTIQUE", "OPTICIEN", "KINE", "LABORATOIRE", "HOPITAL", "CLINIQUE", "OSTEO"]}, {"category": "Loisirs", "sign": null, "patterns": ["FNAC", "CULTURA", "DECATHLON", "CINEMA", "UGC", "PATHE", "GAUMONT", "MK2", "STEAM", "PLAYSTATION", "NINTENDO", "BASIC FIT", "FITNESS PARK", "NEONESS", "AIRBNB", "BOOKING", "TICKETMASTER", "FNAC SPECTACLES", "MUSEE", "LIBRAIRIE"]}, {"category": "Shopping", "sign": null, "patterns": ["AMAZON", "AMZN", "ZALANDO", "VINTED", "IKEA", "LEROY MERLIN", "CASTORAMA", "DARTY", "BOULANGER", "ZARA", "H M", "UNIQLO", "KIABI", "SEPHORA", "ACTION", "LA REDOUTE", "CDISCOUNT", "ALIEXPRESS", "SHEIN", "APPLE STORE"]}, {"category": "Espèces", "sign": "-", "patterns": ["RETRAIT", "RETRAIT DAB", "DAB"]}, {"category": "Frais bancaires", "sign": "-", "patterns": ["COTISATION", "FRAIS", "COMMISSION", "AGIOS", "INTERETS DEBITEURS", "FRAIS TENUE", "OPTION", "OFFRE GROUPEE"]}, {"category": "Impôts", "sign": null, "patterns": ["DGFIP", "IMPOT", "IMPOTS", "TRESOR PUBLIC", "TAXE FONCIERE", "TAXE HABITATION", "URSSAF", "PRELEVEMENT A LA SOURCE"]}, {"category": "Salaire", "sign": "+", "patterns": ["SALAIRE", "PAIE", "REMUNERATION"]}, {"category": "Autres revenus", "sign": "+", "patterns": ["CAF", "FRANCE TRAVAIL", "POLE EMPLOI"]}, {"category": "Virements internes", "sign": null, "patterns": ["VIR INTERNE", "VIREMENT INTERNE", "VIR CPTE A CPTE", "VIREMENT DE COMPTE A COMPTE"]}, {"category": "Primes", "sign": "+", "patterns": ["PRIME"]}, {"category": "Intéressement et participation", "sign": "+", "patterns": ["INTERESSEMENT", "PARTICIPATION", "EPARGNE SALARIALE", "NATIXIS INTEREPARGNE", "AMUNDI ESR"]}, {"category": "Mensualités de prêt", "sign": "-", "patterns": ["ECHEANCE PRET", "ECH PRET", "REMBOURSEMENT PRET", "PRET IMMOBILIER", "CREDIT IMMOBILIER", "ECHEANCE CREDIT", "COFIDIS", "CETELEM", "SOFINCO", "FRANFINANCE"]}];
+export const CATEGORIES_V4 = ["Cadeaux", "Mensualités de prêt", "Cadeaux reçus", "Remboursements", "Primes", "Intéressement et participation", "Prêts entre proches"];
 export const HINT_CATEGORY = {"investissement": "Investissement", "dividende": "Revenus financiers", "interets": "Revenus financiers", "frais": "Frais bancaires", "impot": "Impôts"};
 export const NOISE_WORDS = new Set(["A", "ACHAT", "AU", "BUY", "CARD", "CARTE", "CB", "DE", "DES", "DU", "ECH", "EMIS", "EN", "EUR", "FAC", "FACTURE", "FR", "FROM", "INCOMING", "INST", "INSTANTANE", "LA", "LE", "LES", "MANDAT", "PAIEMENT", "PAIEMT", "PAR", "POUR", "PRELEVEMENT", "PRLV", "RECU", "REF", "SA", "SARL", "SAS", "SEPA", "TO", "TRADE", "TRANSACTION", "TRANSFER", "VIR", "VIREMENT", "X"]);

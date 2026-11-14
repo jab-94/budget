@@ -78,7 +78,8 @@ def test_suggestions(conn):
     assert kinds["frais"]["yearly_saving_cents"] == 450 * 12  # 6 mois d'historique extrapolés à 12 mois
     assert kinds["doublon"]["severity"] == "bad"
     assert out["suggestions"][0]["kind"] == "doublon"  # le plus grave d'abord
-    assert kinds["abonnements"]["title"].startswith("1 abonnement")
+    # Règle de l'utilisateur : 3 mois au même montant = abonnement (Netflix et la cotisation carte ; Spotify est arrêté).
+    assert kinds["abonnements"]["title"].startswith("2 abonnement")
 
 
 def test_no_increase_without_history(conn):

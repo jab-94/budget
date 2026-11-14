@@ -36,6 +36,7 @@
       <button data-tab="budgets"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9h-9z M14 3.3A9 9 0 0 1 20.7 10H14z"/></svg>Budgets</button>
       <button data-tab="income"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5M4 19h16M8 15l4-4 3 3 5-6"/></svg>Revenus</button>
       <button data-tab="insights"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg>Suggestions<span id="nav-insights-count" class="nav-count" hidden></span></button>
+      <button data-tab="subs"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8M4 4v4h4M4 13a8 8 0 0 0 14.3 4.9L20 16M20 20v-4h-4"/></svg>Abonnements<span id="nav-subs-count" class="nav-count" hidden></span></button>
       <button data-tab="import"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 19h14"/></svg>Importer</button>
       <p class="nav-title">Réglages</p>
       <button data-tab="categories"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h7v7H4zM15.5 5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7zM4 15h7v5H4zM14 15h6v5h-6z"/></svg>Catégories</button>
@@ -237,6 +238,7 @@
       </div>
       <div class="card">
         <div class="card-head"><h2>Prélèvements et abonnements récurrents</h2><span id="ins-rec-total" class="muted small"></span></div>
+        <p class="small"><button type="button" class="link" data-goto="subs">Gérer mes abonnements →</button></p>
         <p class="muted small">Repérés automatiquement : même libellé, intervalle régulier, montant stable (≈ = montant variable).</p>
         <div class="table-wrap">
           <table class="tx">
@@ -246,6 +248,40 @@
           </table>
         </div>
         <p id="ins-rec-empty" class="muted" hidden>Aucune récurrence repérée pour l'instant : il faut au moins 3 mois d'historique.</p>
+      </div>
+    </section>
+
+    <!-- ===== Onglet Abonnements ===== -->
+    <section id="tab-subs" class="tab" hidden>
+      <div class="card">
+        <div class="card-head"><h2>Mes abonnements</h2><span id="subs-count" class="muted small"></span></div>
+        <ul class="kpis">
+          <li class="kpi-main"><div class="k-name">Par mois</div><div class="k-val" id="subs-monthly"></div></li>
+          <li><div class="k-name">Par an</div><div class="k-val" id="subs-yearly"></div></li>
+        </ul>
+        <p class="muted small">Repérés automatiquement : même commerçant, même montant, débité au moins <span id="subs-min"></span> mois.
+          Loyer, impôts, crédits et retraits ne sont pas comptés. Touchez un abonnement pour le gérer.</p>
+        <div id="subs-alerts"></div>
+        <ul id="subs-active" class="sub-list"></ul>
+        <p id="subs-empty" class="muted" hidden>Aucun abonnement repéré pour l'instant : il faut au moins 3 mois de relevés.</p>
+      </div>
+      <div class="card" id="subs-stopped-card" hidden>
+        <h2>Semblent arrêtés</h2>
+        <p class="muted small">Plus prélevés depuis plus d'une échéance. Si vous les avez résiliés, notez-le : vous serez alerté s'ils reviennent.</p>
+        <ul id="subs-stopped" class="sub-list"></ul>
+      </div>
+      <div class="card" id="subs-cancelled-card" hidden>
+        <h2>Résiliés</h2>
+        <ul id="subs-cancelled" class="sub-list"></ul>
+      </div>
+      <div class="card">
+        <h2>Ajouter un abonnement</h2>
+        <p class="small">Un abonnement n'apparaît pas (moins de 3 mois, annuel…) ? Dans <button type="button" class="link" data-goto="ops">Opérations</button>,
+          touchez la catégorie d'un de ses prélèvements, puis <strong>« Suivre comme abonnement »</strong>.</p>
+        <details id="subs-ignored-box" hidden>
+          <summary>Ignorés (<span id="subs-ignored-count"></span>)</summary>
+          <ul id="subs-ignored" class="list compact"></ul>
+        </details>
       </div>
     </section>
 
@@ -477,6 +513,7 @@
       <div class="row">
         <button type="submit" id="cd-save" value="save">Enregistrer</button>
         <button type="button" id="cd-auto" class="ghost" hidden>Revenir au classement automatique</button>
+        <button type="button" id="cd-sub" class="ghost" hidden>Suivre comme abonnement</button>
         <button type="button" id="cd-cancel" class="ghost">Annuler</button>
       </div>
     </form>

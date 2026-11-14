@@ -33,6 +33,17 @@ EXTRA_CATEGORIES = [
     ("Investissement", "transfer", "#7f8fa6"),
 ]
 
+# --- Catégories ajoutées en v4 (demande de l'utilisateur : cadeaux, remboursements, prêts, primes…)
+CATEGORIES_V4 = [
+    ("Cadeaux", "expense", "#d46a9f"),
+    ("Mensualités de prêt", "expense", "#8d7a6b"),
+    ("Cadeaux reçus", "income", "#c98bd6"),
+    ("Remboursements", "income", "#6aa7c9"),
+    ("Primes", "income", "#3fae7f"),
+    ("Intéressement et participation", "income", "#4fb59a"),
+    ("Prêts entre proches", "transfer", "#b3a58c"),
+]
+
 # --- Règles par défaut : (catégorie, signe ou None, [mots-clés]) ---------------------------
 # signe "+" = seulement les entrées d'argent, "-" = seulement les sorties.
 DEFAULT_RULES: list[tuple[str, str | None, list[str]]] = [
@@ -90,6 +101,15 @@ DEFAULT_RULES: list[tuple[str, str | None, list[str]]] = [
     # « REMBOURSEMENT » n'est volontairement PAS une règle : trop ambigu (sécu, ami, commerçant…).
     ("Autres revenus", "+", ["CAF", "FRANCE TRAVAIL", "POLE EMPLOI"]),
     ("Virements internes", None, ["VIR INTERNE", "VIREMENT INTERNE", "VIR CPTE A CPTE", "VIREMENT DE COMPTE A COMPTE"]),
+    # v4
+    ("Primes", "+", ["PRIME"]),
+    ("Intéressement et participation", "+", [
+        "INTERESSEMENT", "PARTICIPATION", "EPARGNE SALARIALE", "NATIXIS INTEREPARGNE", "AMUNDI ESR",
+    ]),
+    ("Mensualités de prêt", "-", [
+        "ECHEANCE PRET", "ECH PRET", "REMBOURSEMENT PRET", "PRET IMMOBILIER", "CREDIT IMMOBILIER",
+        "ECHEANCE CREDIT", "COFIDIS", "CETELEM", "SOFINCO", "FRANFINANCE",
+    ]),
 ]
 
 # Nature fournie par la source -> catégorie
@@ -216,7 +236,7 @@ def suggest_pattern(label: str) -> str:
 
 
 # --- Initialisation (une seule fois par coffre) ---------------------------------------------------
-DEFAULTS_VERSION = 3
+DEFAULTS_VERSION = 4
 
 
 def seed_defaults(conn: sqlite3.Connection) -> None:
@@ -236,6 +256,8 @@ def seed_defaults(conn: sqlite3.Connection) -> None:
         conn.execute("DELETE FROM rules WHERE origin='default' AND pattern='REMBOURSEMENT'")
     if version < 3:
         _remove_author_rights(conn)
+    if version < 4:
+        _seed_v4(conn)
     conn.execute(
         "INSERT INTO meta(key, value) VALUES ('defaults_version', ?) "
         "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
@@ -266,12 +288,25 @@ def _remove_author_rights(conn: sqlite3.Connection) -> None:
 
 def _seed_v1(conn: sqlite3.Connection) -> None:
     conn.executemany("INSERT OR IGNORE INTO categories(name, kind, color) VALUES (?,?,?)", EXTRA_CATEGORIES)
+    later = {c[0] for c in CATEGORIES_V4}
+    _insert_default_rules(conn, lambda cat: cat not in later)
+
+
+def _seed_v4(conn: sqlite3.Connection) -> None:
+    """Nouvelles catégories (cadeaux, primes…) : seulement celles qui n'existent pas déjà, avec leurs règles."""
+    existing = {r[0] for r in conn.execute("SELECT name FROM categories")}
+    new = [c for c in CATEGORIES_V4 if c[0] not in existing]
+    conn.executemany("INSERT INTO categories(name, kind, color) VALUES (?,?,?)", new)
+    names = {c[0] for c in new}
+    _insert_default_rules(conn, lambda cat: cat in names)
+
+
+def _insert_default_rules(conn: sqlite3.Connection, keep) -> None:
     ids = {r[1]: r[0] for r in conn.execute("SELECT id, name FROM categories")}
     rows = []
     for cat, sign, words in DEFAULT_RULES:
-        if cat not in ids:
-            continue
-        rows += [(w, 0, ids[cat], 100, 0, sign, "default") for w in words]
+        if cat in ids and keep(cat):
+            rows += [(w, 0, ids[cat], 100, 0, sign, "default") for w in words]
     conn.executemany(
         "INSERT INTO rules(pattern, is_regex, category_id, priority, created_from_correction, sign, origin) "
         "VALUES (?,?,?,?,?,?,?)",

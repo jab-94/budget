@@ -181,6 +181,7 @@ function showTab(name) {
   if (name === "budgets") loadBudgetsTab();
   if (name === "insights") loadInsightsTab();
   if (name === "income") loadIncomeTab();
+  if (name === "subs") loadSubsTab();
   window.scrollTo(0, 0);
 }
 for (const b of document.querySelectorAll("#tabs button")) b.addEventListener("click", () => showTab(b.dataset.tab));
@@ -647,6 +648,9 @@ async function openCategoryDialog(r) {
   $("cd-category").replaceChildren(...categoryOptions(r.category_id, r.category_id ? [] : [el("option", { value: "" }, "— choisir —")]));
   $("cd-error").textContent = "";
   $("cd-auto").hidden = !r.category_locked;
+  $("cd-sub").hidden = r.amount_cents >= 0;
+  $("cd-sub").disabled = false;
+  $("cd-sub").textContent = "Suivre comme abonnement";
   $("cd-make-rule").checked = true;
   $("cd-rule-box").hidden = false;
   $("cd-pattern").value = "";
@@ -683,6 +687,13 @@ $("cd-auto").addEventListener("click", async () => {
   $("cat-dialog").close();
   loadOps();
 });
+$("cd-sub").addEventListener("click", async () => {
+  try {
+    await api("/api/subscriptions/mark", { body: { transaction_id: cdTx.id } });
+    $("cd-sub").textContent = "✓ Ajouté à vos abonnements";
+    $("cd-sub").disabled = true;
+  } catch (e) { $("cd-error").textContent = e.message; }
+});
 $("cat-dialog-form").addEventListener("submit", async (ev) => {
   ev.preventDefault();
   const catId = $("cd-category").value ? Number($("cd-category").value) : null;
@@ -716,11 +727,13 @@ async function loadCategoriesTab() {
       el("span", { class: "dot", style: `--dot:${c.color || "#999"}` }),
       el("strong", {}, c.name), " ",
       el("span", { class: "muted small" }, `${KIND_GROUP[c.kind]} · ${c.tx_count} opération(s) · ${c.rule_count} règle(s)`)),
-    el("button", { class: "ghost small-btn", onclick: async () => {
-      if (!confirm(`Supprimer « ${c.name} » et ses ${c.rule_count} règle(s) ? Ses opérations seront reclassées automatiquement.`)) return;
-      await api(`/api/categories/${c.id}`, { method: "DELETE" });
-      loadCategoriesTab();
-    } }, "Supprimer"))));
+    el("div", { class: "row" },
+      el("button", { class: "ghost small-btn", onclick: (ev) => editCategory(c, ev.target.closest("li")) }, "Modifier"),
+      el("button", { class: "ghost small-btn", onclick: async () => {
+        if (!confirm(`Supprimer « ${c.name} » et ses ${c.rule_count} règle(s) ? Ses opérations seront reclassées automatiquement.`)) return;
+        await api(`/api/categories/${c.id}`, { method: "DELETE" });
+        loadCategoriesTab();
+      } }, "Supprimer")))));
 
   const ruleItem = (r) => el("li", {},
     el("div", {},
@@ -739,6 +752,34 @@ async function loadCategoriesTab() {
   $("rule-list").replaceChildren(...mine.map(ruleItem));
   $("default-count").textContent = defaults.length;
   $("default-list").replaceChildren(...defaults.map(ruleItem));
+}
+
+const KIND_FORM_LABEL = { expense: "Dépense", income: "Revenu", transfer: "Hors budget (virement, placement, prêt)" };
+
+/** Modifier une catégorie sur place : nom, type (dépense / revenu / hors budget) et couleur. */
+function editCategory(c, li) {
+  const name = el("input", { type: "text", value: c.name, maxlength: "40", required: true, disabled: Boolean(c.protected) });
+  const kind = el("select", {}, ...Object.entries(KIND_FORM_LABEL).map(([k, label]) =>
+    el("option", { value: k, selected: k === c.kind }, label)));
+  const color = el("input", { type: "color", value: c.color || "#999999" });
+  const msg = el("p", { class: "error small wide", role: "alert" });
+  const form = el("form", { class: "grid cat-edit", onsubmit: async (ev) => {
+    ev.preventDefault();
+    try {
+      await api(`/api/categories/${c.id}`, { method: "PUT", body: { name: name.value, kind: kind.value, color: color.value } });
+      loadCategoriesTab();
+    } catch (e) { msg.textContent = e.message; }
+  } },
+  el("label", {}, "Nom", name),
+  el("label", {}, "Type", kind),
+  el("label", {}, "Couleur", color),
+  c.protected ? el("p", { class: "muted small wide" }, "Le nom de cette catégorie sert au fonctionnement de l'appli : seuls le type et la couleur peuvent changer.") : null,
+  el("p", { class: "muted small wide" }, "Le type décide où comptent ses opérations : dans les dépenses, dans les revenus, ou nulle part (hors budget)."),
+  msg,
+  el("div", { class: "wide row" }, el("button", { type: "submit" }, "Enregistrer"),
+    el("button", { type: "button", class: "ghost", onclick: () => loadCategoriesTab() }, "Annuler")));
+  li.replaceChildren(form);
+  name.focus();
 }
 
 let editingRuleId = null;
@@ -808,6 +849,88 @@ $("recat-btn").addEventListener("click", async () => {
   $("cat-summary").textContent = `${res.changed} opération(s) reclassée(s).`;
   setTimeout(loadCategoriesTab, 1500);
 });
+
+// ================= Abonnements =================
+const CADENCE_LABEL = { mensuel: "/ mois", trimestriel: "/ trimestre", annuel: "/ an" };
+const CADENCE_NAME = { mensuel: "Mensuel", trimestriel: "Trimestriel", annuel: "Annuel" };
+const openSubs = new Set(); // abonnements dépliés (gardés ouverts après une action)
+
+async function subUpdate(body) {
+  try { await api("/api/subscriptions/update", { body }); } catch (e) { alert(e.message); return; }
+  loadSubsTab();
+}
+
+function subItem(x) {
+  const tags = [];
+  if (x.charged_after_cancel.length) tags.push(el("span", { class: "tag tag-bad" }, "Prélevé après résiliation"));
+  if (x.price_change_cents > 0) tags.push(el("span", { class: "tag tag-warn" }, `+${money(x.price_change_cents)} (était ${money(x.previous_amount_cents)})`));
+  if (x.price_change_cents < 0) tags.push(el("span", { class: "tag tag-hint" }, `${money(x.price_change_cents)} (était ${money(x.previous_amount_cents)})`));
+  if (x.origin === "manuel") tags.push(el("span", { class: "tag tag-dup" }, "Ajouté à la main"));
+  const when = x.status === "actif" ? `prochain ≈ ${dateFr(x.next_date)}`
+    : x.status === "arrete" ? `dernier le ${dateFr(x.last_date)}` : `résilié le ${dateFr(x.cancelled_on)}`;
+
+  const name = el("input", { type: "text", value: x.name, maxlength: "60", "aria-label": "Nom" });
+  const cadence = el("select", { "aria-label": "Fréquence", onchange: () => subUpdate({ id: x.id, cadence: cadence.value }) },
+    ...Object.entries(CADENCE_NAME).map(([k, label]) => el("option", { value: k, selected: k === x.cadence }, label)));
+  const actions = [];
+  if (x.status === "resilie") {
+    actions.push(el("button", { type: "button", class: "ghost small-btn", onclick: () => subUpdate({ id: x.id, status: "auto" }) }, "Pas résilié finalement"));
+  } else {
+    actions.push(el("button", { type: "button", class: "ghost small-btn", onclick: () => {
+      if (confirm(`Noter « ${x.name} » comme résilié ? Vous serez alerté s'il est encore prélevé ensuite.`)) subUpdate({ id: x.id, status: "cancelled" });
+    } }, "Je l'ai résilié"));
+  }
+  if (x.origin === "manuel" && x.status !== "resilie") {
+    actions.push(el("button", { type: "button", class: "ghost small-btn", onclick: () => subUpdate({ id: x.id, status: "auto" }) }, "Retirer"));
+  } else if (x.origin === "auto") {
+    actions.push(el("button", { type: "button", class: "ghost small-btn", onclick: () => subUpdate({ id: x.id, status: "ignored" }) }, "Ce n'est pas un abonnement"));
+  }
+
+  const details = el("details", { open: openSubs.has(x.id), ontoggle: () => (details.open ? openSubs.add(x.id) : openSubs.delete(x.id)) },
+    el("summary", {},
+      el("span", { class: "dot", style: `--dot:${x.color || "#999"}` }),
+      el("span", { class: "sub-main" }, el("strong", {}, x.name),
+        el("span", { class: "muted small" }, `${x.account} · ${when}`)),
+      el("span", { class: "sub-amount" }, money(x.amount_cents), el("span", { class: "muted small" }, ` ${CADENCE_LABEL[x.cadence]}`))),
+    el("div", { class: "sub-body" },
+      tags.length ? el("div", { class: "tags" }, ...tags) : null,
+      x.charged_after_cancel.length ? el("p", { class: "error small" },
+        `Encore débité après la résiliation : ${x.charged_after_cancel.map((c) => `${money(c.amount_cents)} le ${dateFr(c.date)}`).join(", ")}. Contactez le commerçant ou la banque.`) : null,
+      el("p", { class: "muted small" }, `${x.label} · ${x.category || "à classer"} · ${x.count} prélèvement(s) depuis le ${dateFr(x.first_date)} · ${money(x.yearly_cents)} par an`),
+      el("form", { class: "row sub-edit", onsubmit: (ev) => { ev.preventDefault(); subUpdate({ id: x.id, name: name.value }); } },
+        name, el("button", { type: "submit", class: "ghost small-btn" }, "Renommer"), cadence),
+      el("details", { class: "small" }, el("summary", { class: "link-like" }, "Historique des prélèvements"),
+        el("ul", { class: "list compact" }, ...x.history.map((h) => el("li", {}, el("span", {}, dateFr(h.date)), el("span", { class: "num" }, money(h.amount_cents)))))),
+      el("div", { class: "row" }, ...actions)));
+  return el("li", {}, details);
+}
+
+async function loadSubsTab() {
+  const out = await api("/api/subscriptions");
+  amountNode(out.totals.monthly_cents, $("subs-monthly"));
+  amountNode(out.totals.yearly_cents, $("subs-yearly"));
+  $("subs-min").textContent = out.min_months;
+  $("subs-count").textContent = `${out.totals.count} actif(s)`;
+  const active = out.items.filter((x) => x.status === "actif");
+  const stopped = out.items.filter((x) => x.status === "arrete");
+  const cancelled = out.items.filter((x) => x.status === "resilie");
+  $("subs-active").replaceChildren(...active.map(subItem));
+  $("subs-empty").hidden = active.length > 0;
+  $("subs-stopped").replaceChildren(...stopped.map(subItem));
+  $("subs-stopped-card").hidden = !stopped.length;
+  $("subs-cancelled").replaceChildren(...cancelled.map(subItem));
+  $("subs-cancelled-card").hidden = !cancelled.length;
+  const alerts = cancelled.filter((x) => x.charged_after_cancel.length);
+  $("subs-alerts").replaceChildren(...alerts.map((x) => el("p", { class: "warning" },
+    `⚠ ${x.name} a encore été prélevé après sa résiliation (voir « Résiliés » plus bas).`)));
+  $("nav-subs-count").hidden = !alerts.length;
+  $("nav-subs-count").textContent = alerts.length;
+  $("subs-ignored-box").hidden = !out.ignored.length;
+  $("subs-ignored-count").textContent = out.ignored.length;
+  $("subs-ignored").replaceChildren(...out.ignored.map((x) => el("li", {},
+    el("span", {}, `${x.name} · ${money(x.amount_cents)} · ${x.account}`),
+    el("button", { type: "button", class: "ghost small-btn", onclick: () => subUpdate({ id: x.id, status: "auto" }) }, "Rétablir"))));
+}
 
 // ================= Tableau de bord =================
 // Espace de noms SVG lu sur une icône de la page (évite d'écrire une URL dans le code).

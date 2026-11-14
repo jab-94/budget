@@ -409,7 +409,11 @@ export function insights(data, month, accountId = null) {
   month = month || lastDate.slice(0, 7);
   const recurring = detectRecurring(rows, lastDate);
   const active = recurring.filter((x) => x.active);
-  const subs = active.filter((x) => x.is_subscription);
+  // Abonnements : même liste que le menu « Abonnements » (au moins 3 mois au même montant).
+  const subsAll = subscriptions(data).items.filter((x) => accountId === null || x.account_id === accountId);
+  const subs = subsAll.filter((x) => x.status === "actif");
+  const subKeys = new Set(subsAll.filter((x) => x.status !== "resilie").map((x) => `${x.account_id}|${x.key}`));
+  for (const x of recurring) x.is_subscription = x.is_expense && subKeys.has(`${x.account_id}|${x.key}`);
   const increases = categoryIncreases(rows, month);
   const fees = bankFees(rows, lastDate);
   const dups = suspectedDuplicates(rows, new Set(recurring.map((x) => `${x.account_id}|${x.key}`)));
@@ -434,7 +438,13 @@ export function insights(data, month, accountId = null) {
     const total = subs.reduce((a, x) => a + x.yearly_cents, 0);
     add(`subs:${subs.length}:${total}`, "abonnements", "info", `${subs.length} abonnement(s) actif(s) : ${eur(total)} par an`,
       "Passez-les en revue : chacun résilié est une économie sur toute l'année.", null,
-      { items: subs.map((x) => ({ label: titleCase(x.key), yearly_cents: x.yearly_cents, amount_cents: x.amount_cents, cadence: x.cadence })) });
+      { items: subs.map((x) => ({ label: x.name, yearly_cents: x.yearly_cents, amount_cents: x.amount_cents, cadence: x.cadence })) });
+  }
+  for (const x of subsAll) {
+    for (const c of x.charged_after_cancel) {
+      add(`subcancel:${x.id}:${c.date}`, "abonnement-resilie", "bad", `${x.name} : prélevé après résiliation`,
+        `${eur(c.amount_cents)} débité le ${fr(c.date)} alors que l'abonnement est noté résilié le ${fr(x.cancelled_on)}. Contactez le commerçant ou la banque.`);
+    }
   }
   const stoppedSince = addDays(lastDate, -200);
   for (const x of recurring) {
@@ -468,4 +478,144 @@ export function insights(data, month, accountId = null) {
   s.sort((a, b) => order[a.severity] - order[b.severity] || (b.yearly_saving_cents || 0) - (a.yearly_saving_cents || 0));
   return { month, as_of: lastDate, recurring, upcoming, remaining, fees, duplicates: dups, suggestions: s,
     dismissed_count: hidden.size, subscriptions_yearly_cents: subs.reduce((a, x) => a + x.yearly_cents, 0) };
+}
+
+// ================= Abonnements =================
+// Repérage automatique : même compte, même commerçant, MÊME montant, débité au moins 3 mois
+// différents à environ un mois d'intervalle. L'utilisateur peut ensuite confirmer, ignorer,
+// renommer, déclarer « résilié », ou marquer lui-même une opération comme abonnement.
+// Préférences : data.settings.subscriptions = { [id]: { status, name, cadence, cancelled_on } }.
+export const SUB_MIN_MONTHS = 3;
+export const SUB_CADENCES = { mensuel: 1, trimestriel: 3, annuel: 12 };
+const SUB_STATUSES = new Set(["confirmed", "ignored", "cancelled"]);
+const PRICE_TOLERANCE = 0.35; // une hausse/baisse de prix jusqu'à ±35 % reste le même abonnement
+// Charges fixes qui ne sont pas des abonnements : jamais repérées automatiquement (ajout manuel possible).
+export const SUB_EXCLUDED_CATEGORIES = new Set(["Logement", "Impôts", "Mensualités de prêt", "Espèces"]);
+
+export const subscriptionId = (accountId, key, cents) => `${accountId}|${key}|${cents}`;
+
+/** Identifiant d'abonnement d'une opération (dépense), ou null si le libellé est trop générique. */
+export function subscriptionIdOf(t) {
+  const key = merchantKey(t.label);
+  return key && t.amount_cents < 0 ? subscriptionId(t.account_id, key, -t.amount_cents) : null;
+}
+
+function addMonths(iso, n) {
+  let y = Number(iso.slice(0, 4)), m = Number(iso.slice(5, 7)) + n;
+  while (m > 12) { m -= 12; y++; }
+  const d = Math.min(Number(iso.slice(8, 10)), lastDayOfMonth(y, m));
+  return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+}
+
+function guessCadence(dates) {
+  if (dates.length < 2) return "mensuel";
+  const gap = median(dates.slice(1).map((d, i) => daysBetween(dates[i], d)));
+  return gap >= 300 ? "annuel" : gap >= 75 ? "trimestriel" : "mensuel";
+}
+
+export function subscriptions(data) {
+  const prefs = data.settings.subscriptions || {};
+  const all = enrich(data);
+  const lastByAccount = new Map();
+  for (const r of all) if (!(r.date <= (lastByAccount.get(r.account_id) || ""))) lastByAccount.set(r.account_id, r.date);
+  const byDate = (a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.id - b.id);
+  const rows = all.filter((r) => r.amount_cents < 0 && r.kind !== "transfer").sort(byDate);
+  const groups = new Map(), byMerchant = new Map();
+  for (const r of rows) {
+    const key = merchantKey(r.label);
+    if (!key) continue;
+    const id = subscriptionId(r.account_id, key, -r.amount_cents);
+    if (!groups.has(id)) groups.set(id, { id, key, cents: -r.amount_cents, items: [] });
+    groups.get(id).items.push(r);
+    const mk = `${r.account_id}|${key}`;
+    if (!byMerchant.has(mk)) byMerchant.set(mk, []);
+    byMerchant.get(mk).push(r);
+  }
+  const candidates = [], ignored = [];
+  for (const g of groups.values()) {
+    const pref = prefs[g.id] || {};
+    const months = new Set(g.items.map((r) => r.date.slice(0, 7)));
+    const dates = [...new Set(g.items.map((r) => r.date))];
+    const gap = dates.length > 1 ? median(dates.slice(1).map((d, i) => daysBetween(dates[i], d))) : 0;
+    g.auto = months.size >= SUB_MIN_MONTHS && dates.length <= months.size + 1 && gap >= 25 && gap <= 35
+      && !SUB_EXCLUDED_CATEGORIES.has(g.items[g.items.length - 1].category);
+    if (pref.status === "ignored") {
+      ignored.push({ id: g.id, name: pref.name || titleCase(g.key), amount_cents: g.cents, account: g.items[0].account });
+    } else if (g.auto || pref.status === "confirmed" || pref.status === "cancelled") {
+      candidates.push(g);
+    }
+  }
+  candidates.sort((a, b) => byDate(a.items[0], b.items[0]));
+  const used = new Set(), items = [];
+  for (const g of candidates) {
+    const charges = g.items.filter((r) => !used.has(r.id));
+    if (!charges.length) continue; // déjà repris par un autre abonnement (changement de prix)
+    const pref = prefs[g.id] || {};
+    const cadence = SUB_CADENCES[pref.cadence] ? pref.cadence : g.auto ? "mensuel" : guessCadence([...new Set(charges.map((r) => r.date))]);
+    const period = SUB_CADENCES[cadence] * 30.44;
+    // Changement de prix : les prélèvements suivants du même commerçant, à la bonne cadence et
+    // à un montant proche, prolongent le même abonnement.
+    const pool = byMerchant.get(`${g.items[0].account_id}|${g.key}`);
+    for (;;) {
+      const last = charges[charges.length - 1];
+      const next = pool.find((r) => !used.has(r.id) && !charges.includes(r) && r.date > last.date
+        && daysBetween(last.date, r.date) >= period * 0.65 && daysBetween(last.date, r.date) <= period * 1.5
+        && Math.abs(-r.amount_cents + last.amount_cents) <= PRICE_TOLERANCE * -last.amount_cents
+        // …sauf s'il s'agit d'un AUTRE abonnement du même commerçant, déjà en cours en même temps.
+        && !candidates.some((c) => c !== g && c.id === subscriptionIdOf(r) && c.items[0].date <= g.items[g.items.length - 1].date));
+      if (!next) break;
+      charges.push(next);
+    }
+    for (const r of charges) used.add(r.id);
+    const last = charges[charges.length - 1];
+    const amount = -last.amount_cents;
+    const n = SUB_CADENCES[cadence];
+    let status = "actif";
+    if (pref.status === "cancelled") status = "resilie";
+    else if (daysBetween(last.date, lastByAccount.get(last.account_id)) > period + 15) status = "arrete";
+    items.push({
+      id: g.id, key: g.key, name: pref.name || titleCase(g.key), label: last.label, account: last.account,
+      account_id: last.account_id, category: last.category, color: last.color, amount_cents: amount, cadence,
+      monthly_cents: pyRound(amount / n), yearly_cents: pyRound((amount * 12) / n), first_date: charges[0].date,
+      last_date: last.date, next_date: addMonths(last.date, n), count: charges.length, status,
+      origin: g.auto ? "auto" : "manuel", confirmed: pref.status === "confirmed", cancelled_on: pref.cancelled_on || null,
+      charged_after_cancel: pref.status === "cancelled"
+        ? charges.filter((r) => r.date > pref.cancelled_on).map((r) => ({ date: r.date, amount_cents: -r.amount_cents })) : [],
+      price_change_cents: amount - g.cents, previous_amount_cents: g.cents,
+      history: charges.slice(-12).reverse().map((r) => ({ id: r.id, date: r.date, amount_cents: -r.amount_cents })),
+    });
+  }
+  const order = { actif: 0, arrete: 1, resilie: 2 };
+  items.sort((a, b) => order[a.status] - order[b.status] || b.monthly_cents - a.monthly_cents || a.name.localeCompare(b.name, "fr"));
+  const active = items.filter((x) => x.status === "actif");
+  return { items, ignored, min_months: SUB_MIN_MONTHS,
+    totals: { count: active.length, monthly_cents: active.reduce((s, x) => s + x.monthly_cents, 0),
+      yearly_cents: active.reduce((s, x) => s + x.yearly_cents, 0) } };
+}
+
+/** Met à jour les préférences d'un abonnement. status : confirmed | ignored | cancelled | auto (= par défaut). */
+export function updateSubscription(data, body, today) {
+  const id = String(body.id || "");
+  if (!id || id.length > 300 || id.split("|").length !== 3) throw new Error("Abonnement inconnu.");
+  data.settings.subscriptions = data.settings.subscriptions || {};
+  const pref = { ...(data.settings.subscriptions[id] || {}) };
+  if (body.status !== undefined) {
+    if (body.status === "auto") { delete pref.status; delete pref.cancelled_on; }
+    else if (SUB_STATUSES.has(body.status)) {
+      pref.status = body.status;
+      if (body.status === "cancelled") pref.cancelled_on = /^\d{4}-\d{2}-\d{2}$/.test(body.cancelled_on || "") ? body.cancelled_on : today;
+      else delete pref.cancelled_on;
+    } else throw new Error("Statut invalide.");
+  }
+  if (body.name !== undefined) {
+    const name = String(body.name || "").trim();
+    if (name.length > 60) throw new Error("Nom trop long (60 caractères maximum).");
+    if (name) pref.name = name; else delete pref.name;
+  }
+  if (body.cadence !== undefined) {
+    if (body.cadence && !SUB_CADENCES[body.cadence]) throw new Error("Fréquence invalide.");
+    if (body.cadence) pref.cadence = body.cadence; else delete pref.cadence;
+  }
+  if (Object.keys(pref).length) data.settings.subscriptions[id] = pref; else delete data.settings.subscriptions[id];
+  return pref;
 }

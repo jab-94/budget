@@ -2,6 +2,8 @@
 
 import { addDays } from "./core.js";
 import { fingerprints } from "./analytics.js";
+import { categorizeAll } from "./categorize.js";
+import { CATEGORIES_V4, DEFAULT_CATEGORIES, DEFAULT_RULES } from "./defaults.js";
 
 /**
  * Correctif « année LCL » : des opérations de fin décembre importées depuis un relevé de
@@ -33,6 +35,31 @@ export async function repairYearShift(data) {
   return fixed;
 }
 
+/**
+ * Nouvelles catégories par défaut (cadeaux, remboursements, primes…) dans un coffre existant :
+ * seulement celles qui n'existent pas déjà (même nom), avec leurs règles par défaut.
+ */
+export function addCategoriesV4(data) {
+  const names = new Set(data.categories.map((c) => c.name));
+  const added = [];
+  for (const c of DEFAULT_CATEGORIES) {
+    if (!CATEGORIES_V4.includes(c.name) || names.has(c.name)) continue;
+    const cat = { id: data.nextId++, ...c };
+    data.categories.push(cat);
+    added.push(cat);
+  }
+  for (const cat of added) {
+    for (const r of DEFAULT_RULES.filter((x) => x.category === cat.name)) {
+      for (const p of r.patterns) {
+        data.rules.push({ id: data.nextId++, pattern: p, is_regex: false, category_id: cat.id, priority: 100,
+          sign: r.sign, origin: "default" });
+      }
+    }
+  }
+  if (added.length) categorizeAll(data);
+  return added.length;
+}
+
 export async function migrate(data) {
   data.migrations = data.migrations || {};
   let changed = 0;
@@ -40,6 +67,11 @@ export async function migrate(data) {
     changed += await repairYearShift(data);
     data.migrations.yearShift1 = true;
     changed += 1; // le marqueur lui-même doit être enregistré
+  }
+  if (!data.migrations.categoriesV4) {
+    addCategoriesV4(data);
+    data.migrations.categoriesV4 = true;
+    changed += 1;
   }
   return changed;
 }

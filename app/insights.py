@@ -296,7 +296,13 @@ def insights(conn: sqlite3.Connection, month: str | None = None, account_id: int
 
     recurring = detect_recurring(rows, last_date)
     active = [x for x in recurring if x["active"]]
-    subs = [x for x in active if x["is_subscription"]]
+    # Abonnements : même liste que le menu « Abonnements » (au moins 3 mois au même montant).
+    from .subscriptions import subscriptions
+    subs_all = [x for x in subscriptions(conn)["items"] if account_id is None or x["account_id"] == account_id]
+    subs = [x for x in subs_all if x["status"] == "actif"]
+    sub_keys = {(x["account_id"], x["key"]) for x in subs_all if x["status"] != "resilie"}
+    for x in recurring:
+        x["is_subscription"] = x["is_expense"] and (x["account_id"], x["key"]) in sub_keys
     increases = category_increases(rows, month)
     fees = bank_fees(rows, last_date)
     dups = suspected_duplicates(rows, {(x["account_id"], x["key"]) for x in recurring})
@@ -324,8 +330,13 @@ def insights(conn: sqlite3.Connection, month: str | None = None, account_id: int
         add(f"subs:{len(subs)}:{total}", "abonnements", "info",
             f"{len(subs)} abonnement(s) actif(s) : {_eur(total)} par an",
             "Passez-les en revue : chacun résilié est une économie sur toute l'année.",
-            None, items=[{"label": x["key"].title(), "yearly_cents": x["yearly_cents"], "amount_cents": x["amount_cents"],
+            None, items=[{"label": x["name"], "yearly_cents": x["yearly_cents"], "amount_cents": x["amount_cents"],
                           "cadence": x["cadence"]} for x in subs])
+    for x in subs_all:
+        for c in x["charged_after_cancel"]:
+            add(f"subcancel:{x['id']}:{c['date']}", "abonnement-resilie", "bad", f"{x['name']} : prélevé après résiliation",
+                f"{_eur(c['amount_cents'])} débité le {_fr(c['date'])} alors que l'abonnement est noté résilié "
+                f"le {_fr(x['cancelled_on'])}. Contactez le commerçant ou la banque.")
     for x in recurring:
         if not x["active"] and x["is_expense"] and x["last_date"] >= (last_date - timedelta(days=200)).isoformat():
             add(f"stopped:{x['account_id']}:{x['key']}:{x['last_date']}", "arrete", "info",
