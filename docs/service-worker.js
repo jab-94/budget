@@ -9,8 +9,8 @@
 // Les échanges avec Firebase (autres domaines) ne passent jamais par ce cache.
 //
 // CACHE_VERSION doit être augmenté à chaque publication.
-const CACHE_VERSION = "budget-v12";
-const CORE = ["./", "index.html", "app.css", "manifest.json", "icon-192-v3.png", "apple-touch-icon-v3.png",
+const CACHE_VERSION = "budget-v13";
+const CORE = ["./", "index.html", "app.css", "manifest.json", "icon-192-v3.png", "apple-touch-icon-v3.png", "brand-light-v1.png", "brand-dark-v1.png",
   "js/theme.js", "js/app.js", "js/backend.js", "js/store.js", "js/cloud.js", "js/crypto.js", "js/config.js",
   "js/core.js", "js/defaults.js", "js/migrations.js", "js/categorize.js", "js/analytics.js", "js/csvparse.js", "js/pdfparse.js",
   "vendor/firebase.js"];
