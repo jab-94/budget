@@ -1,4 +1,4 @@
-// Import CSV (portage de app/importers/csv_import.py et trade_republic.py).
+// Import CSV.
 
 import { parseAmount, parseDate, parseDotDecimal, stripAccents } from "./core.js";
 

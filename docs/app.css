@@ -253,6 +253,7 @@ dialog::backdrop { background: rgb(0 0 0 / .45); }
 
 .dash-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: start; }
 .span-2 { grid-column: span 2; }
+.span-all { grid-column: 1 / -1; }
 
 /* Montants : partie entière en grand, centimes en petit */
 .amount-xl, .amount-l { margin: 4px 0; font-weight: 750; letter-spacing: -.03em; line-height: 1.05; white-space: nowrap; }
@@ -462,3 +463,10 @@ button.op-label:hover { color: var(--accent); text-decoration: underline; }
 .danger-text { color: var(--bad-text) !important; }
 #tx-dialog .grid { margin-bottom: 8px; }
 #tx-error:empty { display: none; }
+
+/* ----- Abonnements sur l'accueil ----- */
+.sub-totals { margin: 0 0 10px; }
+.sub-totals .amount-l { display: inline; }
+.dash-subs { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 24px; }
+.dash-subs li { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); min-width: 0; }
+@media (max-width: 600px) { .dash-subs { grid-template-columns: 1fr; } }

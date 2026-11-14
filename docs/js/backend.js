@@ -1,4 +1,4 @@
-// « Serveur » local, dans le navigateur : répond aux mêmes demandes que l'API Python
+// « Serveur » local, dans le navigateur : répond aux demandes de l'interface
 // (/api/...), sur les données déchiffrées en mémoire. Rien ne part sur le réseau ici :
 // seules les sauvegardes CHIFFRÉES passent par store.save() -> Firebase.
 

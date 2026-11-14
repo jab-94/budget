@@ -1041,6 +1041,26 @@ function deltaText(cur, prev, prevMonth, upIsBad) {
 
 const dash = { month: null, account: "", range: "auto", category: null, data: null };
 
+/** Carte « Abonnements » de l'accueil (selon le compte choisi en haut de page). */
+async function loadDashSubs() {
+  const out = await api("/api/subscriptions");
+  const mine = out.items.filter((x) => !dash.account || x.account_id === Number(dash.account));
+  const active = mine.filter((x) => x.status === "actif");
+  const monthly = active.reduce((s, x) => s + x.monthly_cents, 0);
+  amountNode(monthly, $("dash-subs-monthly"));
+  $("dash-subs-yearly").textContent = `· ${money(active.reduce((s, x) => s + x.yearly_cents, 0))} par an · ${active.length} actif(s)`;
+  const alerts = mine.filter((x) => x.charged_after_cancel.length);
+  $("dash-subs-alert").replaceChildren(...alerts.map((x) => el("p", { class: "warning" }, `⚠ ${x.name} a encore été prélevé après sa résiliation.`)));
+  const shown = active.slice(0, 6);
+  $("dash-subs").replaceChildren(...shown.map((x) => el("li", {},
+    el("span", { class: "dot", style: `--dot:${x.color || "#999"}` }),
+    el("span", { class: "sub-main" }, el("strong", {}, x.name), el("span", { class: "muted small" }, `prochain ≈ ${dateFr(x.next_date)}`)),
+    el("span", { class: "sub-amount" }, money(x.amount_cents), el("span", { class: "muted small" }, ` ${CADENCE_LABEL[x.cadence]}`)))));
+  $("dash-subs-empty").hidden = active.length > 0;
+  $("dash-subs-more").hidden = active.length <= shown.length;
+  $("dash-subs-more").querySelector("button").textContent = `Voir les ${active.length} abonnements →`;
+}
+
 async function loadDashboard() {
   // « Auto » : la période couvre les mois disponibles, entre 6 et 12 mois.
   let range = dash.range;
@@ -1055,6 +1075,7 @@ async function loadDashboard() {
   if (dash.account) p.set("account_id", dash.account);
   if (dash.category) p.set("category_id", dash.category);
   const d = await api(`/api/dashboard?${p}`);
+  loadDashSubs();
   const firstLoad = !dash.data;
   dash.data = d;
   dash.month = d.month;

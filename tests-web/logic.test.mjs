@@ -1,4 +1,4 @@
-// Les règles de la version web doivent donner les mêmes résultats que la version Python.
+// Tests de la logique métier (valeurs de référence reprises de l'ancienne version Python).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { parseAmount, parseDate, parseDotDecimal, normalizeLabel } from "../docs/js/core.js";
@@ -7,7 +7,7 @@ import { newData } from "../docs/js/store.js";
 import { quantile, insights, incomeAnalysis } from "../docs/js/analytics.js";
 import { parseCsvStatement } from "../docs/js/csvparse.js";
 
-test("montants (mêmes cas que tests/test_importers.py)", () => {
+test("montants", () => {
   for (const [t, c] of [["12,50", 1250], ["-12,50", -1250], ["1 234,56", 123456], ["1 234,56 €", 123456], ["1.234,56", 123456],
     ["1,234.56", 123456], ["-45.9", -4590], ["100", 10000], ["12,50-", -1250], ["+3,00", 300], ["(7,25)", -725], ["-1 000,00", -100000]]) {
     assert.equal(parseAmount(t), c, t);
@@ -48,7 +48,7 @@ test("catégorisation par défaut et virements internes", () => {
   assert.ok(!d.categories.some((c) => c.name === "Droits d'auteur"));
 });
 
-test("revenu de référence prudent (mêmes valeurs que tests/test_income.py)", () => {
+test("revenu de référence prudent", () => {
   assert.equal(quantile([190000, 210000, 240000, 280000, 300000, 350000], 0.25), 217500);
   const d = newData();
   d.accounts.push({ id: 900, name: "LCL" });
@@ -174,7 +174,7 @@ test("anciennes règles (sans type) : toujours « contient » ou expression rég
   assert.equal(prepareRule({ pattern: "net.lix", is_regex: true }).match, "regex");
 });
 
-test("abonnements (mêmes cas que tests/test_subscriptions.py)", async () => {
+test("abonnements", async () => {
   const { subscriptions, updateSubscription, subscriptionIdOf } = await import("../docs/js/analytics.js");
   const d = newData();
   d.accounts.push({ id: 900, name: "LCL" });

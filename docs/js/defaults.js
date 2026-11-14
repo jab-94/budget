@@ -1,5 +1,4 @@
-// Généré à partir de la version Python (app/db.py, app/categorize.py) : ne pas modifier à la main.
-// Régénérer avec : .venv/bin/python tools/gen_web_defaults.py
+// Catégories et règles par défaut (à l'origine générées depuis l'ancienne version Python ; désormais modifiées ici).
 export const DEFAULT_CATEGORIES = [
  {
   "name": "Alimentation",

@@ -1,4 +1,4 @@
-// Lecture des relevés PDF (portage de app/importers/pdf_generic.py et banks.py).
+// Lecture des relevés PDF.
 //
 // Chaque ligne = texte + abscisse réelle de chaque caractère : un libellé long qui
 // décale le montant dans le texte ne transforme pas un débit en crédit.

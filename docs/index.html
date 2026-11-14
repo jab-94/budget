@@ -151,6 +151,16 @@
           <p id="dash-budget-summary" class="muted small"></p>
           <ul id="dash-budgets" class="budget-list"></ul>
         </article>
+        <!-- Abonnements -->
+        <article class="card span-2">
+          <div class="card-head"><h2>Abonnements</h2><button type="button" class="link" data-goto="subs">Gérer</button></div>
+          <p class="sub-totals"><span class="amount-l" id="dash-subs-monthly"></span> <span class="muted">par mois</span>
+            <span class="muted small" id="dash-subs-yearly"></span></p>
+          <div id="dash-subs-alert"></div>
+          <ul id="dash-subs" class="dash-subs"></ul>
+          <p id="dash-subs-more" class="small" hidden><button type="button" class="link" data-goto="subs"></button></p>
+          <p id="dash-subs-empty" class="muted small" hidden>Aucun abonnement repéré : il faut au moins 3 mois de relevés.</p>
+        </article>
         <!-- Dépenses par catégorie -->
         <article class="card">
           <div class="card-head"><h2>Dépenses par catégorie</h2></div>
@@ -173,7 +183,7 @@
         </article>
 
         <!-- Plus grosses dépenses -->
-        <article class="card span-2">
+        <article class="card span-all">
           <div class="card-head"><h2>Plus grosses dépenses du mois</h2><button type="button" class="link" data-goto="ops">Toutes les opérations</button></div>
           <ul id="dash-top" class="simple-list"></ul>
         </article>

@@ -1,6 +1,6 @@
 // Données du coffre, en mémoire une fois déchiffrées, et leur sauvegarde chiffrée.
 //
-// Structure (mêmes champs que les tables de la version Python) :
+// Structure (héritée des tables de l'ancienne version Python) :
 //   accounts      [{id, name, bank, kind}]
 //   categories    [{id, name, kind, color}]
 //   rules         [{id, pattern, is_regex, category_id, priority, sign, origin}]

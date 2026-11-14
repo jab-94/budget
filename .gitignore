@@ -7,16 +7,14 @@ data/
 *.sqlite
 *.pdf
 *.csv
-!tests/fixtures/*.csv
+!tests-web/fixtures/*.csv
 
-# Environnement Python
+# Anciens fichiers de la version Python (retirée)
 .venv/
 __pycache__/
-*.pyc
-.pytest_cache/
 
 # Faux relevés de test (données inventées) : autorisés
-!tests/fixtures/*.pdf
+!tests-web/fixtures/*.pdf
 
 # Version web : dépendances de construction (docs/vendor est versionné)
 tools/web-vendor/node_modules/

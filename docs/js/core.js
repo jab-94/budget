@@ -1,5 +1,5 @@
 // Briques communes : montants (en CENTIMES entiers), dates, libellés.
-// Portage fidèle de app/importers/base.py (version Python, testée).
+// Outils de base : montants, dates, libellés.
 
 export class ImportError extends Error {}
 

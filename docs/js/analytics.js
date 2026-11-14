@@ -1,5 +1,4 @@
-// Doublons, tableau de bord, suggestions d'économies, salaire variable.
-// Portage de app/dedup.py, dashboard.py, insights.py et income.py (mêmes règles, mêmes seuils).
+// Doublons, tableau de bord, suggestions d'économies, salaire variable, abonnements.
 
 import { addDays, daysBetween, formatCents, lastDayOfMonth, monthAdd, normalizeLabel, sha256Hex, todayIso } from "./core.js";
 import { NOISE_WORDS } from "./defaults.js";

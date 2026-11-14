@@ -4,10 +4,10 @@ Suivi de budget personnel, **confidentialité d'abord** (contrainte n°1 de l'ut
 
 **Seule la version web compte** : `docs/` (GitHub Pages : https://jab-94.github.io/budget/), coffre chiffré
 dans le navigateur, synchronisé via Firebase (projet `budget-app-a4f61`).
-Tests : `node --test tests-web/*.test.mjs` + `.venv/bin/python -m pytest tests/test_web_privacy.py`.
+Tests : `node --test tests-web/*.test.mjs` (dont `privacy.test.mjs` : garde-fous de confidentialité).
 
-⚠ La version locale Python (`app/`, `static/`, `tests/` sauf `test_web_privacy.py`) est **ABANDONNÉE**
-(l'utilisateur l'a supprimée de sa machine, novembre 2026) : ne plus la modifier ni la tenir à parité.
+L'ancienne version locale Python a été **supprimée du dépôt** (novembre 2026, à la demande de
+l'utilisateur ; encore visible dans l'historique Git). Ne pas la recréer.
 
 ## Règles non négociables
 - Les données ne sortent JAMAIS en clair : chiffrement dans le navigateur (PBKDF2-SHA256
@@ -29,9 +29,8 @@ Tests : `node --test tests-web/*.test.mjs` + `.venv/bin/python -m pytest tests/t
   les icônes. Ne jamais repasser le code en « cache d'abord » : la page et le code se désynchronisaient
   après une mise à jour (bug vécu : import multiple qui ne lisait qu'un fichier).
 - Push sur `main` → GitHub Pages republie en ~1 min.
-- Catégories et règles par défaut : `docs/js/defaults.js` (généré jusqu'ici depuis le Python par
-  `tools/gen_web_defaults.py` ; désormais on peut le modifier directement). Nouvelles catégories dans un
-  coffre existant : migration dans `docs/js/migrations.js`.
+- Catégories et règles par défaut : `docs/js/defaults.js` (à modifier directement). Nouvelles
+  catégories dans un coffre existant : migration dans `docs/js/migrations.js`.
 - Opérations : recherche (`q` : mots sur libellé + note + catégorie + compte, un nombre = montant exact),
   filtres sens / montant min-max / dates. Modification (PUT /api/transactions/:id) : date, libellé, montant,
   compte (seulement si saisie manuelle), note ; valeurs d'origine gardées dans `original` (« Rétablir »).
@@ -50,7 +49,9 @@ Tests : `node --test tests-web/*.test.mjs` + `.venv/bin/python -m pytest tests/t
   colonnes = 2 mots après « Valeur ». Les mots collés n'existaient que dans l'extraction pdfplumber de
   l'extrait masqué : dans l'app web (pdf.js), les libellés ont bien leurs espaces (confirmé par l'utilisateur).
 - Trade Republic : CSV (23 colonnes confirmées), frais/taxes séparés, titres = Investissement.
-- Script de masquage pour calibrer : `tools/inspect_pdf.py` (PDF et CSV).
+- Calibrer une nouvelle banque : demander à l'utilisateur un extrait MASQUÉ (l'ancien script Python
+  `tools/inspect_pdf.py` a été retiré ; si besoin, prévoir un masquage dans le navigateur).
+- Faux relevés de test : `tests-web/fixtures/` ; `node tests-web/pdf_check.mjs` les lit avec pdf.js.
 
 ## Utilisateur
 - Pas développeur : expliquer simplement, guider pas à pas (Windows + Mac + iPhone).

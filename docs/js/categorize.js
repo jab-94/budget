@@ -1,4 +1,4 @@
-// Catégorisation par règles locales (portage de app/categorize.py).
+// Catégorisation par règles locales.
 //
 // Ordre de décision pour une opération NON classée à la main :
 //  1. règles de l'utilisateur (priorité, puis la plus récente) ;
