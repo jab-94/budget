@@ -48,6 +48,12 @@ l'utilisateur ; encore visible dans l'historique Git). Ne pas la recréer.
   pastille 380/30, décalage 0,03 s). Données : `spendingStats()` (7 jours glissants, mois, 12 mois cumulés).
   Pas de défilement automatique (choix de l'utilisateur). Même carte pour les Revenus (`/api/stats/income`,
   pastille verte quand ça monte).
+- Barre d'onglets « Liquid Glass » en bas sur TÉLÉPHONE (≤ 860 px) : paquet npm `@onlymoein/liquidglass`
+  (React) embarqué dans `docs/vendor/liquidglass.js` + `.css` par `tools/web-vendor/build-liquidglass.mjs`
+  (l'injection de balises <style> de la bibliothèque est coupée à la construction : CSP style-src 'self').
+  Chargé seulement sur téléphone (`docs/js/tabbar.js`) ; l'ordinateur garde le menu latéral. Onglets :
+  Accueil, Opérations, Abonnements, Importer, Plus (feuille avec les autres pages). CSP : worker-src 'self' blob:
+  (dessin des lentilles dans un worker ; reste limité par connect-src).
 
 ## Calibrage des banques (d'après des extraits MASQUÉS, jamais de vrais relevés)
 - LCL : PDF (« Crédit Lyonnais », point « . » = débit, lignes REF/NATURE ignorées). Colonne DATE

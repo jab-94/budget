@@ -6,7 +6,7 @@
   <meta name="referrer" content="no-referrer">
   <!-- Politique de sécurité : la page ne peut charger que ses propres fichiers et ne peut
        contacter que Firebase (connexion + coffre CHIFFRÉ). Aucun CDN, aucune police externe. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'self'; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'self'; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com">
   <meta name="theme-color" content="#2563eb">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Budget">
@@ -562,6 +562,10 @@
     </section>
   </main>
 </div>
+
+  <!-- Barre d'onglets en verre (téléphone) et feuille « Plus » : remplies par js/tabbar.js -->
+  <div id="glass-tabbar" class="glass-tabbar"></div>
+  <div id="glass-sheet"></div>
 
   <!-- Fenêtre de correction de catégorie -->
   <dialog id="tx-dialog">

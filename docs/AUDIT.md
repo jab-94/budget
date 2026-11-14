@@ -32,3 +32,7 @@ ne quitte jamais l'appareil.
   le coffre, à condition d'être différent du mot de passe du coffre.
 - Firebase envoie avec ses requêtes des informations techniques (version du kit,
   navigateur), sans aucune donnée budgétaire.
+- **Barre d'onglets Liquid Glass (téléphone)** : la bibliothèque `@onlymoein/liquidglass` et React sont
+  copiées dans `docs/vendor` (aucun CDN) et ne contiennent aucun appel réseau (test
+  `tests-web/privacy.test.mjs`). La CSP autorise en plus `worker-src blob:` : la bibliothèque dessine ses
+  reflets dans un worker créé à partir de son propre code ; un worker reste soumis à `connect-src`.

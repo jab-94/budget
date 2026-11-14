@@ -6,6 +6,7 @@ import { ApiError, exportBackup, exportCsv, handle } from "./backend.js";
 import { MIN_PASSWORD_LENGTH, store, WrongPassword } from "./store.js";
 import { mountStatCard } from "./statcard.js";
 import { APP_VERSION } from "./version.js";
+import { setupGlassTabBar } from "./tabbar.js";
 
 document.getElementById("app-version").textContent = `v${APP_VERSION}`;
 
@@ -186,8 +187,14 @@ async function showApp() {
   showTab(currentTab);
 }
 
+let glassBar = null;
+setupGlassTabBar({ showTab: (t) => showTab(t), current: () => currentTab })
+  .then((b) => { glassBar = b; })
+  .catch((e) => { console.warn("Barre d'onglets en verre indisponible :", e); });
+
 function showTab(name) {
   currentTab = name;
+  if (glassBar) glassBar.select(name);
   for (const b of document.querySelectorAll("#tabs button")) b.classList.toggle("active", b.dataset.tab === name);
   for (const s of document.querySelectorAll(".tab")) s.hidden = s.id !== "tab-" + name;
   if (name === "ops") loadOps();

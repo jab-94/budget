@@ -21,6 +21,9 @@ test("la CSP n'autorise que Firebase", () => {
   assert.deepEqual(c["style-src"], ["'self'"]);
   assert.deepEqual(c["object-src"], ["'none'"]);
   assert.deepEqual(c["frame-src"], ["'none'"]);
+  // blob: : le dessin des lentilles Liquid Glass dans un worker créé par notre propre code (vendor/) ;
+  // un worker reste soumis à connect-src, il ne peut rien envoyer ailleurs que Firebase.
+  assert.deepEqual(c["worker-src"], ["'self'", "blob:"]);
   const hosts = new Set(c["connect-src"].filter((h) => h !== "'self'").map((h) => h.replace(/^https:\/\//, "")));
   assert.deepEqual(hosts, ALLOWED_HOSTS);
 });
@@ -89,4 +92,12 @@ test("le numéro de version affiché correspond au cache du service worker", () 
   const shown = read("js/version.js").match(/APP_VERSION = "(\d+)"/)[1];
   const cache = read("service-worker.js").match(/CACHE_VERSION = "budget-v(\d+)"/)[1];
   assert.equal(shown, cache, "augmenter APP_VERSION (js/version.js) en même temps que CACHE_VERSION");
+});
+
+test("Liquid Glass embarqué : aucun appel réseau, aucune balise <style> injectée", () => {
+  const src = read("vendor/liquidglass.js");
+  for (const bad of ["fetch(", "XMLHttpRequest", "sendBeacon", "WebSocket", "EventSource", "importScripts("]) assert.ok(!src.includes(bad), bad);
+  const urls = new Set(src.match(/https?:\/\/[a-zA-Z0-9./-]+/g) || []);
+  for (const u of urls) assert.ok(u.startsWith("http://www.w3.org/") || u === "https://react.dev/errors/", u);
+  assert.ok(read("vendor/liquidglass.css").length > 1000);
 });

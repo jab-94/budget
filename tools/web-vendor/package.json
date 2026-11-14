@@ -3,8 +3,11 @@
   "private": true,
   "description": "Construit les bibliothèques embarquées dans docs/vendor (aucun CDN). Voir build.sh.",
   "devDependencies": {
+    "@onlymoein/liquidglass": "0.16.4",
     "esbuild": "0.28.2",
     "firebase": "13.3.0",
-    "pdfjs-dist": "6.5.438"
+    "pdfjs-dist": "6.5.438",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
   }
 }

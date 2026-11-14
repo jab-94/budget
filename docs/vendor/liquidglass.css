@@ -1,0 +1,2008 @@
+:where(:root, [data-theme="light"]) {
+  --lg-foreground: rgb(0 0 0);
+  --lg-muted: rgb(60 60 67 / 0.6);
+  /* On glass, ink is black at an opacity, so it takes up the colour behind it as iOS's does. */
+  --lg-secondary: rgb(0 0 0 / 0.58);
+  --lg-grabber: rgb(0 0 0 / 0.33);
+  --lg-press-ink: rgb(0 0 0 / 0.77);
+  --lg-transparency: 0.5;
+  /* How strong the rim's lines are. */
+  --lg-shine: 1;
+  /* What regular glass does to its backdrop, fitted to iOS 27 (see parity/):
+     glass 120 points tall or more, and glass 60 or less. */
+  --lg-contrast: 0.307;
+  --lg-brightness: 1.554;
+  --lg-saturate: 2.081;
+  --lg-contrast-small: 0.314;
+  --lg-brightness-small: 1.511;
+  --lg-saturate-small: 2;
+  --lg-dark: initial;
+  --lg-drop-strength: 1;
+  --lg-tab-accent: #005fc9;
+  --lg-fill-subtle: rgb(118 118 128 / 0.12);
+  --lg-stepper: rgb(0 0 0 / 0.05);
+  --lg-thumb: #fff;
+  --lg-scrim: rgb(0 0 0 / 0.2);
+  --lg-action: rgb(0 0 0 / 0.15);
+  --lg-sheet-opaque: #fff;
+  --lg-fill-shade: 11%;
+  --lg-fill-alpha: 100%;
+  --lg-glass-tinted: rgb(247 247 249 / 0.96);
+  --lg-glass-active: rgb(255 255 255 / 0.34);
+  --lg-edge: transparent;
+  --lg-drop: rgb(0 0 0 / 0.03);
+  --lg-selection: transparent;
+  /* The selected tab keeps the colour of what's behind it: deeper, not greyer. */
+  --lg-selection-filter: saturate(1.39) brightness(0.89);
+  --lg-lens: transparent;
+  --lg-surface: rgb(250 250 252 / 0.86);
+  --lg-surface-edge: rgb(0 0 0 / 0.08);
+  --lg-shadow: rgb(25 25 35 / 0.12);
+  --lg-highlight: rgb(60 60 67 / 0.09);
+  --lg-separator: rgb(0 0 0 / 0.1);
+  --lg-fill-edge: 62%, #000;
+  --lg-destructive: #ff383c;
+  --lg-destructive-ink: #dc1e30;
+  --lg-menu-destructive: #dc1e30;
+  --lg-track: rgb(59 59 66 / 0.3);
+  --lg-rail: rgb(0 0 0 / 0.1);
+  --lg-on: #34c759;
+  --lg-fill: #0088ff;
+  --lg-ring: rgb(0 0 0 / 0.4);
+  --lg-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+:where([data-theme="dark"]) {
+  --lg-foreground: rgb(255 255 255);
+  --lg-muted: rgb(235 235 245 / 0.6);
+  --lg-secondary: rgb(255 255 255 / 0.6);
+  --lg-grabber: rgb(255 255 255 / 0.3);
+  --lg-press-ink: rgb(255 255 255);
+  --lg-glass-tinted: rgb(30 30 32 / 0.95);
+  --lg-glass-active: rgb(255 255 255 / 0.3);
+  --lg-edge: transparent;
+  --lg-drop: rgb(0 0 0 / 0.05);
+  --lg-contrast: 0.66;
+  --lg-brightness: 0.83;
+  --lg-saturate: 1.7;
+  --lg-contrast-small: 0.68;
+  --lg-brightness-small: 0.98;
+  --lg-saturate-small: 1.6;
+  /* Chromium can run the real curve; everywhere else falls back to the tone. */
+  --lg-dark: opacity(1);
+  --lg-drop-strength: 1.6;
+  --lg-tab-accent: #62dcff;
+  --lg-fill-subtle: rgb(118 118 128 / 0.24);
+  --lg-stepper: rgb(255 255 255 / 0.1);
+  --lg-thumb: rgb(255 255 255 / 0.25);
+  --lg-scrim: rgb(0 0 0 / 0.48);
+  --lg-action: rgb(255 255 255 / 0.1);
+  --lg-sheet-opaque: #1c1c1e;
+  --lg-fill-shade: 0%;
+  --lg-fill-alpha: 95%;
+  --lg-selection: transparent;
+  --lg-selection-filter: brightness(0.75) saturate(1.7);
+  --lg-lens: rgb(255 255 255 / 0.055);
+  --lg-surface: rgb(28 28 31 / 0.86);
+  --lg-surface-edge: rgb(255 255 255 / 0.13);
+  --lg-shadow: rgb(0 0 0 / 0.38);
+  --lg-highlight: rgb(235 235 245 / 0.13);
+  --lg-separator: rgb(235 235 245 / 0.16);
+  --lg-destructive: #ff4245;
+  --lg-destructive-ink: #ff8498;
+  --lg-menu-destructive: #ff5254;
+  --lg-fill-edge: 70%, #fff;
+  --lg-track: rgb(235 235 245 / 0.3);
+  --lg-rail: rgb(255 255 255 / 0.1);
+  --lg-on: #30d158;
+  --lg-fill: #0091ff;
+  --lg-ring: rgb(255 255 255 / 0.5);
+}
+
+@media (prefers-color-scheme: dark) {
+  :where(:root:not([data-theme="light"])) {
+    --lg-foreground: rgb(255 255 255);
+    --lg-muted: rgb(235 235 245 / 0.6);
+    --lg-secondary: rgb(255 255 255 / 0.6);
+    --lg-grabber: rgb(255 255 255 / 0.3);
+    --lg-press-ink: rgb(255 255 255);
+    --lg-glass-tinted: rgb(30 30 32 / 0.95);
+    --lg-glass-active: rgb(255 255 255 / 0.3);
+    --lg-edge: transparent;
+    --lg-drop: rgb(0 0 0 / 0.05);
+    --lg-contrast: 0.66;
+    --lg-brightness: 0.83;
+    --lg-saturate: 1.7;
+    --lg-contrast-small: 0.68;
+    --lg-brightness-small: 0.98;
+    --lg-saturate-small: 1.6;
+    /* Chromium can run the real curve; everywhere else falls back to the tone. */
+    --lg-dark: opacity(1);
+    --lg-drop-strength: 1.6;
+    --lg-tab-accent: #62dcff;
+    --lg-fill-subtle: rgb(118 118 128 / 0.24);
+    --lg-stepper: rgb(255 255 255 / 0.1);
+    --lg-thumb: rgb(255 255 255 / 0.25);
+    --lg-scrim: rgb(0 0 0 / 0.48);
+    --lg-action: rgb(255 255 255 / 0.1);
+    --lg-sheet-opaque: #1c1c1e;
+    --lg-fill-shade: 0%;
+    --lg-fill-alpha: 95%;
+    --lg-selection: transparent;
+    --lg-selection-filter: brightness(0.75) saturate(1.7);
+    --lg-lens: rgb(255 255 255 / 0.055);
+    --lg-surface: rgb(28 28 31 / 0.86);
+    --lg-surface-edge: rgb(255 255 255 / 0.13);
+    --lg-shadow: rgb(0 0 0 / 0.38);
+    --lg-highlight: rgb(235 235 245 / 0.13);
+    --lg-separator: rgb(235 235 245 / 0.16);
+    --lg-destructive: #ff4245;
+    --lg-destructive-ink: #ff8498;
+    --lg-menu-destructive: #ff5254;
+    --lg-fill-edge: 70%, #fff;
+    --lg-track: rgb(235 235 245 / 0.3);
+    --lg-rail: rgb(255 255 255 / 0.1);
+    --lg-on: #30d158;
+    --lg-fill: #0091ff;
+    --lg-ring: rgb(255 255 255 / 0.5);
+  }
+}
+
+/* Glass */
+
+/* `--lg-transparency` runs from 0, fully tinted, through 0.5, regular glass, to
+   1, clear glass, like the iOS 27 setting. It's worked out on each glass so it
+   can be set anywhere above.
+
+   iOS lifts the backdrop and then saturates it, so colours stay vivid. A tint
+   painted on top couldn't do that, so glass has no tint until it's asked to be
+   more opaque than regular. */
+.lg-glass {
+  --lg-clearness: clamp(0, (var(--lg-transparency) - 0.5) * 2, 1);
+  /* From 0 for glass 60 points tall or less to 1 for 120 or more. Set by the glass when it's measured. */
+  --lg-size: 1;
+  --lg-glass: color-mix(
+    in srgb,
+    var(--lg-glass-tinted) calc(clamp(0, (0.5 - var(--lg-transparency)) * 2, 1) * 100%),
+    transparent
+  );
+  --lg-blur: calc(15.3px - 14px * var(--lg-clearness));
+  --lg-regular-contrast: calc(var(--lg-contrast-small) + (var(--lg-contrast) - var(--lg-contrast-small)) * var(--lg-size));
+  --lg-regular-brightness: calc(var(--lg-brightness-small) + (var(--lg-brightness) - var(--lg-brightness-small)) * var(--lg-size));
+  --lg-regular-saturate: calc(var(--lg-saturate-small) + (var(--lg-saturate) - var(--lg-saturate-small)) * var(--lg-size));
+  --lg-tone:
+    contrast(calc(var(--lg-regular-contrast) + (0.793 - var(--lg-regular-contrast)) * var(--lg-clearness)))
+    brightness(calc(var(--lg-regular-brightness) + (1.205 - var(--lg-regular-brightness)) * var(--lg-clearness)))
+    saturate(calc(var(--lg-regular-saturate) + (1.117 - var(--lg-regular-saturate)) * var(--lg-clearness)));
+  /* The exact curve, in dark mode where the browser can run it. */
+  --lg-curve: var(--lg-dark) var(--lg-size-curve);
+  position: relative;
+  background-color: var(--lg-glass);
+  /* Trims the circular corners to continuous ones, once they're measured. */
+  -webkit-mask-box-image: var(--lg-mask, none);
+  mask-border: var(--lg-mask, none);
+  /* Where the lens runs, it does the blur too, so the two line up. */
+  -webkit-backdrop-filter: blur(var(--lg-lens-blur, var(--lg-blur))) var(--lg-filter,) var(--lg-curve, var(--lg-tone));
+  backdrop-filter: blur(var(--lg-lens-blur, var(--lg-blur))) var(--lg-filter,) var(--lg-curve, var(--lg-tone));
+  box-shadow:
+    inset 0 0 0 0.5px var(--lg-edge),
+    0 calc(4px + 4px * var(--lg-size)) calc(8px + 13px * var(--lg-size))
+      rgb(0 0 0 / calc((0.016 + 0.054 * var(--lg-size)) * var(--lg-drop-strength)));
+}
+
+/* The rim reaches just past the shape, for the hairline iOS draws outside it. */
+.lg-glass::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  box-sizing: border-box;
+  /* Nine pieces: the corners and a sliver of each edge. It costs almost nothing to
+     draw, and its corners keep their shape at any size. */
+  border: solid transparent;
+  border-width: var(--lg-rim-y, 0) var(--lg-rim-x, 0);
+  border-image: var(--lg-rim-image, none);
+  pointer-events: none;
+}
+
+.lg-glass::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(
+    circle 240px at var(--lg-x, 50%) var(--lg-y, 50%),
+    rgb(255 255 255 / 0.035),
+    rgb(255 255 255 / 0.025) 50%,
+    transparent
+  );
+  opacity: 0;
+  transition: opacity 220ms ease-in-out;
+}
+
+.lg-glass[data-pressed]::after {
+  opacity: 1;
+  transition-duration: 0s;
+}
+
+/* Glass refracting a copy of its backdrop, where the live one can't be filtered */
+
+.lg-glass[data-copy] {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.lg-glass-copy {
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin: 0;
+  overflow: hidden;
+  transform-origin: 0 0;
+  pointer-events: none;
+}
+
+.lg-glass-copy > div {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+}
+
+/* Button */
+
+.lg-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 18px;
+  color: var(--lg-foreground);
+  font: inherit;
+  font-size: 17px;
+  cursor: pointer;
+  /* A long press keeps pressing, as on iOS, rather than selecting the label. */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+  transition:
+    background-color 200ms ease,
+    color 200ms ease;
+}
+
+.lg-button[data-size="small"] {
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 15px;
+  font-size: 15px;
+}
+
+.lg-button[data-size="large"] {
+  height: 52px;
+  padding: 0 20px;
+  border-radius: 26px;
+}
+
+.lg-button[data-icon] {
+  padding-left: 10px;
+}
+
+/* Wider than it's tall: on iOS an icon sits lower in a glass capsule than a label does. */
+.lg-button[data-icon="only"] {
+  width: 43px;
+  height: 32px;
+  padding: 0;
+  border-radius: 16px;
+}
+
+.lg-button[data-icon="only"][data-size="small"] {
+  width: 30px;
+  height: 30px;
+  border-radius: 15px;
+}
+
+.lg-button[data-icon="only"][data-size="large"] {
+  width: 48px;
+  height: 48px;
+  border-radius: 24px;
+}
+
+.lg-button > svg {
+  flex: none;
+  width: 20px;
+  height: 20px;
+}
+
+/* Lights up at once when pressed, as on iOS, and fades on release. */
+.lg-button:is(:active, [data-pressed]) {
+  color: var(--lg-press-ink);
+  background-color: var(--lg-glass-active);
+  transition-duration: 0s;
+}
+
+.lg-button:is([data-tint], [data-destructive]):is(:active, [data-pressed]) {
+  color: color-mix(in srgb, var(--lg-tint) 77%, transparent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .lg-button:hover {
+    background-color: var(--lg-glass-active);
+  }
+}
+
+.lg-button:disabled {
+  background-color: var(--lg-glass);
+  opacity: 0.35;
+  cursor: default;
+}
+
+.lg-button[data-destructive]:not([data-tint]) {
+  --lg-tint: var(--lg-destructive-ink);
+}
+
+.lg-button[data-variant="filled"][data-destructive]:not([data-tint]) {
+  --lg-tint: var(--lg-destructive);
+}
+
+.lg-button:is([data-tint], [data-destructive]) {
+  color: var(--lg-tint);
+}
+
+/* Opaque, with its own edge in its own colour rather than the glass's rim. */
+.lg-button[data-variant="filled"] {
+  --lg-button-fill: var(--lg-tint, var(--lg-fill));
+  --lg-tone: none;
+  --lg-curve: initial;
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.22),
+    inset 0 -1px 0 rgb(255 255 255 / 0.14),
+    0 0 0 0.67px color-mix(in srgb, var(--lg-button-fill) var(--lg-fill-edge));
+}
+
+.lg-button[data-variant="filled"]::before {
+  display: none;
+}
+
+.lg-button[data-variant="filled"]:is(:active, [data-pressed]) {
+  color: #fff;
+}
+
+.lg-button[data-variant="filled"],
+.lg-button[data-variant="filled"]:disabled {
+  background-color: color-mix(
+    in srgb,
+    color-mix(in srgb, var(--lg-button-fill) calc(100% - var(--lg-fill-shade)), #000) var(--lg-fill-alpha),
+    transparent
+  );
+}
+
+/* It lights up under a finger. */
+.lg-button[data-variant="filled"]:is(:active, [data-pressed]) {
+  background-color: color-mix(in srgb, var(--lg-button-fill) 88%, #fff);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .lg-button[data-variant="filled"]:hover {
+    background-color: color-mix(in srgb, var(--lg-button-fill) 88%, #fff);
+  }
+
+  .lg-button[data-variant="filled"]:hover:is(:active, [data-pressed]) {
+    background-color: color-mix(in srgb, var(--lg-button-fill) 88%, #fff);
+  }
+}
+
+.lg-button:focus-visible,
+.lg-tab:focus-visible,
+.lg-switch:focus-visible,
+.lg-menu-item:focus-visible {
+  outline: 2px solid var(--lg-ring);
+  outline-offset: 2px;
+}
+
+/* Tab bar */
+
+.lg-tab-bar {
+  --lg-tab-width: 84px;
+  --lg-tab-height: 32px;
+  --lg-lens-grow-x: 27px;
+  --lg-lens-grow-y: 20px;
+  position: relative;
+  display: inline-flex;
+  padding: 4px;
+  border-radius: calc(var(--lg-tab-height) / 2 + 4px);
+  touch-action: pan-y;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* With icons it's the iOS tab bar: 62 points tall, and the selection is a little
+   wider than its tab, so it runs close to the bar's ends. */
+.lg-tab-bar[data-icons] {
+  --lg-tab-width: 86px;
+  --lg-tab-height: 54px;
+  --lg-lens-grow-x: 21px;
+  padding: 4px 8.5px;
+}
+
+.lg-tab-face {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.lg-tab-bar[data-icons] :is(.lg-tab-face, .lg-tab-copy) {
+  flex-direction: column;
+  gap: 0;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.lg-tab-bar[data-icons] .lg-tab {
+  color: var(--lg-foreground);
+}
+
+/* The same shape as the lens, so blue ends and black begins exactly at its edge. */
+.lg-tab-bar[data-icons] .lg-tab-tint {
+  left: 4.5px;
+  width: calc(var(--lg-tab-width) + 8px);
+  color: var(--lg-tab-accent);
+}
+
+.lg-tab-bar[data-icons] .lg-tab-row {
+  margin-left: 4px;
+}
+
+/* At rest the selection sits under the tab's content, so it doesn't dim it. */
+.lg-tab-bar:not([data-lifted]) .lg-tab-tint {
+  z-index: 3;
+}
+
+.lg-tab-bar[data-icons] .lg-tab-lens {
+  left: 4.5px;
+  width: calc(var(--lg-tab-width) + 8px);
+}
+
+.lg-tab-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+}
+
+.lg-tab-icon > svg {
+  width: 100%;
+  height: 100%;
+}
+
+.lg-tab-bar-glass {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  transition:
+    width 420ms cubic-bezier(0.3, 1.25, 0.4, 1),
+    height 420ms cubic-bezier(0.3, 1.25, 0.4, 1),
+    top 420ms cubic-bezier(0.3, 1.25, 0.4, 1);
+}
+
+/* Minimised, as when a page scrolls down: only the current tab's icon stays. */
+.lg-tab-bar[data-minimized] .lg-tab-bar-glass {
+  top: calc(100% - 39px);
+  right: auto;
+  bottom: auto;
+  width: 49px;
+  height: 39px;
+  border-radius: 20px;
+}
+
+.lg-tab-bar :is(.lg-tab, .lg-tab-tint, .lg-tab-lens) {
+  transition-property: opacity, color;
+  transition-duration: 200ms;
+}
+
+.lg-tab-bar[data-minimized] :is(.lg-tab, .lg-tab-tint, .lg-tab-lens) {
+  opacity: 0 !important;
+  pointer-events: none;
+}
+
+.lg-tab-mini {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 49px;
+  height: 39px;
+  padding: 0;
+  border: 0;
+  color: var(--lg-tab-accent);
+  background: none;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms ease;
+}
+
+.lg-tab-mini > .lg-tab-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.lg-tab-bar[data-minimized] .lg-tab-mini {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.lg-tab-bar-glass::after {
+  background: radial-gradient(
+    circle 260px at var(--lg-x, 20%) 50%,
+    rgb(255 255 255 / 0.09),
+    rgb(255 255 255 / 0.045) 60%,
+    transparent
+  );
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+
+.lg-tab,
+.lg-tab-copy {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--lg-tab-width);
+  height: var(--lg-tab-height);
+  font: inherit;
+  font-size: 14px;
+}
+
+.lg-tab {
+  position: relative;
+  z-index: 1;
+  padding: 0;
+  border: 0;
+  border-radius: calc(var(--lg-tab-height) / 2);
+  color: var(--lg-muted);
+  background: none;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-touch-callout: none;
+  transition: color 200ms ease;
+}
+
+.lg-tab:focus-visible {
+  outline-offset: -2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .lg-tab:hover {
+    color: var(--lg-foreground);
+  }
+}
+
+.lg-tab-lens,
+.lg-tab-tint {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: var(--lg-tab-width);
+  height: var(--lg-tab-height);
+  border-radius: calc(var(--lg-tab-height) / 2);
+  pointer-events: none;
+  transform: translateX(calc(var(--lg-tab-width) * var(--lg-index, 0)));
+  transition: opacity 140ms ease;
+  will-change: transform;
+}
+
+.lg-tab-tint {
+  z-index: 1;
+  overflow: hidden;
+  color: var(--lg-foreground);
+}
+
+/* The lens's copy of the labels, bent at the lens's rim while it's held. */
+.lg-tab-bend,
+.lg-tab-clip {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+/* WebKit sizes a filter in bounding-box units by everything inside, even what overflow hides,
+   so the labels' row is cut to the lens by a clip-path, which it does take into account. */
+.lg-tab-clip {
+  clip-path: inset(0);
+}
+
+.lg-tab-row {
+  display: flex;
+  height: 100%;
+  transform: translateX(calc(var(--lg-tab-width) * var(--lg-index, 0) * -1));
+  transform-origin: 0 0;
+  /* No layer of its own: WebKit draws a layer past its parent's filter, so the rim wouldn't bend it. */
+}
+
+.lg-tab-lens.lg-glass {
+  z-index: 2;
+  background-color: transparent;
+  background-image: none;
+  -webkit-backdrop-filter: var(--lg-selection-filter, none);
+  backdrop-filter: var(--lg-selection-filter, none);
+  box-shadow: none;
+  transition:
+    opacity 140ms ease,
+    background-color 140ms ease;
+}
+
+.lg-tab-bar[data-lifted] .lg-tab-lens.lg-glass {
+  background-color: var(--lg-lens);
+  background-image: var(--lg-rim, none);
+  background-size: 100% 100%;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  transition-duration: 100ms;
+}
+
+.lg-tab-lens::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--lg-selection);
+  transition: opacity 140ms ease;
+}
+
+.lg-tab-lens[data-pressed]::after {
+  opacity: 0.2;
+}
+
+.lg-tab-bar[data-lifted] .lg-tab-lens::before {
+  opacity: 0;
+  transition-duration: 100ms;
+}
+
+.lg-tab-bar[data-refracting] .lg-tab-lens.lg-glass {
+  background-image: var(--lg-rim, none);
+  background-size: 100% 100%;
+  -webkit-backdrop-filter: var(--lg-filter, none);
+  backdrop-filter: var(--lg-filter, none);
+}
+
+.lg-tab-bar[data-hidden] :is(.lg-tab-lens, .lg-tab-tint),
+.lg-tab-bar:not([data-ready]):not(:has([data-selected])) :is(.lg-tab-lens, .lg-tab-tint) {
+  opacity: 0;
+}
+
+/* Input */
+
+.lg-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 360px;
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 22px;
+  color: var(--lg-foreground);
+  font-size: 17px;
+  transition: background-color 200ms ease;
+}
+
+.lg-input:focus-within {
+  background-color: var(--lg-glass-active);
+}
+
+/* A plain fill, as iOS gives a search field under a large title. */
+.lg-input[data-variant="fill"] {
+  background: var(--lg-fill-subtle);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+.lg-input[data-variant="fill"]::before {
+  display: none;
+}
+
+.lg-input input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  color: inherit;
+  background: none;
+  font: inherit;
+  font-size: 14px;
+}
+
+.lg-input input::placeholder {
+  color: var(--lg-muted);
+}
+
+.lg-input input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.lg-input-icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  color: var(--lg-muted);
+}
+
+.lg-input-icon {
+  display: grid;
+  place-items: center;
+}
+
+.lg-input-icon > svg {
+  width: 100%;
+  height: 100%;
+}
+
+.lg-input-clear {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin-right: -8px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: var(--lg-muted);
+  background: none;
+  cursor: pointer;
+}
+
+.lg-input-clear svg {
+  width: 14px;
+  height: 14px;
+}
+
+.lg-input:has(input:disabled) {
+  opacity: 0.35;
+}
+
+/* Switch and slider thumbs */
+
+/* Under a finger a thumb is a clear lens: sharp, neither blurred nor lifted, with a
+   dark outline. At rest its white face covers that, and the rim and shadow go. */
+.lg-switch-thumb,
+.lg-slider-thumb {
+  --lg-transparency: 1;
+  --lg-blur: 0px;
+  /* Not `none`: in a list of filters that would throw away the whole list, lens and all. */
+  --lg-tone: saturate(1);
+  --lg-shine: 0.6;
+  position: absolute;
+  border-radius: 999px;
+  pointer-events: none;
+  box-shadow:
+    0 0 0 0.5px rgb(0 0 0 / calc(0.3 * var(--lg-lift, 0))),
+    0 4px 14px rgb(0 0 0 / calc(0.16 * var(--lg-lift, 0)));
+}
+
+/* Held, a thumb is a lens, as the tab bar's is: its rim bends what's behind it, and its edge
+   is drawn as one picture over that. */
+.lg-switch-thumb::before,
+.lg-slider-thumb::before,
+.lg-segmented-lens::before {
+  inset: -1px;
+  border: 0;
+  background: var(--lg-rim, none) 0 0 / 100% 100%;
+  opacity: var(--lg-lift, 0);
+}
+
+.lg-slider-thumb {
+  box-shadow:
+    0 0 0 0.5px rgb(0 0 0 / calc(0.3 * var(--lg-lift, 0))),
+    0 4px 14px rgb(0 0 0 / 0.14);
+}
+
+.lg-thumb-face {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: #fff;
+}
+
+/* Switch */
+
+.lg-switch {
+  --lg-scale: 0.375;
+  position: relative;
+  flex: none;
+  width: calc(168px * var(--lg-scale));
+  height: calc(74.67px * var(--lg-scale));
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--lg-track);
+  cursor: pointer;
+  touch-action: pan-y;
+  -webkit-tap-highlight-color: transparent;
+  /* A held control shouldn't bring up iOS's text magnifier or callout. */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+
+.lg-switch::before {
+  content: "";
+  position: absolute;
+  inset: min(0px, calc((74.67px * var(--lg-scale) - 44px) / 2)) -8px;
+}
+
+.lg-switch-fill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--lg-on);
+  opacity: 0;
+}
+
+.lg-switch-thumb {
+  top: 50%;
+  left: -9px;
+  width: 59px;
+  height: 38.3px;
+  transform: translate(0, -50%) scale(0.627);
+}
+
+.lg-switch[aria-checked="true"] .lg-switch-fill {
+  opacity: 1;
+}
+
+.lg-switch[aria-checked="true"] .lg-switch-thumb {
+  transform: translate(22px, -50%) scale(0.627);
+}
+
+.lg-switch:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* Slider */
+
+.lg-slider {
+  position: relative;
+  width: 100%;
+  height: 40px;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.lg-slider-track {
+  position: absolute;
+  inset: 17px 0 auto;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--lg-rail);
+  pointer-events: none;
+}
+
+.lg-slider-fill {
+  display: block;
+  height: 100%;
+  width: calc(var(--lg-progress) * 100%);
+  border-radius: 3px;
+  background: var(--lg-fill);
+}
+
+.lg-slider-thumb {
+  top: 1.5px;
+  left: calc((100% - 37px) * var(--lg-progress) - 11px);
+  width: 59px;
+  height: 38.3px;
+  scale: 0.627;
+}
+
+.lg-slider input {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 40px;
+  margin: 0;
+  background: transparent;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  touch-action: pan-y;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Under a finger the slider follows the thumb itself: a tap on the track does nothing,
+   and a drag moves it by as much as the finger moves, as on iOS. */
+@media (pointer: coarse) {
+  .lg-slider {
+    touch-action: pan-y;
+  }
+
+  .lg-slider input {
+    pointer-events: none;
+  }
+}
+
+.lg-slider input::-webkit-slider-runnable-track {
+  height: 6px;
+  background: transparent;
+}
+
+/* The native thumb only takes the touch; the glass thumb is drawn beneath.
+   iOS shades the native one even without its appearance, so hide it. */
+.lg-slider input::-webkit-slider-thumb {
+  width: 37px;
+  height: 40px;
+  margin-top: -17px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  opacity: 0;
+  /* A touch on the thumb drags it rather than scrolling the page; the rest of
+     the track still scrolls. Blocking touchmove instead would stop Safari's
+     own drag. */
+  touch-action: none;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.lg-slider input::-moz-range-track {
+  height: 6px;
+  background: transparent;
+}
+
+.lg-slider input::-moz-range-thumb {
+  width: 37px;
+  height: 40px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  opacity: 0;
+}
+
+.lg-slider:has(input:focus-visible) .lg-slider-thumb {
+  outline: 2px solid var(--lg-ring);
+  outline-offset: 3px;
+}
+
+.lg-slider:has(input:disabled) {
+  opacity: 0.35;
+}
+
+.lg-slider input:disabled {
+  cursor: default;
+}
+
+/* Menu */
+
+.lg-menu {
+  position: relative;
+  display: inline-flex;
+}
+
+/* A menu's destructive row is a truer red than a button's. No specificity, so setting
+   --lg-destructive-ink on a menu still works. */
+:where(.lg-menu-card) {
+  --lg-destructive-ink: var(--lg-menu-destructive);
+}
+
+/* In the top layer, set over its trigger by the menu itself. Its own resets
+   come first, because a popover has the browser's frame and inset. */
+.lg-menu-card {
+  position: fixed;
+  inset: auto;
+  z-index: 1000;
+  box-sizing: border-box;
+  /* As wide as its longest row, and never narrower than a labelled
+     trigger, so its pill only ever grows. */
+  width: max-content;
+  height: auto;
+  min-width: max(250px, var(--lg-menu-min-width, 0px));
+  max-width: calc(100vw - 16px);
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  border-radius: 33px;
+  color: var(--lg-foreground);
+  background: none;
+  font-size: 17px;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* A menu taller than the room there is scrolls, and a finger can scroll it. */
+.lg-menu-card[data-scrolls] {
+  touch-action: pan-y;
+}
+
+.lg-menu-card:focus {
+  outline: none;
+}
+
+.lg-menu-card[data-phase="leaving"] {
+  pointer-events: none;
+}
+
+/* While its shape runs through the morph the rim can't follow it, so a plain edge does. */
+.lg-menu-card[data-morphing] .lg-menu-surface {
+  -webkit-mask-box-image: none;
+  mask-border: none;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.35),
+    inset 0 -1px 0 rgb(255 255 255 / 0.25),
+    0 0 0 0.5px rgb(0 0 0 / 0.14),
+    0 12px 40px var(--lg-shadow);
+}
+
+.lg-menu-card[data-morphing] .lg-menu-surface::before {
+  display: none;
+}
+
+.lg-menu-surface {
+  --lg-size: 1;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  box-shadow:
+    inset 0 0 0 0.5px var(--lg-edge),
+    0 12px 40px var(--lg-shadow);
+  pointer-events: none;
+}
+
+/* Laid over the trigger by the menu, which knows where that is. */
+.lg-menu-glyph {
+  position: absolute;
+  top: 0;
+  left: 0;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  pointer-events: none;
+}
+
+.lg-menu-glyph > svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* A labelled trigger's face, laid out as the button lays it out. */
+.lg-menu > .lg-button,
+.lg-menu-card[data-label] .lg-menu-glyph {
+  white-space: nowrap;
+}
+
+.lg-menu-card[data-label] .lg-menu-glyph {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.lg-button > .lg-menu-chevron,
+.lg-menu-glyph > .lg-menu-chevron {
+  width: 12px;
+  height: 12px;
+  margin-left: -2px;
+  opacity: 0.6;
+}
+
+.lg-menu-content {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  padding: 10px 8px;
+}
+
+.lg-menu-card[data-scrolls] .lg-menu-content {
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.lg-menu-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(135deg, rgb(255 255 255 / 0.11), rgb(255 255 255 / 0.025));
+  opacity: 0;
+  transition: opacity 120ms ease-out;
+}
+
+.lg-menu-card[data-pressed]::after {
+  opacity: 1;
+}
+
+.lg-menu-plate {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 21px;
+  background: var(--lg-highlight);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform 100ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 80ms ease-out;
+}
+
+.lg-menu-item {
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 42px;
+  padding: 6px 20px;
+  border: 0;
+  border-radius: 21px;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  /* One line a row; the menu widens to fit. */
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.lg-menu-item > svg {
+  flex: none;
+  width: 24px;
+  height: 24px;
+}
+
+.lg-menu-item:focus-visible {
+  outline-offset: -2px;
+  background: var(--lg-highlight);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .lg-menu-item:hover:not(:disabled) {
+    background: var(--lg-highlight);
+  }
+}
+
+.lg-menu-card[data-scrubbing] .lg-menu-item {
+  background: transparent;
+  outline: none;
+}
+
+.lg-menu-item[data-destructive] {
+  color: var(--lg-destructive-ink);
+}
+
+.lg-menu-item:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
+.lg-menu-separator {
+  flex: none;
+  margin: 10px 16px;
+  border-top: 1px solid var(--lg-separator);
+}
+
+/* A section's title, in small grey type above its items. */
+.lg-menu-heading {
+  flex: none;
+  padding: 8px 20px 3px;
+  color: var(--lg-muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.lg-menu-plate + .lg-menu-heading {
+  padding-top: 4px;
+}
+
+/* A choice keeps the room for its checkmark, chosen or not, so the labels line up. */
+.lg-menu-check {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  margin-right: -2px;
+}
+
+.lg-menu-check > svg {
+  width: 14px;
+  height: 14px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lg-menu-plate {
+    transition: opacity 80ms ease-out;
+  }
+
+  .lg-menu-card {
+    animation: lg-menu-fade 100ms ease-out;
+  }
+
+  .lg-alert-card {
+    animation: lg-fade-in 100ms ease-out;
+  }
+
+  .lg-spinner > i {
+    animation-duration: 1600ms;
+  }
+}
+
+@keyframes lg-menu-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Toolbar */
+
+.lg-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 16px;
+}
+
+/* The band behind the bar shows once content has scrolled under it. */
+.lg-toolbar[data-edge]::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 -24px;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 200ms var(--lg-ease);
+}
+
+.lg-toolbar[data-scrolled]::before {
+  opacity: 1;
+}
+
+.lg-toolbar[data-edge="uniform"]::before {
+  background: color-mix(in srgb, var(--lg-glass-tinted) 72%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(1.6);
+  backdrop-filter: blur(18px) saturate(1.6);
+  -webkit-mask-image: linear-gradient(#000 calc(100% - 24px), transparent);
+  mask-image: linear-gradient(#000 calc(100% - 24px), transparent);
+}
+
+.lg-toolbar[data-edge="soft"]::before {
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  -webkit-mask-image: linear-gradient(#000 40%, transparent);
+  mask-image: linear-gradient(#000 40%, transparent);
+}
+
+/* 44 points tall on iOS: a lone icon is a circle, and icons in a group are 50 wide. */
+.lg-toolbar-group {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  border-radius: 22px;
+}
+
+.lg-toolbar-group > .lg-button {
+  height: 44px;
+  border-radius: 22px;
+}
+
+.lg-toolbar-group > .lg-button[data-icon="only"] {
+  width: 50px;
+}
+
+.lg-toolbar-group > .lg-button[data-icon="only"]:only-child {
+  width: 44px;
+}
+
+.lg-toolbar-group > .lg-button > svg {
+  width: 26px;
+  height: 26px;
+}
+
+/* Buttons in a group share its glass instead of each having their own. */
+.lg-toolbar-group > .lg-button:not([data-variant="filled"])::before {
+  display: none;
+}
+
+.lg-toolbar-group > .lg-button:not([data-variant="filled"]) {
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.lg-toolbar-group > .lg-button:not([data-variant="filled"]) {
+  background-color: transparent;
+}
+
+/* Only a mouse lights a button under it: a touch browser keeps hover on whatever was tapped. */
+@media (hover: hover) and (pointer: fine) {
+  .lg-toolbar-group > .lg-button:not([data-variant="filled"]):hover {
+    background-color: var(--lg-glass-active);
+  }
+}
+
+/* A press lights and grows the whole group, not just the button under the finger. */
+.lg-toolbar-group > .lg-button:not([data-variant="filled"])::after {
+  display: none;
+}
+
+.lg-toolbar-group {
+  transition: background-color 200ms ease;
+}
+
+.lg-toolbar-group[data-pressed] {
+  background-color: var(--lg-glass-active);
+  transition-duration: 0s;
+}
+
+.lg-toolbar-group > .lg-glass-copy {
+  display: none;
+}
+
+/* Navigation bar */
+
+/* A toolbar with the title between two edges. The title stays centred unless the buttons need the room. */
+.lg-nav {
+  grid-template-columns: minmax(max-content, 1fr) minmax(0, auto) minmax(max-content, 1fr);
+  display: grid;
+}
+
+.lg-nav-side {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.lg-nav-side[data-side="trailing"] {
+  justify-content: flex-end;
+}
+
+/* 17 points, semibold, as on iOS. */
+.lg-nav-title {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--lg-foreground);
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 22px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* With a large title the bar's own stays hidden until the large one has scrolled under. */
+.lg-nav[data-large] .lg-nav-title {
+  opacity: 0;
+  transition: opacity 200ms var(--lg-ease);
+}
+
+.lg-nav[data-large][data-collapsed] .lg-nav-title {
+  opacity: 1;
+}
+
+/* 34 points, bold. It sits in the content, under the bar, and scrolls with it. */
+.lg-nav-large {
+  padding: 0 16px 8px;
+  color: var(--lg-foreground);
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 41px;
+  overflow-wrap: anywhere;
+}
+
+/* Glass group */
+
+.lg-glass-group {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.lg-glass-group-shape,
+.lg-glass-group-layer {
+  position: absolute;
+  top: -24px;
+  left: -24px;
+  width: calc(100% + 48px);
+  height: calc(100% + 48px);
+  pointer-events: none;
+}
+
+.lg-glass-group-shape {
+  box-shadow: none;
+}
+
+.lg-glass-group-layer {
+  overflow: visible;
+}
+
+/* No stacking tricks here: anything that isolates the group would cut its glass
+   off from the page. The layers come first, so the pieces paint over them. */
+.lg-glass-group > :not(.lg-glass-group-shape, .lg-glass-group-layer) {
+  position: relative;
+}
+
+.lg-glass-group-shadow path {
+  fill: var(--lg-drop);
+  transform: translateY(4px);
+  filter: blur(4px);
+}
+
+.lg-glass-group-hairline,
+.lg-glass-group-line {
+  fill: none;
+  stroke-width: 0.67px;
+}
+
+.lg-glass-group-hairline {
+  stroke: rgb(0 0 0 / 0.3);
+  stroke-width: 1px;
+}
+
+/* The pieces share the shape's glass and keep only what's on them. */
+.lg-glass-group > .lg-glass:not(.lg-glass-group-shape, [data-variant="filled"]) {
+  background-color: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+.lg-glass-group > .lg-glass:not(.lg-glass-group-shape, [data-variant="filled"])::before {
+  display: none;
+}
+
+.lg-glass-group > .lg-glass-copy {
+  display: none;
+}
+
+/* Segmented control */
+
+.lg-segmented {
+  position: relative;
+  display: grid;
+  grid-auto-columns: 1fr;
+  grid-auto-flow: column;
+  box-sizing: border-box;
+  height: 32px;
+  border-radius: 16px;
+  background: var(--lg-fill-subtle);
+  color: var(--lg-foreground);
+  font-size: 14px;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Under a finger the thumb is a clear lens, as a switch's is, over the labels so that
+   they bend at its rim. */
+.lg-segmented-lens {
+  z-index: 1;
+  --lg-transparency: 1;
+  --lg-blur: 0px;
+  --lg-tone: saturate(1);
+  --lg-shine: 0.6;
+  position: absolute;
+  top: 50%;
+  left: -10.5px;
+  width: calc(100% / var(--lg-segments) + 21px);
+  height: 44px;
+  border-radius: 22px;
+  visibility: hidden;
+  pointer-events: none;
+  box-shadow:
+    0 0 0 0.5px rgb(0 0 0 / calc(0.3 * var(--lg-lift, 0))),
+    0 4px 14px rgb(0 0 0 / calc(0.16 * var(--lg-lift, 0)));
+}
+
+.lg-segmented-thumb {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  width: calc(100% / var(--lg-segments) - 4px);
+  border-radius: 14px;
+  background: var(--lg-thumb);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.1);
+  pointer-events: none;
+}
+
+.lg-segment {
+  position: relative;
+  min-width: 0;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 14px;
+  color: inherit;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+  transition: opacity 160ms ease;
+}
+
+.lg-segment[aria-checked="true"] {
+  font-weight: 500;
+}
+
+.lg-segment:active:not(:disabled, [aria-checked="true"]) {
+  opacity: 0.6;
+}
+
+.lg-segment:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.lg-segment:focus-visible,
+.lg-stepper-button:focus-visible,
+.lg-alert-action:focus-visible {
+  outline: 2px solid var(--lg-ring);
+  outline-offset: -2px;
+}
+
+/* Stepper */
+
+.lg-stepper {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  height: 32px;
+  border-radius: 16px;
+  background: var(--lg-stepper);
+  color: var(--lg-foreground);
+}
+
+.lg-stepper-button {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 46px;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 16px;
+  color: inherit;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 160ms ease;
+}
+
+.lg-stepper-button:active:not(:disabled) {
+  background: var(--lg-stepper);
+  transition-duration: 0s;
+}
+
+.lg-stepper-button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.lg-stepper-button > svg {
+  width: 16px;
+  height: 16px;
+}
+
+.lg-stepper-divider {
+  flex: none;
+  width: 1px;
+  height: 16px;
+  margin: 0 -0.5px;
+  background: var(--lg-separator);
+}
+
+/* Page control */
+
+.lg-page-control {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 13px;
+  color: var(--lg-foreground);
+}
+
+.lg-page-control:not(.lg-glass) {
+  padding: 0;
+}
+
+.lg-page-dots {
+  display: flex;
+  align-items: center;
+}
+
+.lg-page-dot {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.lg-page-dot::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.3;
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+.lg-page-dot[aria-current="page"]::before {
+  opacity: 1;
+}
+
+.lg-page-dot:active::before {
+  transform: scale(0.85);
+}
+
+.lg-page-dot:focus-visible {
+  outline: 2px solid var(--lg-ring);
+  outline-offset: -2px;
+  border-radius: 8px;
+}
+
+/* Progress */
+
+.lg-progress {
+  height: 4px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--lg-fill-subtle);
+}
+
+.lg-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--lg-fill);
+  transform: scaleX(var(--lg-progress));
+  transform-origin: 0 0;
+  transition: transform 300ms var(--lg-ease);
+}
+
+.lg-spinner {
+  position: relative;
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  color: var(--lg-muted);
+}
+
+.lg-spinner > i {
+  position: absolute;
+  top: 0;
+  left: calc(50% - 1.25px);
+  width: 2.5px;
+  height: 6px;
+  border-radius: 1.25px;
+  background: currentColor;
+  transform-origin: 1.25px 10px;
+  transform: rotate(calc(var(--lg-blade) * 45deg));
+  animation: lg-spin 800ms linear infinite;
+  animation-delay: calc((var(--lg-blade) - 8) * 100ms);
+}
+
+@keyframes lg-spin {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0.2;
+  }
+}
+
+/* Alerts and sheets sit in the top layer, over a scrim of their own: fading the
+   dialog itself would stop the glass inside seeing the page. */
+.lg-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  color: var(--lg-foreground);
+  background: none;
+}
+
+.lg-modal:not([open]) {
+  display: none;
+}
+
+.lg-modal:focus {
+  outline: none;
+}
+
+.lg-modal::backdrop {
+  background: none;
+}
+
+.lg-modal-scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--lg-scrim);
+}
+
+/* Alert */
+
+/* It sits a little below the middle of the screen, as on iOS. */
+.lg-alert[open] {
+  display: grid;
+  place-items: center;
+  padding-top: 28px;
+}
+
+.lg-alert .lg-modal-scrim {
+  animation: lg-fade-in 200ms ease-out;
+  transition: opacity 120ms ease-out;
+}
+
+.lg-alert-card {
+  --lg-card-width: min(320px, calc(100vw - 48px));
+  box-sizing: border-box;
+  width: var(--lg-card-width);
+  border-radius: 33px;
+  box-shadow: 0 8px 40px rgb(0 0 0 / 0.18);
+  animation:
+    lg-fade-in 100ms ease-out 50ms backwards,
+    lg-alert-settle 240ms 50ms backwards linear(0, 0.08 7%, 0.176 14%, 0.352 21%, 0.5 28%, 0.6 35%, 0.7 42%, 0.8 49%, 0.848 56%, 0.9 63%, 0.952 77%, 1);
+  transition: opacity 120ms ease-out;
+}
+
+.lg-alert[data-phase="leaving"] :is(.lg-modal-scrim, .lg-alert-card) {
+  opacity: 0;
+}
+
+@keyframes lg-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes lg-alert-settle {
+  from {
+    transform: scale(1.125);
+  }
+}
+
+.lg-alert-text {
+  padding: 23px 30px 20px;
+}
+
+.lg-alert-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 22px;
+}
+
+.lg-alert-message {
+  margin: 7px 0 0;
+  color: var(--lg-secondary);
+  font-size: 15px;
+  line-height: 20px;
+}
+
+.lg-alert-actions {
+  display: grid;
+  grid-auto-columns: 1fr;
+  grid-auto-flow: column;
+  gap: 8px;
+  padding: 0 16px 16px;
+}
+
+.lg-alert-actions[data-stacked] {
+  grid-auto-flow: row;
+}
+
+.lg-alert-action {
+  height: 48px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 24px;
+  color: inherit;
+  background: var(--lg-action);
+  font: inherit;
+  font-size: 17px;
+  font-weight: 500;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: filter 160ms ease;
+}
+
+.lg-alert-action:active {
+  filter: brightness(0.9);
+  transition-duration: 0s;
+}
+
+.lg-alert-action[data-destructive] {
+  color: var(--lg-destructive-ink);
+}
+
+/* Context menu */
+
+.lg-context-target {
+  -webkit-touch-callout: none;
+}
+
+.lg-context .lg-modal-scrim {
+  animation: lg-fade-in 200ms ease-out;
+  transition: opacity 160ms ease-out;
+}
+
+.lg-context[data-phase="leaving"] .lg-modal-scrim {
+  opacity: 0;
+}
+
+.lg-context-lift {
+  position: absolute;
+  pointer-events: none;
+}
+
+.lg-context-card {
+  position: absolute;
+  width: max-content;
+  min-width: 250px;
+  max-width: calc(100vw - 16px);
+  border-radius: 33px;
+  font-size: 17px;
+  box-shadow: 0 12px 40px var(--lg-shadow);
+}
+
+/* Sheet */
+
+.lg-sheet {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 40px rgb(0 0 0 / 0.18);
+}
+
+/* As it nears full height the glass fills in. */
+.lg-sheet::after {
+  background: var(--lg-sheet-opaque);
+  border-radius: inherit;
+  opacity: var(--lg-sheet-full, 0);
+  transition: none;
+}
+
+/* A drag that starts anywhere in the sheet moves it, so it mustn't also select text. */
+.lg-sheet[data-dragging] {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.lg-sheet-handle {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: none;
+  justify-content: center;
+  height: 30px;
+  padding-top: 5.67px;
+  box-sizing: border-box;
+  touch-action: none;
+  cursor: grab;
+}
+
+.lg-sheet-grabber {
+  flex: none;
+  width: 57px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--lg-grabber);
+}
+
+.lg-sheet-content {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+/* Growing out of a trigger, for popups an app positions itself. It follows the
+   menu's measured spring; set `transform-origin` to where the trigger is. Add it
+   with `data-open` and `data-closed`, as Base UI and Radix set them. */
+.lg-grow[data-open] {
+  animation: lg-grow 650ms ease-out;
+  animation-timing-function: linear(0, 0.191 4.2%, 0.559 8.3%, 0.873 12.5%, 1.048 16.7%, 1.113 20.8%, 1.101 25%, 1.063 29.2%, 1.023 33.3%, 0.998 37.5%, 0.988 41.7%, 0.987 45.8%, 0.992 50%, 1);
+}
+
+.lg-grow[data-closed] {
+  animation: lg-shrink 180ms ease-in forwards;
+}
+
+@keyframes lg-grow {
+  from {
+    opacity: 0.4;
+    scale: 0.4;
+  }
+}
+
+@keyframes lg-shrink {
+  to {
+    opacity: 0;
+    scale: 0.5;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lg-grow[data-open] {
+    animation: lg-fade-in 100ms ease-out;
+  }
+
+  .lg-grow[data-closed] {
+    animation: none;
+  }
+}
+
+/* Reduce Transparency and Increase Contrast win over any transparency the app
+   sets, as they do on iOS. */
+@media (prefers-reduced-transparency: reduce) {
+  .lg-glass {
+    --lg-transparency: 0;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .lg-glass {
+    --lg-transparency: 0;
+    --lg-edge: color-mix(in srgb, var(--lg-foreground) 45%, transparent);
+  }
+}
