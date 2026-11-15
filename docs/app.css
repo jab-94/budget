@@ -732,3 +732,43 @@ body.has-bg { background: #05040c; }
 .donut-amount { font-variant-numeric: tabular-nums; }
 .donut-share { width: 40px; text-align: right; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 @media (prefers-reduced-motion: reduce) { .donut-readout { animation: none; } .donut-arc path:first-child { transition: none; } }
+
+/* ----- Histogrammes (js/barchart.js, d'après le « Bar Chart » d'easyui) ----- */
+.bchart { width: 100%; }
+.bchart-wrap { position: relative; }
+.bchart-svg { display: block; overflow: visible; touch-action: pan-y; border-radius: 8px; outline: none; }
+.bchart-svg:focus-visible { box-shadow: 0 0 0 2px var(--accent); }
+.bchart-grid { stroke: var(--chart-grid); }
+.bchart-base { stroke: var(--border); stroke-opacity: 1; }
+.bchart-tick, .bchart-xlab { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.bchart-xlab.current { font-weight: 700; }
+.bchart-xlab.on { fill: var(--text); }
+.bchart-band { fill: var(--chart-hover); opacity: 0; transition: opacity .15s; }
+.bchart-band.on { opacity: 1; }
+.bchart-group { transition: opacity .2s; }
+.bchart-tip { position: absolute; left: 0; top: 0; z-index: 20; min-width: 112px; padding: 8px 12px; border-radius: 12px;
+  font-size: 12px; background: color-mix(in srgb, var(--surface) 95%, transparent); color: var(--text);
+  box-shadow: 0 0 0 1px var(--border), 0 10px 24px rgb(0 0 0 / .14); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  pointer-events: none; will-change: transform; }
+.bchart-tip .bchart-pick { pointer-events: auto; margin-top: 6px; font-size: 12px; }
+.bchart-tip-title { margin: 0 0 6px; font-weight: 600; }
+.bchart-tip ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.bchart-tip li, .bchart-tip-total { display: flex; justify-content: space-between; gap: 16px; }
+.bchart-tip-name { display: flex; align-items: center; gap: 8px; color: var(--muted); }
+.bchart-tip-val, .bchart-tip-total span:last-child { font-variant-numeric: tabular-nums; }
+.bchart-tip-total { margin: 6px 0 0; padding-top: 6px; border-top: 1px solid var(--border); }
+.bchart-tip-total span:first-child { color: var(--muted); }
+.bchart-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.bchart-legend { display: flex; flex-wrap: wrap; gap: 2px 4px; margin-top: 12px; }
+.bchart-chip { display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px; border-radius: 999px; border: 0;
+  background: none; color: var(--text); font-size: 12px; font-weight: 500; box-shadow: none; min-height: 0; }
+@media (hover: hover) { .bchart-chip:hover { background: var(--chart-hover); } }
+.bchart-chip.off { color: var(--faint); text-decoration: line-through; opacity: .6; }
+.bchart-chip:active { transform: none; }
+.seg-mini { display: inline-flex; padding: 2px; border-radius: 999px; background: var(--surface-2); }
+.seg-mini[hidden] { display: none; }
+.seg-mini button { padding: 5px 10px; border-radius: 999px; border: 0; background: none; color: var(--muted); font-size: 12px;
+  font-weight: 600; box-shadow: none; min-height: 0; }
+.seg-mini button.on { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgb(16 24 40 / .12); }
+.seg-mini button:active { transform: none; }
+.chart .ref-line { pointer-events: none; }

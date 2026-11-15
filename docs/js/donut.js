@@ -16,7 +16,7 @@ function bezier(x1, y1, x2, y2) {
     return ((ay * t + by) * t + cy) * t;
   };
 }
-const EASE_OUT = bezier(0.23, 1, 0.32, 1);
+export const EASE_OUT = bezier(0.23, 1, 0.32, 1);
 const reduce = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 const pt = (cx, cy, r, a) => ({ x: cx + r * Math.sin(a), y: cy - r * Math.cos(a) });

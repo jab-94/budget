@@ -11,6 +11,7 @@ import { askConfirm, closeModal, openModal } from "./glass.js";
 import { setupGlassUi } from "./glassui.js";
 import { BG_STYLES, DEFAULT_SPEED, DEFAULT_STYLE, setupBackground } from "./background.js";
 import { mountDonut } from "./donut.js";
+import { mountBarChart } from "./barchart.js";
 
 document.getElementById("app-version").textContent = `v${APP_VERSION}`;
 
@@ -1414,83 +1415,49 @@ function columnPath(x, y, w, h) {
   return `M${x},${b} V${y + r} Q${x},${y} ${x + r},${y} H${x + w - r} Q${x + w},${y} ${x + w},${y + r} V${b} Z`;
 }
 
+// Histogrammes (js/barchart.js, d'après le « Bar Chart » d'easyui) : légende qui masque une série, bande et
+// infobulle au doigt, mode côte à côte / empilé. Les couleurs viennent des jetons --series-*.
+const cssVar = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+let evoChart = null;
+const EVO_VARIANT_KEY = "evo-variant";
+function evoVariant() { try { return localStorage.getItem(EVO_VARIANT_KEY) === "stacked" ? "stacked" : "grouped"; } catch (_) { return "grouped"; } }
+function syncEvoVariantButtons() {
+  for (const b of document.querySelectorAll("#dash-evo-variant button")) b.classList.toggle("on", b.dataset.v === (evoChart ? evoChart.variant : evoVariant()));
+}
+document.querySelectorAll("#dash-evo-variant button").forEach((b) => b.addEventListener("click", () => {
+  try { localStorage.setItem(EVO_VARIANT_KEY, b.dataset.v); } catch (_) { /* rien */ }
+  if (evoChart) evoChart.setVariant(b.dataset.v);
+  syncEvoVariantButtons();
+}));
+
 function renderEvolution(d) {
   const single = Boolean(d.category_filter);
   $("dash-evo-title").textContent = single ? `${d.category_filter} — évolution` : "Revenus et dépenses";
   $("dash-evo-clear").hidden = !single;
-  $("dash-evo-legend").replaceChildren(...(single ? [] : [
-    el("li", {}, el("span", { class: "sw sw-income" }), "Revenus"),
-    el("li", {}, el("span", { class: "sw sw-expense" }), "Dépenses")]));
-
+  $("dash-evo-legend").replaceChildren();
+  $("dash-evo-variant").hidden = single;
   const series = d.series;
   const keys = single ? [["category_cents", "bar-income", "Montant"]] :
     [["income_cents", "bar-income", "Revenus"], ["expense_cents", "bar-expense", "Dépenses"]];
-  const box = $("dash-chart");
-  const W = Math.max(300, box.clientWidth || 600), H = 240;
-  const pad = { l: 52, r: 8, t: 10, b: 26 };
-  const pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
-  const max = Math.max(...series.flatMap((p) => keys.map(([k]) => p[k] || 0)), 1);
-  const ticks = niceTicks(max);
-  const top = ticks[ticks.length - 1];
-  const yOf = (v) => pad.t + ph - (v / top) * ph;
-  const band = pw / series.length;
-  const barW = Math.max(3, Math.min(24, (band - 10) / keys.length - 2));
-  const root = svg("svg", { viewBox: `0 0 ${W} ${H}`, role: "img",
-    "aria-label": single ? `Évolution mensuelle de ${d.category_filter}` : "Revenus et dépenses par mois" });
-
-  for (const t of ticks) {
-    const y = yOf(t);
-    root.append(svg("line", { class: t === 0 ? "baseline" : "gridline", x1: pad.l, x2: W - pad.r, y1: y, y2: y }));
-    const lab = svg("text", { class: "axis", x: pad.l - 8, y: y + 4, "text-anchor": "end" });
-    lab.textContent = compactEur(t);
-    root.append(lab);
+  if (!evoChart) {
+    evoChart = mountBarChart($("dash-chart"), { height: 250, variant: evoVariant(), formatValue: money, formatTick: (v) => compactEur(v),
+      ariaLabel: "Revenus et dépenses par mois", pickLabel: "Afficher ce mois ›",
+      extraRows: (i) => (evoChart.single || !evoChart.points[i].has_data ? [] : [["Solde", money(evoChart.points[i].net_cents)]]),
+      onPick: (i) => { const pt = evoChart.points[i]; if (pt.has_data) { dash.month = pt.month; loadDashboard(); } } });
   }
-  const every = series.length > 12 ? 3 : series.length > 8 ? 2 : 1;
-  const tip = el("div", { class: "tooltip", hidden: true });
-
-  series.forEach((p, i) => {
-    const x0 = pad.l + i * band;
-    const hit = svg("rect", { class: "band" + (p.month === d.month ? " active" : ""), x: x0, y: pad.t, width: band, height: ph, rx: 8 });
-    root.append(hit);
-    const groupW = keys.length * barW + (keys.length - 1) * 2;
-    keys.forEach(([k, cls], j) => {
-      const v = p[k] || 0;
-      if (v <= 0) return;
-      const x = x0 + (band - groupW) / 2 + j * (barW + 2);
-      const y = yOf(v);
-      const bar = svg("path", { class: cls, d: columnPath(x, y, barW, pad.t + ph - y), "pointer-events": "none" });
-      bar.style.setProperty("--i", i);
-      root.append(bar);
-    });
-    if (i % every === 0 || p.month === d.month) {
-      const lab = svg("text", { class: "axis", x: x0 + band / 2, y: H - 8, "text-anchor": "middle" });
-      lab.textContent = monthShort(p.month) + (p.month.endsWith("-01") || i === 0 ? ` ${p.month.slice(2, 4)}` : "");
-      if (p.month === d.month) lab.setAttribute("font-weight", "700");
-      root.append(lab);
-    }
-    // Survol : infobulle ; clic : afficher ce mois dans tout le tableau de bord.
-    const show = () => {
-      tip.replaceChildren(el("strong", {}, monthLabel(p.month)),
-        ...(p.has_data ? keys.map(([k, cls, name]) => el("div", { class: "tt-row" },
-          el("span", {}, el("span", { class: "sw " + (cls === "bar-income" ? "sw-income" : "sw-expense") }), name),
-          el("span", {}, money(p[k] || 0)))) : [el("div", { class: "muted" }, "Aucune opération")]),
-        ...(p.has_data && !single ? [el("div", { class: "tt-row tt-total" },
-          el("span", {}, el("span", { class: "sw sw-none" }), "Solde"), el("span", {}, money(p.net_cents)))] : []));
-      tip.hidden = false;
-      // À côté de la colonne survolée (à droite, ou à gauche s'il n'y a pas la place) : ne cache pas les barres.
-      const scale = box.clientWidth / W;
-      const tw = tip.offsetWidth || 190;
-      const right = (x0 + band) * scale + 8;
-      tip.style.left = `${right + tw <= box.clientWidth ? right : Math.max(0, x0 * scale - tw - 8)}px`;
-      tip.style.top = "8px";
-    };
-    hit.addEventListener("mouseenter", show);
-    hit.addEventListener("mouseleave", () => { tip.hidden = true; });
-    hit.addEventListener("click", () => { if (p.has_data) { dash.month = p.month; loadDashboard(); } });
-    hit.style.cursor = p.has_data ? "pointer" : "default";
+  evoChart.points = series;
+  evoChart.single = single;
+  if (single) evoChart.setVariant("grouped"); else evoChart.setVariant(evoVariant());
+  syncEvoVariantButtons();
+  const colors = { income_cents: cssVar("--series-1"), expense_cents: cssVar("--series-2"), category_cents: cssVar("--series-1") };
+  evoChart.update({
+    series: keys.map(([k, , name]) => ({ key: k, label: name, color: colors[k] })),
+    data: series.map((p, i) => ({
+      label: monthShort(p.month) + (p.month.endsWith("-01") || i === 0 ? ` ${p.month.slice(2, 4)}` : ""),
+      title: monthLabel(p.month), current: p.month === d.month, always: p.month === d.month, empty: !p.has_data,
+      values: Object.fromEntries(keys.map(([k]) => [k, p[k] || 0])),
+    })),
   });
-  box.replaceChildren(root, tip);
-
   // Vue tableau (accessibilité : les valeurs ne dépendent jamais du graphique seul)
   const head = el("tr", {}, el("th", {}, "Mois"), ...keys.map(([, , n]) => el("th", { class: "num" }, n)),
     single ? null : el("th", { class: "num" }, "Solde"));
@@ -1717,59 +1684,29 @@ async function loadIncomeTab() {
       el("tr", {}, el("td", {}, monthLabel(p.month)), el("td", { class: "num" }, money(p.amount_cents))))));
 }
 
+let incChart = null;
 function renderIncomeChart(inc) {
-  const box = $("inc-chart");
   const ref = inc.reference;
-  const series = inc.series;
-  const W = Math.max(300, box.clientWidth || 600), H = 230;
-  const pad = { l: 52, r: 96, t: 10, b: 26 };
-  const pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
-  const ticks = niceTicks(Math.max(...series.map((p) => p.amount_cents), ref.avg6_cents, 1));
-  const top = ticks[ticks.length - 1];
-  const yOf = (v) => pad.t + ph - (v / top) * ph;
-  const band = pw / series.length;
-  const barW = Math.max(4, Math.min(24, band - 12));
-  const root = svg("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Montant reçu chaque mois et revenu de référence" });
-  for (const t of ticks) {
-    const y = yOf(t);
-    root.append(svg("line", { class: t === 0 ? "baseline" : "gridline", x1: pad.l, x2: W - pad.r, y1: y, y2: y }));
-    const lab = svg("text", { class: "axis", x: pad.l - 8, y: y + 4, "text-anchor": "end" });
-    lab.textContent = compactEur(t);
-    root.append(lab);
+  if (!incChart) {
+    incChart = mountBarChart($("inc-chart"), { height: 230, rightMargin: 96, formatValue: money, formatTick: (v) => compactEur(v),
+      ariaLabel: "Montant reçu chaque mois et revenu de référence",
+      minMax: () => Math.max(incChart.ref.avg6_cents, incChart.ref.prudent_cents),
+      // Lignes de référence, étiquetées directement en bout de ligne.
+      overlays: ({ mk, y, M, width }) => [[incChart.ref.avg6_cents, "ref-avg", "Moyenne"], [incChart.ref.prudent_cents, "ref-prudent", "Prudent"]]
+        .flatMap(([v, cls, name]) => {
+          const yy = y(v);
+          const line = mk("line", { class: `ref-line ${cls}`, x1: M.left, x2: width - M.right, y1: yy, y2: yy });
+          const t = mk("text", { class: "ref-label", x: width - M.right + 6, y: yy + (cls === "ref-avg" ? -2 : 12) });
+          t.textContent = `${name} ${compactEur(v)}`;
+          return [line, t];
+        }) });
   }
-  const tip = el("div", { class: "tooltip", hidden: true });
-  series.forEach((p, i) => {
-    const x0 = pad.l + i * band;
-    const hit = svg("rect", { class: "band" + (p.month === inc.month ? " active" : ""), x: x0, y: pad.t, width: band, height: ph, rx: 8 });
-    root.append(hit);
-    if (p.amount_cents > 0) {
-      const y = yOf(p.amount_cents);
-      const bar = svg("path", { class: "bar-income", d: columnPath(x0 + (band - barW) / 2, y, barW, pad.t + ph - y), "pointer-events": "none" });
-      bar.style.setProperty("--i", i);
-      root.append(bar);
-    }
-    const lab = svg("text", { class: "axis", x: x0 + band / 2, y: H - 8, "text-anchor": "middle" });
-    lab.textContent = (series.length > 8 && i % 2) ? "" : monthShort(p.month);
-    root.append(lab);
-    hit.addEventListener("mouseenter", () => {
-      tip.replaceChildren(el("strong", {}, monthLabel(p.month)),
-        el("div", { class: "tt-row" }, el("span", {}, "Reçu"), el("span", {}, p.has_data ? money(p.amount_cents) : "pas de données")));
-      tip.hidden = false;
-      const scale = box.clientWidth / W, tw = tip.offsetWidth || 170, right = (x0 + band) * scale + 8;
-      tip.style.left = `${right + tw <= box.clientWidth ? right : Math.max(0, x0 * scale - tw - 8)}px`;
-      tip.style.top = "8px";
-    });
-    hit.addEventListener("mouseleave", () => { tip.hidden = true; });
+  incChart.ref = ref;
+  incChart.update({
+    series: [{ key: "amount_cents", label: "Reçu", color: cssVar("--series-1") }],
+    data: inc.series.map((p) => ({ label: monthShort(p.month), title: monthLabel(p.month), current: p.month === inc.month,
+      empty: !p.has_data, values: { amount_cents: p.amount_cents } })),
   });
-  // Lignes de référence, étiquetées directement en bout de ligne.
-  for (const [v, cls, name] of [[ref.avg6_cents, "ref-avg", "Moyenne"], [ref.prudent_cents, "ref-prudent", "Prudent"]]) {
-    const y = yOf(v);
-    root.append(svg("line", { class: `ref-line ${cls}`, x1: pad.l, x2: W - pad.r, y1: y, y2: y }));
-    const t = svg("text", { class: "ref-label", x: W - pad.r + 6, y: y + (cls === "ref-avg" ? -2 : 12) });
-    t.textContent = `${name} ${compactEur(v)}`;
-    root.append(t);
-  }
-  box.replaceChildren(root, tip);
 }
 
 // ================= Page Budgets =================
