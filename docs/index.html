@@ -20,6 +20,7 @@
   <script type="module" src="js/app.js"></script>
 </head>
 <body class="locked">
+  <canvas id="bg-shader" aria-hidden="true"></canvas>
 <div class="shell">
   <aside class="sidebar">
     <div class="brand">
@@ -517,6 +518,16 @@
         <div id="glass-slider" class="glass-slider"></div>
         <div class="range-labels small muted"><span>Teintée</span><span>Normale</span><span>Transparente</span></div>
         <p class="muted small">Réglage gardé sur ce téléphone seulement.</p>
+      </div>
+      <div class="card" id="bg-card" hidden>
+        <div class="card-head"><h2>Fond d'écran</h2><button type="button" id="bg-reset" class="link">Par défaut</button></div>
+        <div class="bg-choices" id="bg-choices"></div>
+        <div id="bg-speed-box">
+          <label for="bg-speed">Vitesse de l'animation : <strong id="bg-speed-value"></strong></label>
+          <input type="range" id="bg-speed" min="0" max="100" step="1" value="50">
+          <div class="range-labels small muted"><span>Arrêté</span><span>Normale</span><span>Rapide</span></div>
+        </div>
+        <p class="muted small">Fonds sombres animés, pensés surtout pour le thème sombre. Réglage gardé sur cet appareil seulement.</p>
       </div>
       <div class="card">
         <h2>Réglages</h2>

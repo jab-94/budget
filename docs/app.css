@@ -690,3 +690,15 @@ button.op-label:hover { color: var(--accent); text-decoration: underline; }
 #set-logout strong { color: var(--bad-text); }
 .back-link { display: inline-block; margin: 0 0 8px 4px; font-size: 15px; }
 @media (min-width: 861px) { .back-link { display: none; } }
+
+/* ----- Fond d'écran animé (js/background.js) : canvas fixe derrière l'app ----- */
+#bg-shader { position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh; z-index: 0; pointer-events: none;
+  display: block; opacity: 0; transition: opacity .8s ease; }
+#bg-shader.on { opacity: 1; }
+.shell { position: relative; z-index: 1; }
+body.has-bg { background: #05040c; }
+.bg-choices { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 12px; }
+.bg-choice { padding: 8px 16px; border-radius: 999px; font-size: 14px; background: var(--surface-2); color: var(--text);
+  border: 1px solid var(--border); box-shadow: none; min-height: 0; }
+.bg-choice.active { background: var(--btn-bg); color: var(--btn-ink); border-color: var(--btn-bg); }
+#bg-speed { width: 100%; margin: 12px 0 4px; accent-color: var(--accent); }

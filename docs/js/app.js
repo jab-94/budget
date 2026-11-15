@@ -9,6 +9,7 @@ import { APP_VERSION } from "./version.js";
 import { setupGlassTabBar } from "./tabbar.js";
 import { askConfirm, closeModal, openModal } from "./glass.js";
 import { setupGlassUi } from "./glassui.js";
+import { BG_STYLES, DEFAULT_SPEED, DEFAULT_STYLE, setupBackground } from "./background.js";
 
 document.getElementById("app-version").textContent = `v${APP_VERSION}`;
 
@@ -241,6 +242,31 @@ document.addEventListener("click", (ev) => {
   if (b.dataset.scroll) requestAnimationFrame(() => $(b.dataset.scroll)?.scrollIntoView({ block: "center" }));
 });
 $("set-lock").addEventListener("click", () => $("lock-btn").click());
+
+// ---------- Fond d'écran animé (Réglages) ----------
+const bg = setupBackground($("bg-shader"));
+const bgSpeedLabel = (v) => (v === 0 ? "arrêtée" : v === 50 ? "normale" : v < 50 ? "plus lente" : "plus rapide");
+function renderBgCard() {
+  $("bg-card").hidden = !bg.available;
+  if (!bg.available) return;
+  $("bg-choices").replaceChildren(...Object.entries(BG_STYLES).map(([k, st]) => el("button", {
+    type: "button", class: "bg-choice" + (k === bg.style ? " active" : ""),
+    onclick: () => { bg.setStyle(k); renderBgCard(); } }, st.label)));
+  $("bg-speed-box").hidden = !BG_STYLES[bg.style].shade;
+  $("bg-speed").value = bg.speed;
+  $("bg-speed").dispatchEvent(new Event("change")); // recale le curseur en verre (téléphone)
+  $("bg-speed-value").textContent = bgSpeedLabel(bg.speed);
+}
+$("bg-speed").addEventListener("input", () => {
+  bg.setSpeed(Number($("bg-speed").value));
+  $("bg-speed-value").textContent = bgSpeedLabel(Number($("bg-speed").value));
+});
+$("bg-reset").addEventListener("click", () => {
+  bg.setStyle(DEFAULT_STYLE); bg.setSpeed(DEFAULT_SPEED);
+  try { localStorage.removeItem("bg-style"); localStorage.removeItem("bg-speed"); } catch (_) { /* rien */ }
+  renderBgCard();
+});
+renderBgCard();
 $("set-logout").addEventListener("click", async () => {
   if (await askConfirm("Se déconnecter de ce compte ? Il faudra retaper l'e-mail et le mot de passe du compte, puis celui du coffre.",
     { confirmLabel: "Se déconnecter", destructive: true })) $("logout-btn").click();

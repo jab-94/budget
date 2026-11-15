@@ -74,6 +74,11 @@ l'utilisateur ; encore visible dans l'historique Git). Ne pas la recréer.
   revenus #6d7cff, dépenses #ffb44c (tokens --series-1/2, --chart-*), barres à bout rond qui montent, jauges fines
   arrondies qui se remplissent (`growTo`), barre empilée à segments séparés, pastilles ▲/▼ vertes/roses, initiale
   teintée par catégorie, courbe monotone (`monotonePath` dans statcard.js) et curseur au doigt sur les cartes animées.
+- Fonds d'écran animés (même logique que l'app Sport) : `docs/js/background.js` (shaders WebGL1 « Mesh drift » et
+  « Silk » du 21st.dev Shader Builder, en chaînes JS car la CSP interdit les scripts en ligne), canvas `#bg-shader`
+  fixe derrière `.shell` (z-index 0/1). Réglages › « Fond d'écran » : Uni (défaut, fond d'origine) / Mesh drift /
+  Silk + vitesse 0–100 (50 = vitesse d'origine, 0 = figé) ; localStorage `bg-style` / `bg-speed` ; DPR ≤ 2, pause
+  en arrière-plan, figé si « réduire les animations ». Curseur de vitesse en Slider de verre sur téléphone.
 
 ## Calibrage des banques (d'après des extraits MASQUÉS, jamais de vrais relevés)
 - LCL : PDF (« Crédit Lyonnais », point « . » = débit, lignes REF/NATURE ignorées). Colonne DATE

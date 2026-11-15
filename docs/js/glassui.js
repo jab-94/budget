@@ -17,6 +17,7 @@ export async function setupGlassUi() {
   header(lg);
   theme(lg);
   transparency(lg);
+  rangeAsSlider(lg, $("bg-speed"), "Vitesse du fond d'écran");
   search(lg);
   for (const [id, label] of [["ops-account", "Compte"], ["ops-category", "Catégorie"], ["dash-account", "Compte"]]) selectAsMenu(lg, $(id), label);
   // Après un changement d'onglet, les valeurs ont pu être changées par le code (ex. « À classer »).
@@ -105,4 +106,18 @@ function selectAsMenu(lg, sel, label) {
   sel.addEventListener("change", refresh);
   new MutationObserver(refresh).observe(sel, { childList: true, subtree: true });
   refreshers.push(refresh);
+}
+
+/** Remplace un <input type="range"> par le curseur en verre (le champ d'origine reste la source). */
+function rangeAsSlider(lg, range, label) {
+  if (!range) return;
+  range.classList.add("glass-native-hidden");
+  const box = document.createElement("div");
+  box.className = "glass-slider";
+  range.after(box);
+  const slider = lg.mount(box, "Slider", { "aria-label": label,
+    min: Number(range.min), max: Number(range.max), step: Number(range.step) || 1, value: Number(range.value),
+    onValueChange: (v) => { range.value = v; range.dispatchEvent(new Event("input")); slider.update({ value: v }); } });
+  // Valeur changée par le code (bouton « Par défaut ») : l'app envoie « change » sur le champ.
+  range.addEventListener("change", () => slider.update({ value: Number(range.value) }));
 }
