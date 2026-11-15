@@ -75,6 +75,9 @@ l'utilisateur ; encore visible dans l'historique Git). Ne pas la recréer.
   revenus #6d7cff, dépenses #ffb44c (tokens --series-1/2, --chart-*), barres à bout rond qui montent, jauges fines
   arrondies qui se remplissent (`growTo`), barre empilée à segments séparés, pastilles ▲/▼ vertes/roses, initiale
   teintée par catégorie, courbe monotone (`monotonePath` dans statcard.js) et curseur au doigt sur les cartes animées.
+- Carte « Répartition des dépenses » (accueil, après Dépenses par catégorie) : anneau `docs/js/donut.js` (composant
+  « Donut Chart » d'easyui refait en JS : épaisseur 16 / +4 au survol, écart 3,5 px, dessin 1 s décalé, mises à
+  jour 0,7 s, total au centre, légende qui masque une part). 6 plus grosses catégories + « Autres ».
 - Fonds d'écran animés (même logique que l'app Sport) : `docs/js/background.js` (shaders WebGL1 « Mesh drift » et
   « Silk » du 21st.dev Shader Builder, en chaînes JS car la CSP interdit les scripts en ligne), canvas `#bg-shader`
   fixe derrière `.shell` (z-index 0/1). Réglages › « Fond d'écran » : Uni (défaut, fond d'origine) / Mesh drift /

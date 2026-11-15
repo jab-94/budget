@@ -211,15 +211,11 @@
           <ul id="dash-cats" class="cat-bars"></ul>
           <p class="muted small">Cliquez sur une catégorie pour voir son évolution.</p>
         </article>
-        <!-- Abonnements -->
+        <!-- Répartition des dépenses (anneau) -->
         <article class="card span-2">
-          <div class="card-head"><h2>Abonnements</h2><button type="button" class="link" data-goto="subs">Gérer</button></div>
-          <p class="sub-totals"><span class="amount-l" id="dash-subs-monthly"></span> <span class="muted">par mois</span>
-            <span class="muted small" id="dash-subs-yearly"></span></p>
-          <div id="dash-subs-alert"></div>
-          <ul id="dash-subs" class="dash-subs"></ul>
-          <p id="dash-subs-more" class="small" hidden><button type="button" class="link" data-goto="subs"></button></p>
-          <p id="dash-subs-empty" class="muted small" hidden>Aucun abonnement repéré : il faut au moins 3 mois de relevés.</p>
+          <div class="card-head"><h2>Répartition des dépenses</h2><span class="muted small">Touchez une part ; la légende masque une catégorie</span></div>
+          <div id="dash-donut"></div>
+          <p id="dash-donut-empty" class="muted small" hidden>Aucune dépense ce mois-ci.</p>
         </article>
         <!-- À venir -->
         <article class="card">
@@ -228,6 +224,16 @@
           <ul id="dash-upcoming" class="upcoming-list"></ul>
         </article>
 
+        <!-- Abonnements -->
+        <article class="card span-all">
+          <div class="card-head"><h2>Abonnements</h2><button type="button" class="link" data-goto="subs">Gérer</button></div>
+          <p class="sub-totals"><span class="amount-l" id="dash-subs-monthly"></span> <span class="muted">par mois</span>
+            <span class="muted small" id="dash-subs-yearly"></span></p>
+          <div id="dash-subs-alert"></div>
+          <ul id="dash-subs" class="dash-subs"></ul>
+          <p id="dash-subs-more" class="small" hidden><button type="button" class="link" data-goto="subs"></button></p>
+          <p id="dash-subs-empty" class="muted small" hidden>Aucun abonnement repéré : il faut au moins 3 mois de relevés.</p>
+        </article>
         <!-- Suggestions (aperçu) -->
         <article class="card span-all">
           <div class="card-head"><h2>Suggestions d'économies</h2><button type="button" class="link" data-goto="insights">Tout voir</button></div>

@@ -10,6 +10,7 @@ import { setupGlassTabBar } from "./tabbar.js";
 import { askConfirm, closeModal, openModal } from "./glass.js";
 import { setupGlassUi } from "./glassui.js";
 import { BG_STYLES, DEFAULT_SPEED, DEFAULT_STYLE, setupBackground } from "./background.js";
+import { mountDonut } from "./donut.js";
 
 document.getElementById("app-version").textContent = `v${APP_VERSION}`;
 
@@ -1222,6 +1223,7 @@ async function loadDashboard() {
   renderHero(d);
   renderBudgetsCard(d);
   renderCategories(d);
+  renderDonut(d);
   renderIncomes(d);
   renderTop(d);
   renderEvolution(d);
@@ -1320,6 +1322,21 @@ function renderBudgetsCard(d) {
       .filter(Boolean).join(" · ")
     : "Aucun budget défini. Fixez des plafonds par catégorie dans « Gérer ».";
   $("dash-budgets").replaceChildren(...list.slice(0, 6).map(budgetRow));
+}
+
+// Anneau « Répartition des dépenses » : 6 plus grosses catégories du mois + « Autres ».
+let donut = null;
+function renderDonut(d) {
+  if (!donut) donut = mountDonut($("dash-donut"), { format: (c) => EUR0.format(Math.round(c / 100)),
+    centerLabel: "Dépenses du mois", ariaLabel: "Répartition des dépenses du mois par catégorie" });
+  const cats = d.expenses_by_category.filter((c) => c.amount_cents > 0);
+  $("dash-donut-empty").hidden = cats.length > 0;
+  $("dash-donut").hidden = !cats.length;
+  if (!cats.length) return;
+  const top = cats.slice(0, 6).map((c) => ({ label: c.name, value: c.amount_cents, color: c.color }));
+  const rest = cats.slice(6).reduce((s, c) => s + c.amount_cents, 0);
+  if (rest > 0) top.push({ label: "Autres", value: rest, color: "#a78bfa" });
+  donut.update(top);
 }
 
 function renderCategories(d) {
