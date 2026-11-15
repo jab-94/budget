@@ -35,6 +35,8 @@ l'utilisateur ; encore visible dans l'historique Git). Ne pas la recréer.
 - Push sur `main` → GitHub Pages republie en ~1 min.
 - Catégories et règles par défaut : `docs/js/defaults.js` (à modifier directement). Nouvelles
   catégories dans un coffre existant : migration dans `docs/js/migrations.js`.
+  v5 (`addCategoriesV5`) : Vêtements, Beauté et soins, Maison et équipement, Voyages, Assurances, Sport, Enfants,
+  Animaux, Éducation, Dons ; règles par défaut intactes déplacées (`MOVED_RULES_V5` : ZARA, IKEA, AIRBNB, SEPHORA…).
 - Opérations : recherche (`q` : mots sur libellé + note + catégorie + compte, un nombre = montant exact),
   filtres sens / montant min-max / dates. Modification (PUT /api/transactions/:id) : date, libellé, montant,
   compte (seulement si saisie manuelle), note ; valeurs d'origine gardées dans `original` (« Rétablir »).

@@ -292,3 +292,32 @@ test("courbe lissée monotone : ne dépasse jamais les données", async () => {
   if (!monotonePath) return; // module navigateur (requestAnimationFrame) : vérifié dans le navigateur
   assert.match(monotonePath([[0, 10], [10, 0], [20, 0], [30, 5]]), /^M0\.00 10\.00C/);
 });
+
+test("nouvelles catégories de dépenses (v5) : vêtements, maison, voyages… et migration", async () => {
+  const { addCategoriesV5 } = await import("../docs/js/migrations.js");
+  const d = newData();
+  d.accounts.push({ id: 900, name: "LCL" });
+  let id = 1000;
+  for (const [label, cents] of [["CB ZARA PARIS", -5990], ["CB IKEA", -12900], ["AIRBNB PAYMENT", -32000], ["PRLV MAIF ASSURANCE AUTO", -4500],
+    ["CB BASIC FIT", -2999], ["CB SEPHORA", -3500], ["PRLV ASSURANCE HABITATION", -1500], ["VIR RESTOS DU COEUR", -2000]]) {
+    d.transactions.push({ id: id++, account_id: 900, date: "2026-03-05", label, amount_cents: cents, category_locked: 0 });
+  }
+  categorizeAll(d);
+  const name = (t) => d.categories.find((c) => c.id === t.category_id)?.name ?? null;
+  assert.deepEqual(d.transactions.map(name), ["Vêtements", "Maison et équipement", "Voyages", "Assurances", "Sport", "Beauté et soins", "Logement", "Dons"]);
+  // Coffre d'avant v5 : ZARA classé en Shopping par une règle par défaut ; la migration la déplace.
+  const old = newData();
+  const v5 = new Set(["Vêtements", "Beauté et soins", "Maison et équipement", "Voyages", "Assurances", "Sport", "Enfants", "Animaux", "Éducation", "Dons"]);
+  const gone = new Set(old.categories.filter((c) => v5.has(c.name)).map((c) => c.id));
+  old.categories = old.categories.filter((c) => !gone.has(c.id));
+  old.rules = old.rules.filter((r) => !gone.has(r.category_id));
+  const shop = old.categories.find((c) => c.name === "Shopping").id;
+  old.rules.push({ id: old.nextId++, pattern: "ZARA", is_regex: false, category_id: shop, priority: 100, sign: null, origin: "default" });
+  old.accounts.push({ id: 900, name: "LCL" });
+  old.transactions.push({ id: 5000, account_id: 900, date: "2026-03-05", label: "CB ZARA", amount_cents: -5000, category_locked: 0 });
+  categorizeAll(old);
+  assert.equal(old.categories.find((c) => c.id === old.transactions[0].category_id).name, "Shopping");
+  assert.equal(addCategoriesV5(old), 10);
+  assert.equal(old.categories.find((c) => c.id === old.transactions[0].category_id).name, "Vêtements");
+  assert.equal(addCategoriesV5(old), 0);
+});
