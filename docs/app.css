@@ -542,7 +542,7 @@ button.op-label:hover { color: var(--accent); text-decoration: underline; }
 .more-item svg { width: 24px; height: 24px; flex: none; }
 .more-item .nav-count { margin-left: auto; }
 /* 5 onglets sur la largeur du téléphone (iOS : 86 pt chacun au maximum). */
-.glass-tabbar .lg-tab-bar[data-icons] { --lg-tab-width: min(86px, calc((100vw - 50px) / 4)); }
+.glass-tabbar .lg-tab-bar[data-icons] { --lg-tab-width: min(86px, calc((100vw - 50px) / 5)); }
 
 /* viewport-fit=cover : sur iPhone, garder le contenu hors de l'encoche et des bords arrondis. */
 .shell { --pad: 16px; padding: max(var(--pad), env(safe-area-inset-top, 0px)) max(var(--pad), env(safe-area-inset-right, 0px))

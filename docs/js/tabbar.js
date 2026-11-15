@@ -1,6 +1,6 @@
 // Barre d'onglets « Liquid Glass » en bas de l'écran, sur téléphone seulement (le paquet
 // @onlymoein/liquidglass et React ne sont chargés que dans ce cas : l'ordinateur garde le menu latéral).
-// 3 onglets principaux + « Plus » qui ouvre une feuille avec les autres pages (dont Réglages).
+// 3 onglets principaux + « Plus » (feuille avec les autres pages) + « Réglages » tout à droite.
 // « Importer » n'est plus dans la barre : le bouton de l'accueil y mène (et il reste dans « Plus »).
 // Comptes et Catégories sont rangés dans Réglages.
 
@@ -24,13 +24,15 @@ export async function setupGlassTabBar({ showTab, current }) {
 
   const items = MAIN.map((tab) => ({ value: tab, label: SHORT[tab], icon: icon(pathOf(navButtons.find((b) => b.dataset.tab === tab))) }));
   items.push({ value: "more", label: "Plus", icon: icon(MORE_ICON) });
-  const valueFor = (tab) => (MAIN.includes(tab) ? tab : "more");
+  items.push({ value: "settings", label: "Réglages", icon: icon(pathOf(navButtons.find((b) => b.dataset.tab === "settings"))) });
+  // Comptes et Catégories s'ouvrent depuis Réglages : l'onglet Réglages reste sélectionné.
+  const valueFor = (tab) => (MAIN.includes(tab) ? tab : tab === "settings" || IN_SETTINGS.includes(tab) ? "settings" : "more");
 
   // Feuille « Plus » : les autres pages, avec les mêmes icônes que le menu latéral.
   const list = document.createElement("ul");
   list.className = "more-list";
   let sheet = null;
-  for (const b of navButtons.filter((x) => !MAIN.includes(x.dataset.tab) && !IN_SETTINGS.includes(x.dataset.tab))) {
+  for (const b of navButtons.filter((x) => !MAIN.includes(x.dataset.tab) && !IN_SETTINGS.includes(x.dataset.tab) && x.dataset.tab !== "settings")) {
     const li = document.createElement("li");
     const btn = document.createElement("button");
     btn.type = "button";

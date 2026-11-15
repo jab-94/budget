@@ -52,7 +52,8 @@ l'utilisateur ; encore visible dans l'historique Git). Ne pas la recréer.
   (React) embarqué dans `docs/vendor/liquidglass.js` + `.css` par `tools/web-vendor/build-liquidglass.mjs`
   (l'injection de balises <style> de la bibliothèque est coupée à la construction : CSP style-src 'self').
   Chargé seulement sur téléphone (`docs/js/tabbar.js`) ; l'ordinateur garde le menu latéral. Onglets :
-  Accueil, Opérations, Abonnements, Plus (feuille : Budgets, Revenus, Suggestions, Importer, Réglages ; Importer
+  Accueil, Opérations, Abonnements, Plus, Réglages (tout à droite, demandé par l'utilisateur ; Comptes/Catégories
+  gardent Réglages sélectionné). Feuille « Plus » : Budgets, Revenus, Suggestions, Importer ; Importer
   retiré de la barre à la demande de l'utilisateur, accessible par le bouton de l'accueil). CSP : worker-src 'self' blob:
   (dessin des lentilles dans un worker ; reste limité par connect-src).
   Page « Réglages » (`#tab-settings`, aussi dans le menu latéral) : Apparence (téléphone), liens Comptes bancaires,
