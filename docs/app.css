@@ -782,3 +782,10 @@ body.has-bg { background: #05040c; }
 /* Petit chevron après le titre, pour montrer que la carte mène quelque part. */
 .card-link .card-head h2::after, .card-link > h2::after, .card-link .sc-lab::after {
   content: "›"; margin-left: 6px; color: var(--faint); font-weight: 500; }
+
+/* ----- Accueil : choix du compte en petit (icône de banque sur téléphone, liste réduite sur ordinateur) ----- */
+#dash-account { width: auto; max-width: 170px; font-size: 13px; padding: 7px 28px 7px 10px; }
+.glass-select.compact { flex: none; }
+.glass-select-tag { font-size: 11px; color: var(--muted); max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.glass-select-tag[hidden] { display: none; }
+.pagehead .row { flex-wrap: nowrap; align-items: center; }

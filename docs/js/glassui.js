@@ -19,7 +19,10 @@ export async function setupGlassUi() {
   transparency(lg);
   rangeAsSlider(lg, $("bg-speed"), "Vitesse du fond d'écran");
   search(lg);
-  for (const [id, label] of [["ops-account", "Compte"], ["ops-category", "Catégorie"], ["dash-account", "Compte"]]) selectAsMenu(lg, $(id), label);
+  for (const [id, label] of [["ops-account", "Compte"], ["ops-category", "Catégorie"]]) selectAsMenu(lg, $(id), label);
+  // Accueil : choix du compte réduit à une icône de banque (on garde presque toujours « Tous les comptes ») ;
+  // le nom du compte s'affiche en petit seulement quand un compte précis est choisi.
+  selectAsMenu(lg, $("dash-account"), "Compte", { compact: true });
   // Après un changement d'onglet, les valeurs ont pu être changées par le code (ex. « À classer »).
   document.addEventListener("tab-shown", () => refreshers.forEach((f) => f()));
 }
@@ -83,7 +86,9 @@ function search(lg) {
 }
 
 /** Remplace un <select> par un menu en verre qui pilote le <select> (masqué, toujours la source). */
-function selectAsMenu(lg, sel, label) {
+const BANK_ICON = "M3 9l9-5 9 5M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18";
+
+function selectAsMenu(lg, sel, label, { compact = false } = {}) {
   if (!sel) return;
   sel.classList.add("glass-native-hidden");
   const box = document.createElement("div");
@@ -99,8 +104,21 @@ function selectAsMenu(lg, sel, label) {
       } else items.push(item(node));
     }
     const cur = sel.options[sel.selectedIndex];
+    if (compact) {
+      const filtered = Boolean(sel.value);
+      box.classList.toggle("filtered", filtered);
+      tag.textContent = filtered && cur ? cur.textContent : "";
+      tag.hidden = !filtered;
+      return { "aria-label": `${label} : ${cur ? cur.textContent : ""}`, items, align: "end",
+        icon: lg.h("svg", { viewBox: "0 0 24 24", width: 20, height: 20, fill: "none", stroke: "currentColor", strokeWidth: 1.8,
+          strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": true }, lg.h("path", { d: BANK_ICON })) };
+    }
     return { "aria-label": label, label: cur ? cur.textContent : label, items, align: "start" };
   };
+  const tag = document.createElement("span");
+  tag.className = "glass-select-tag";
+  tag.hidden = true;
+  if (compact) { box.classList.add("compact"); box.after(tag); }
   const menu = lg.mount(box, "Menu", build());
   const refresh = () => menu.update(build());
   sel.addEventListener("change", refresh);

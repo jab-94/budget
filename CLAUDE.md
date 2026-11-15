@@ -89,6 +89,9 @@ l'utilisateur ; encore visible dans l'historique Git). Ne pas la recréer.
   zone neutre ouvre la page liée (Revenus, Opérations du mois filtrées sur « Dépenses », Budgets, Abonnements,
   Suggestions). Les éléments interactifs (`CARD_INTERACTIVE` dans app.js : onglets, courbe, anneau, légendes,
   histogramme, lignes de catégories, boutons/liens) gardent leur rôle et ne naviguent pas.
+- Choix du compte de l'accueil réduit (demande de l'utilisateur, « Tous les comptes » presque toujours) : téléphone =
+  Menu en verre à icône de banque (`selectAsMenu(..., { compact: true })`), nom en petit seulement si un compte est
+  choisi ; ordinateur = <select> réduit.
 - Fonds d'écran animés (même logique que l'app Sport) : `docs/js/background.js` (shaders WebGL1 « Mesh drift » et
   « Silk » du 21st.dev Shader Builder, en chaînes JS car la CSP interdit les scripts en ligne), canvas `#bg-shader`
   fixe derrière `.shell` (z-index 0/1). Réglages › « Fond d'écran » : Uni (défaut, fond d'origine) / Mesh drift /
