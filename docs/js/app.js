@@ -245,6 +245,33 @@ document.addEventListener("click", (ev) => {
 });
 $("set-lock").addEventListener("click", () => $("lock-btn").click());
 
+// ---------- Cartes de l'accueil : toucher une zone « neutre » ouvre la page liée ----------
+// Les éléments interactifs gardent leur rôle (onglets, courbe et anneau au doigt, légendes, histogramme,
+// lignes de catégories, liens « Gérer »…) : seul un toucher ailleurs dans la carte navigue.
+const CARD_INTERACTIVE = "button, a, input, select, textarea, summary, details, label, [role=tab], [role=slider], " +
+  ".sc-chart, .sc-seg, .bchart-svg, .bchart-tip, .bchart-legend, .donut-ring, .donut-legend, .cat-bars li, .stack, .tooltip";
+function openCardTarget(card) {
+  const tab = card.dataset.cardGoto;
+  if (tab === "ops") {
+    // Opérations du mois affiché (et du compte choisi) ; « Dépenses » seulement pour les cartes de dépenses.
+    $("ops-month").value = dash.month || "";
+    $("ops-account").value = dash.account || "";
+    $("ops-category").value = "";
+    $("ops-sign").value = card.dataset.cardSign || "";
+    for (const id of ["ops-min", "ops-max", "ops-from", "ops-to"]) $(id).value = "";
+  }
+  showTab(tab);
+}
+document.querySelectorAll("[data-card-goto]").forEach((card) => {
+  card.classList.add("card-link");
+  card.setAttribute("title", card.dataset.cardLabel || "");
+  card.addEventListener("click", (ev) => {
+    if (ev.target.closest(CARD_INTERACTIVE)) return;
+    if (getSelection && String(getSelection()).length) return; // sélection de texte : on ne navigue pas
+    openCardTarget(card);
+  });
+});
+
 // ---------- Fond d'écran animé (Réglages) ----------
 const bg = setupBackground($("bg-shader"));
 const bgSpeedLabel = (v) => (v === 0 ? "arrêtée" : v === 50 ? "normale" : v < 50 ? "plus lente" : "plus rapide");

@@ -85,6 +85,10 @@ l'utilisateur ; encore visible dans l'historique Git). Ne pas la recréer.
   doigt sur ressort 520/42, autres mois à 0,38, entrée 0,8 s décalée, coins 6 px, 4 graduations). Choix
   « Côte à côte / Empilé » gardé en localStorage `evo-variant`. Souris : clic = ouvrir le mois ; doigt : bouton
   « Afficher ce mois › » dans l'infobulle. Lignes de référence du salaire via `overlays`.
+- Cartes de l'accueil cliquables (`data-card-goto` sur les <article>, chevron › après le titre) : un toucher sur une
+  zone neutre ouvre la page liée (Revenus, Opérations du mois filtrées sur « Dépenses », Budgets, Abonnements,
+  Suggestions). Les éléments interactifs (`CARD_INTERACTIVE` dans app.js : onglets, courbe, anneau, légendes,
+  histogramme, lignes de catégories, boutons/liens) gardent leur rôle et ne naviguent pas.
 - Fonds d'écran animés (même logique que l'app Sport) : `docs/js/background.js` (shaders WebGL1 « Mesh drift » et
   « Silk » du 21st.dev Shader Builder, en chaînes JS car la CSP interdit les scripts en ligne), canvas `#bg-shader`
   fixe derrière `.shell` (z-index 0/1). Réglages › « Fond d'écran » : Uni (défaut, fond d'origine) / Mesh drift /

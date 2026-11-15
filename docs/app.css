@@ -772,3 +772,13 @@ body.has-bg { background: #05040c; }
 .seg-mini button.on { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgb(16 24 40 / .12); }
 .seg-mini button:active { transform: none; }
 .chart .ref-line { pointer-events: none; }
+
+/* ----- Cartes de l'accueil cliquables (zone neutre → page liée) ----- */
+.card-link { cursor: pointer; transition: transform .15s ease, box-shadow .2s ease; }
+.card-link :is(button, a, input, select, summary, label, .sc-chart, .bchart-svg, .donut-ring, .donut-legend, .cat-bars li) { cursor: auto; }
+.card-link :is(button, a, summary, .cat-bars li, .donut-legend button) { cursor: pointer; }
+@media (hover: hover) { .card-link:hover { box-shadow: var(--shadow), 0 0 0 1px var(--border), 0 8px 24px rgb(16 24 40 / .08); } }
+.card-link:active { transform: scale(.995); }
+/* Petit chevron après le titre, pour montrer que la carte mène quelque part. */
+.card-link .card-head h2::after, .card-link > h2::after, .card-link .sc-lab::after {
+  content: "›"; margin-left: 6px; color: var(--faint); font-weight: 500; }

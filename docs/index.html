@@ -116,7 +116,7 @@
 
       <div id="dash-grid" class="dash-grid">
         <!-- Dépenses : semaine / mois / 12 mois (carte animée) -->
-        <article class="card stat-card sc-expense" id="stat-card" hidden>
+        <article class="card stat-card sc-expense" id="stat-card" hidden data-card-goto="ops" data-card-sign="-" data-card-label="Voir les dépenses">
           <div class="sc-top">
             <div>
               <p class="sc-lab"></p>
@@ -139,7 +139,7 @@
           </div>
         </article>
         <!-- Revenus : semaine / mois / 12 mois (carte animée) -->
-        <article class="card stat-card sc-income" id="stat-card-income" hidden>
+        <article class="card stat-card sc-income" id="stat-card-income" hidden data-card-goto="income" data-card-label="Voir les revenus">
           <div class="sc-top">
             <div>
               <p class="sc-lab"></p>
@@ -162,7 +162,7 @@
           </div>
         </article>
         <!-- Revenus -->
-        <article class="card">
+        <article class="card" data-card-goto="income" data-card-label="Voir les revenus">
           <div class="card-head"><h2>Revenus</h2></div>
           <p class="amount-l" id="dash-income"></p>
           <p id="dash-income-delta" class="muted small"></p>
@@ -170,7 +170,7 @@
           <div id="dash-salary" class="remaining-box" hidden></div>
         </article>
         <!-- Solde du mois -->
-        <article class="card hero span-2">
+        <article class="card hero span-2" data-card-goto="ops" data-card-label="Voir les opérations du mois">
           <div class="card-head"><h2>Solde du mois</h2><span id="dash-uncat" class="pill pill-muted" hidden></span></div>
           <div class="hero-row">
             <p class="amount-xl" id="dash-net"></p>
@@ -183,13 +183,13 @@
           <ul id="dash-stack-legend" class="stack-legend"></ul>
         </article>
         <!-- Budgets -->
-        <article class="card">
+        <article class="card" data-card-goto="budgets" data-card-label="Voir les budgets">
           <div class="card-head"><h2>Budgets</h2><button type="button" class="link" data-goto="budgets">Gérer</button></div>
           <p id="dash-budget-summary" class="muted small"></p>
           <ul id="dash-budgets" class="budget-list"></ul>
         </article>
         <!-- Évolution -->
-        <article class="card span-2">
+        <article class="card span-2" data-card-goto="income" data-card-label="Voir les revenus">
           <div class="card-head">
             <h2 id="dash-evo-title">Évolution</h2>
             <div class="row">
@@ -207,7 +207,7 @@
           <details class="small"><summary>Voir en tableau</summary><div class="table-wrap"><table class="tx" id="dash-table"></table></div></details>
         </article>
         <!-- Dépenses par catégorie -->
-        <article class="card">
+        <article class="card" data-card-goto="ops" data-card-sign="-" data-card-label="Voir les dépenses">
           <div class="card-head"><h2>Dépenses par catégorie</h2></div>
           <p class="amount-l" id="dash-expenses"></p>
           <p id="dash-expenses-delta" class="muted small"></p>
@@ -215,20 +215,20 @@
           <p class="muted small">Cliquez sur une catégorie pour voir son évolution.</p>
         </article>
         <!-- Répartition des dépenses (anneau) -->
-        <article class="card span-2">
+        <article class="card span-2" data-card-goto="ops" data-card-sign="-" data-card-label="Voir les dépenses">
           <div class="card-head"><h2>Répartition des dépenses</h2><span class="muted small">Touchez une part ; la légende masque une catégorie</span></div>
           <div id="dash-donut"></div>
           <p id="dash-donut-empty" class="muted small" hidden>Aucune dépense ce mois-ci.</p>
         </article>
         <!-- À venir -->
-        <article class="card">
+        <article class="card" data-card-goto="insights" data-card-label="Voir les prélèvements à venir">
           <div class="card-head"><h2>À venir</h2><span id="dash-upcoming-total" class="muted small"></span></div>
           <div id="dash-remaining"></div>
           <ul id="dash-upcoming" class="upcoming-list"></ul>
         </article>
 
         <!-- Abonnements -->
-        <article class="card span-all">
+        <article class="card span-all" data-card-goto="subs" data-card-label="Voir les abonnements">
           <div class="card-head"><h2>Abonnements</h2><button type="button" class="link" data-goto="subs">Gérer</button></div>
           <p class="sub-totals"><span class="amount-l" id="dash-subs-monthly"></span> <span class="muted">par mois</span>
             <span class="muted small" id="dash-subs-yearly"></span></p>
@@ -238,13 +238,13 @@
           <p id="dash-subs-empty" class="muted small" hidden>Aucun abonnement repéré : il faut au moins 3 mois de relevés.</p>
         </article>
         <!-- Suggestions (aperçu) -->
-        <article class="card span-all">
+        <article class="card span-all" data-card-goto="insights" data-card-label="Voir les suggestions">
           <div class="card-head"><h2>Suggestions d'économies</h2><button type="button" class="link" data-goto="insights">Tout voir</button></div>
           <ul id="dash-suggestions" class="suggestion-list compact"></ul>
         </article>
 
         <!-- Plus grosses dépenses -->
-        <article class="card span-all">
+        <article class="card span-all" data-card-goto="ops" data-card-sign="-" data-card-label="Voir les dépenses">
           <div class="card-head"><h2>Plus grosses dépenses du mois</h2><button type="button" class="link" data-goto="ops">Toutes les opérations</button></div>
           <ul id="dash-top" class="simple-list"></ul>
         </article>
