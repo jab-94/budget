@@ -789,3 +789,9 @@ body.has-bg { background: #05040c; }
 .glass-select-tag { font-size: 11px; color: var(--muted); max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .glass-select-tag[hidden] { display: none; }
 .pagehead .row { flex-wrap: nowrap; align-items: center; }
+
+/* iPhone : Safari zoome sur tout champ dont le texte fait moins de 16 px quand on le touche (et il faut
+   ensuite dézoomer à la main). 16 px sur téléphone l'évite, sans bloquer le zoom volontaire à deux doigts. */
+@media (max-width: 860px) {
+  input, select, textarea, #dash-account, .glass-search input { font-size: 16px !important; }
+}
