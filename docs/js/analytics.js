@@ -435,7 +435,7 @@ export function insights(data, month, accountId = null) {
   }
   if (subs.length) {
     const total = subs.reduce((a, x) => a + x.yearly_cents, 0);
-    add(`subs:${subs.length}:${total}`, "abonnements", "info", `${subs.length} abonnement(s) actif(s) : ${eur(total)} par an`,
+    add(`subs:${subs.length}:${total}`, "abonnements", "info", `${subs.length} ${subs.length > 1 ? "abonnements actifs" : "abonnement actif"} : ${eur(total)} par an`,
       "Passez-les en revue : chacun résilié est une économie sur toute l'année.", null,
       { items: subs.map((x) => ({ label: x.name, yearly_cents: x.yearly_cents, amount_cents: x.amount_cents, cadence: x.cadence })) });
   }

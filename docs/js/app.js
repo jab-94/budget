@@ -53,6 +53,8 @@ function el(tag, attrs = {}, ...children) {
 
 const EUR = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" });
 const money = (cents) => EUR.format(cents / 100);
+/** Nombre + nom au bon accord (français : 0 et 1 au singulier). nb(3, "opération") → « 3 opérations ». */
+const nb = (n, one, many = one + "s") => `${n} ${Math.abs(n) > 1 ? many : one}`;
 const DATE_FR = new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" });
 const dateFr = (iso) => DATE_FR.format(new Date(iso + "T12:00:00"));
 
@@ -279,7 +281,7 @@ function renderBgCard() {
   $("bg-card").hidden = !bg.available;
   if (!bg.available) return;
   $("bg-choices").replaceChildren(...Object.entries(BG_STYLES).map(([k, st]) => el("button", {
-    type: "button", class: "bg-choice" + (k === bg.style ? " active" : ""),
+    type: "button", class: "bg-choice" + (k === bg.style ? " active" : ""), "data-bg": k,
     onclick: () => { bg.setStyle(k); renderBgCard(); } }, st.label)));
   $("bg-speed-box").hidden = !BG_STYLES[bg.style].shade;
   $("bg-speed").value = bg.speed;
@@ -356,19 +358,38 @@ const KIND_LABEL = { courant: "Compte courant", joint: "Compte joint", epargne: 
 
 function renderAccounts() {
   $("acc-empty").hidden = accounts.length > 0;
-  $("acc-list").replaceChildren(...accounts.map((a) => el("li", {},
-    el("div", {},
-      el("strong", {}, a.name), " ",
-      el("span", { class: "muted small" }, [a.bank, KIND_LABEL[a.kind]].filter(Boolean).join(" · ")),
+  $("acc-list").replaceChildren(...accounts.map((a) => el("li", { class: "set-item" },
+    el("div", { class: "li-main" },
+      el("strong", {}, a.name),
+      el("div", { class: "muted small" }, [a.bank, KIND_LABEL[a.kind]].filter(Boolean).join(" · ")),
       el("div", { class: "muted small" }, a.tx_count
-        ? `${a.tx_count} opération(s), du ${dateFr(a.first_date)} au ${dateFr(a.last_date)}`
+        ? `${nb(a.tx_count, "opération")}, du ${dateFr(a.first_date)} au ${dateFr(a.last_date)}`
         : "Aucune opération")),
-    el("button", { class: "ghost small-btn", onclick: () => deleteAccount(a) }, "Supprimer"))));
+    rowActions({ onDelete: () => deleteAccount(a), name: a.name }))));
+}
+
+/** Actions d'une ligne de liste (comptes, catégories, règles) : « Modifier » en bouton secondaire,
+ *  suppression en icône de corbeille rouge, côte à côte. */
+const TRASH_PATH = "M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3";
+function trashIcon() {
+  const ns = document.querySelector("svg").namespaceURI;
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("aria-hidden", "true");
+  const path = document.createElementNS(ns, "path");
+  path.setAttribute("d", TRASH_PATH);
+  svg.append(path);
+  return svg;
+}
+function rowActions({ onEdit, onDelete, name }) {
+  return el("div", { class: "row-actions" },
+    onEdit ? el("button", { type: "button", class: "ghost small-btn", onclick: onEdit }, "Modifier") : null,
+    onDelete ? el("button", { type: "button", class: "icon-del", title: "Supprimer", "aria-label": `Supprimer ${name || ""}`.trim(), onclick: onDelete }, trashIcon()) : null);
 }
 
 async function deleteAccount(a) {
   const msg = a.tx_count
-    ? `Supprimer « ${a.name} » et ses ${a.tx_count} opération(s) ? C'est irréversible.`
+    ? `Supprimer « ${a.name} » et ses ${nb(a.tx_count, "opération")} ? C'est irréversible.`
     : `Supprimer « ${a.name} » ?`;
   if (!(await askConfirm(msg, { confirmLabel: "Supprimer", destructive: true }))) return;
   await api(`/api/accounts/${a.id}`, { method: "DELETE" });
@@ -422,7 +443,7 @@ async function loadOps() {
   const income = rows.filter((r) => r.amount_cents > 0).reduce((s, r) => s + r.amount_cents, 0);
   const spent = rows.filter((r) => r.amount_cents < 0).reduce((s, r) => s + r.amount_cents, 0);
   $("ops-summary").textContent = rows.length
-    ? `${rows.length} opération(s) · entrées ${money(income)} · sorties ${money(spent)}`
+    ? `${nb(rows.length, "opération")} · entrées ${money(income)} · sorties ${money(spent)}`
     : "";
   $("ops-empty").hidden = rows.length > 0;
   $("ops-body").replaceChildren(...rows.map((r) => el("tr", {},
@@ -665,8 +686,8 @@ function renderBatchSummary() {
   const twins = imp.statements.filter((st) => st.duplicate_of).length;
   $("i-batch").replaceChildren(
     el("p", { class: ok === checked && !gaps && !errors ? "ok-box" : "warning" },
-      `${imp.statements.length} relevés · ${ok}/${checked} cohérents` + (gaps ? ` · ${gaps} rupture(s) entre relevés` : "") +
-      (errors ? ` · ${errors} fichier(s) illisible(s)` : "") + (twins ? ` · ${twins} relevé(s) en double` : "")),
+      `${imp.statements.length} relevés · ${ok}/${checked} cohérents` + (gaps ? ` · ${nb(gaps, "rupture")} entre relevés` : "") +
+      (errors ? ` · ${nb(errors, "fichier illisible", "fichiers illisibles")}` : "") + (twins ? ` · ${nb(twins, "relevé")} en double` : "")),
     el("div", { class: "table-wrap" }, el("table", { class: "tx" },
       el("thead", {}, el("tr", {}, el("th", {}, "Relevé"), el("th", { class: "num" }, "À enregistrer"), el("th", {}, "Contrôle"))),
       el("tbody", {}, ...rows))));
@@ -703,9 +724,9 @@ $("i-close").addEventListener("input", updateCounts);
 function updateCounts() {
   const sel = imp.rows.filter((t) => t.selected);
   const dups = imp.rows.filter((t) => t.duplicate).length;
-  $("i-counts").textContent = `${imp.rows.length} ligne(s) lue(s) · ${sel.length} à enregistrer` +
-    (dups ? ` · ${dups} doublon(s) décoché(s) d'office` : "");
-  $("i-commit").textContent = `Enregistrer ${sel.length} opération(s)`;
+  $("i-counts").textContent = `${nb(imp.rows.length, "ligne lue", "lignes lues")} · ${sel.length} à enregistrer` +
+    (dups ? ` · ${nb(dups, "doublon décoché", "doublons décochés")} d'office` : "");
+  $("i-commit").textContent = `Enregistrer ${nb(sel.length, "opération")}`;
   $("i-commit").disabled = sel.length === 0;
   if (imp.batch) { $("i-coherence").replaceChildren(); renderBatchSummary(); return; }
 
@@ -741,7 +762,7 @@ $("i-commit").addEventListener("click", async () => {
         }),
       } });
       resetImport();
-      $("i-error").replaceChildren(el("span", { class: "ok-text" }, `${r.inserted} opération(s) enregistrée(s), ${r.statements} relevé(s).`));
+      $("i-error").replaceChildren(el("span", { class: "ok-text" }, `${nb(r.inserted, "opération enregistrée", "opérations enregistrées")}, ${nb(r.statements, "relevé")}.`));
       await loadAccounts();
     } catch (e) {
       $("i-error").textContent = e.message;
@@ -757,7 +778,7 @@ $("i-commit").addEventListener("click", async () => {
       transactions: sel.map((t) => ({ date: t.date, label: t.label, amount_cents: t.amount_cents, fingerprint: t.fingerprint, hint: t.hint })),
     } });
     resetImport();
-    $("i-error").replaceChildren(el("span", { class: "ok-text" }, `${r.inserted} opération(s) enregistrée(s).`));
+    $("i-error").replaceChildren(el("span", { class: "ok-text" }, `${nb(r.inserted, "opération enregistrée", "opérations enregistrées")}.`));
     await loadAccounts();
   } catch (e) {
     $("i-error").textContent = e.message;
@@ -843,7 +864,7 @@ async function updateDialogPreview() {
   try {
     const p = await api("/api/rules/preview", { body: ruleFields("cd") });
     $("cd-preview").textContent = p.count
-      ? `${p.count} opération(s) correspondent` + (p.locked ? ` (dont ${p.locked} classée(s) à la main, qui ne bougeront pas)` : "") +
+      ? (p.count > 1 ? `${p.count} opérations correspondent` : `${p.count} opération correspond`) + (p.locked ? ` (dont ${p.locked} ${p.locked > 1 ? "classées" : "classée"} à la main, qui ne bougeront pas)` : "") +
         (p.samples.length ? ` — ex. : ${p.samples.slice(0, 3).join(" ; ")}` : "")
       : "Aucune opération existante ne correspond (la règle servira aux prochains imports).";
   } catch (e) { $("cd-preview").textContent = e.message; }
@@ -894,33 +915,32 @@ async function loadCategoriesTab() {
   await loadCategories();
   const [stats, rules] = await Promise.all([api("/api/categories/stats"), api("/api/rules")]);
   $("cat-summary").textContent = stats.uncategorized
-    ? `${stats.uncategorized} opération(s) à classer. Les catégories « Hors budget » ne comptent ni en dépenses ni en revenus.`
+    ? `${nb(stats.uncategorized, "opération")} à classer. Les catégories « Hors budget » ne comptent ni en dépenses ni en revenus.`
     : "Toutes les opérations sont classées. Les catégories « Hors budget » ne comptent ni en dépenses ni en revenus.";
-  $("cat-list").replaceChildren(...stats.categories.map((c) => el("li", {},
-    el("div", {},
-      el("span", { class: "dot", style: `--dot:${c.color || "#999"}` }),
-      el("strong", {}, c.name), " ",
-      el("span", { class: "muted small" }, `${KIND_GROUP[c.kind]} · ${c.tx_count} opération(s) · ${c.rule_count} règle(s)`)),
-    el("div", { class: "row" },
-      el("button", { class: "ghost small-btn", onclick: (ev) => editCategory(c, ev.target.closest("li")) }, "Modifier"),
-      el("button", { class: "ghost small-btn", onclick: async () => {
-        if (!(await askConfirm(`Supprimer « ${c.name} » et ses ${c.rule_count} règle(s) ? Ses opérations seront reclassées automatiquement.`,
+  $("cat-list").replaceChildren(...stats.categories.map((c) => el("li", { class: "set-item" },
+    el("div", { class: "li-main" },
+      el("div", { class: "li-title" }, el("span", { class: "dot", style: `--dot:${c.color || "#999"}` }), el("strong", {}, c.name)),
+      el("div", { class: "muted small" }, `${KIND_GROUP[c.kind]} · ${nb(c.tx_count, "opération")} · ${nb(c.rule_count, "règle")}`)),
+    rowActions({ name: c.name,
+      onEdit: (ev) => editCategory(c, ev.target.closest("li")),
+      onDelete: async () => {
+        if (!(await askConfirm(`Supprimer « ${c.name} » et ses ${nb(c.rule_count, "règle")} ? Ses opérations seront reclassées automatiquement.`,
           { confirmLabel: "Supprimer", destructive: true }))) return;
         await api(`/api/categories/${c.id}`, { method: "DELETE" });
         loadCategoriesTab();
-      } }, "Supprimer")))));
+      } }))));
 
-  const ruleItem = (r) => el("li", {},
-    el("div", {},
+  const ruleItem = (r) => el("li", { class: "set-item" },
+    el("div", { class: "li-main" },
       el("div", {}, el("code", {}, describeRule(r)), " → ", el("strong", {}, r.category)),
       el("div", { class: "muted small" }, ORIGIN_LABEL[r.origin])),
-    el("div", { class: "row" },
-      el("button", { class: "ghost small-btn", onclick: () => editRule(r) }, "Modifier"),
-      el("button", { class: "ghost small-btn", onclick: async () => {
+    rowActions({ name: "la règle",
+      onEdit: () => editRule(r),
+      onDelete: async () => {
         const res = await api(`/api/rules/${r.id}`, { method: "DELETE" });
-        $("rule-msg").textContent = `Règle supprimée, ${res.changed} opération(s) reclassée(s).`;
+        $("rule-msg").textContent = `Règle supprimée, ${nb(res.changed, "opération reclassée", "opérations reclassées")}.`;
         loadCategoriesTab();
-      } }, "Supprimer")));
+      } }));
   const mine = rules.filter((r) => r.origin !== "default");
   const defaults = rules.filter((r) => r.origin === "default");
   $("rule-empty").hidden = mine.length > 0;
@@ -990,7 +1010,7 @@ async function updateRulePreview() {
   if (!$("rule-pattern").value.trim()) { $("rule-preview").textContent = ""; return; }
   try {
     const p = await api("/api/rules/preview", { body: ruleFields("rule") });
-    $("rule-preview").textContent = `${p.count} opération(s) correspondent` +
+    $("rule-preview").textContent = (p.count > 1 ? `${p.count} opérations correspondent` : `${p.count} opération correspond`) +
       (p.samples.length ? ` — ex. : ${p.samples.slice(0, 3).join(" ; ")}` : "");
   } catch (e) { $("rule-preview").textContent = e.message; }
 }
@@ -1004,7 +1024,7 @@ $("rule-form").addEventListener("submit", async (ev) => {
     const res = editingRuleId
       ? await api(`/api/rules/${editingRuleId}`, { method: "PUT", body })
       : await api("/api/rules", { body });
-    $("rule-msg").textContent = `${editingRuleId ? "Règle modifiée" : "Règle créée"}, ${res.changed} opération(s) reclassée(s).`;
+    $("rule-msg").textContent = `${editingRuleId ? "Règle modifiée" : "Règle créée"}, ${nb(res.changed, "opération reclassée", "opérations reclassées")}.`;
     resetRuleForm();
     loadCategoriesTab();
   } catch (e) { $("rule-msg").textContent = e.message; }
@@ -1021,7 +1041,7 @@ $("cat-form").addEventListener("submit", async (ev) => {
 
 $("recat-btn").addEventListener("click", async () => {
   const res = await api("/api/rules/recategorize", { method: "POST" });
-  $("cat-summary").textContent = `${res.changed} opération(s) reclassée(s).`;
+  $("cat-summary").textContent = `${nb(res.changed, "opération reclassée", "opérations reclassées")}.`;
   setTimeout(loadCategoriesTab, 1500);
 });
 
@@ -1072,7 +1092,7 @@ function subItem(x) {
       tags.length ? el("div", { class: "tags" }, ...tags) : null,
       x.charged_after_cancel.length ? el("p", { class: "error small" },
         `Encore débité après la résiliation : ${x.charged_after_cancel.map((c) => `${money(c.amount_cents)} le ${dateFr(c.date)}`).join(", ")}. Contactez le commerçant ou la banque.`) : null,
-      el("p", { class: "muted small" }, `${x.label} · ${x.category || "à classer"} · ${x.count} prélèvement(s) depuis le ${dateFr(x.first_date)} · ${money(x.yearly_cents)} par an`),
+      el("p", { class: "muted small" }, `${x.label} · ${x.category || "à classer"} · ${nb(x.count, "prélèvement")} depuis le ${dateFr(x.first_date)} · ${money(x.yearly_cents)} par an`),
       el("form", { class: "row sub-edit", onsubmit: (ev) => { ev.preventDefault(); subUpdate({ id: x.id, name: name.value }); } },
         name, el("button", { type: "submit", class: "ghost small-btn" }, "Renommer"), cadence),
       el("details", { class: "small" }, el("summary", { class: "link-like" }, "Historique des prélèvements"),
@@ -1086,7 +1106,7 @@ async function loadSubsTab() {
   amountNode(out.totals.monthly_cents, $("subs-monthly"));
   amountNode(out.totals.yearly_cents, $("subs-yearly"));
   $("subs-min").textContent = out.min_months;
-  $("subs-count").textContent = `${out.totals.count} actif(s)`;
+  $("subs-count").textContent = nb(out.totals.count, "actif");
   const active = out.items.filter((x) => x.status === "actif");
   const stopped = out.items.filter((x) => x.status === "arrete");
   const cancelled = out.items.filter((x) => x.status === "resilie");
@@ -1162,7 +1182,7 @@ async function loadDashSubs() {
   const active = mine.filter((x) => x.status === "actif");
   const monthly = active.reduce((s, x) => s + x.monthly_cents, 0);
   amountNode(monthly, $("dash-subs-monthly"));
-  $("dash-subs-yearly").textContent = `· ${money(active.reduce((s, x) => s + x.yearly_cents, 0))} par an · ${active.length} actif(s)`;
+  $("dash-subs-yearly").textContent = `· ${money(active.reduce((s, x) => s + x.yearly_cents, 0))} par an · ${nb(active.length, "actif")}`;
   const alerts = mine.filter((x) => x.charged_after_cancel.length);
   $("dash-subs-alert").replaceChildren(...alerts.map((x) => el("p", { class: "warning" }, `⚠ ${x.name} a encore été prélevé après sa résiliation.`)));
   const shown = active.slice(0, 6);
@@ -1283,7 +1303,7 @@ function renderHero(d) {
   }
   const unc = $("dash-uncat");
   unc.hidden = !d.uncategorized_count;
-  unc.textContent = `${d.uncategorized_count} opération(s) à classer`;
+  unc.textContent = `${nb(d.uncategorized_count, "opération")} à classer`;
 
   // Barre empilée : où partent les revenus du mois
   const base = Math.max(t.income_cents, t.expense_cents) || 1;
@@ -1346,7 +1366,7 @@ function renderBudgetsCard(d) {
   const list = d.budgets;
   const n = (s) => list.filter((b) => b.budget_status === s).length;
   $("dash-budget-summary").textContent = list.length
-    ? [n("over") && `✕ ${n("over")} dépassé(s)`, n("warn") && `! ${n("warn")} à surveiller`, n("ok") && `✓ ${n("ok")} dans le budget`]
+    ? [n("over") && `✕ ${nb(n("over"), "dépassé")}`, n("warn") && `! ${n("warn")} à surveiller`, n("ok") && `✓ ${n("ok")} dans le budget`]
       .filter(Boolean).join(" · ")
     : "Aucun budget défini. Fixez des plafonds par catégorie dans « Gérer ».";
   $("dash-budgets").replaceChildren(...list.slice(0, 6).map(budgetRow));
@@ -1600,7 +1620,7 @@ async function loadInsightsTab() {
     onDismiss: async () => { await api("/api/insights/dismiss", { body: { id: s.id } }); loadInsightsTab(); },
   })) : [el("li", { class: "muted" }, "Aucune suggestion pour l'instant.")]));
   $("ins-restore").hidden = !ins.dismissed_count;
-  $("ins-restore").textContent = `Réafficher ${ins.dismissed_count} suggestion(s) masquée(s)`;
+  $("ins-restore").textContent = `Réafficher ${nb(ins.dismissed_count, "suggestion masquée", "suggestions masquées")}`;
   // Récurrences
   const rec = ins.recurring.filter((x) => x.is_expense || x.active);
   const active = rec.filter((x) => x.active && x.is_expense);
@@ -1755,7 +1775,7 @@ async function loadBudgetsTab() {
     const s = spent[b.category_id];
     const dot = el("span", { class: "dot" });
     if (b.color) dot.style.setProperty("--dot", b.color);
-    const input = el("input", { type: "text", inputmode: "decimal", placeholder: "Pas de plafond",
+    const input = el("input", { type: "text", inputmode: "decimal", placeholder: "Aucun",
       value: b.monthly_limit_cents ? centsToInput(b.monthly_limit_cents) : "", "aria-label": `Plafond mensuel ${b.name}` });
     const save = async () => {
       const raw = input.value.trim();

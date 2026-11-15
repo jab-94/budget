@@ -116,3 +116,17 @@ l'utilisateur ; encore visible dans l'historique Git). Ne pas la recréer.
 - Salaire variable (PAS de droits d'auteur : erreur dans la demande initiale, catégorie retirée).
 - Revenu de référence prudent = min(moyenne 6 mois − 20 %, montant dépassé ~3 mois sur 4).
 - Compte joint Boursobank : traitement spécifique (part de chacun) reporté à plus tard.
+
+## Charte visuelle (v32, harmonisation demandée par l'utilisateur)
+- Accent UNIQUE bleu iOS : `--accent` #007aff (clair) / #0a84ff (sombre) — liens, curseurs, onglet actif de la barre
+  en verre (`--lg-tab-accent`/`--lg-fill` reliés à `--accent`), champ actif, icônes de Réglages. Choix de l'utilisateur
+  parmi indigo / noir-blanc / bleu iOS.
+- Un seul vert / rouge : `--good*` / `--bad*` (#059669·#34d399 / #e11d48·#fb7185) ; `--chart-pos/neg` en dérivent.
+- Couleurs de catégories alignées sur la palette des graphiques (`defaults.js`) ; migration `recolorCategoriesV6`
+  (`RECOLOR_V6`) qui ne change que les couleurs encore d'origine.
+- Boutons : plein noir/blanc (principal), `.ghost` = secondaire gris, suppression = `.icon-del` (corbeille rouge) ou
+  `.ghost.danger-text`. Listes comptes/catégories/règles : `rowActions()` dans app.js.
+- Pastilles (.pill, .tag, .sc-delta, .trend-*) : même forme 12 px / 600, ▲/▼ partout. Choix entre options : même rail
+  gris + pastille blanche (sc-seg, seg-mini, bg-choices) ; sur téléphone le fond d'écran est un SegmentedControl en verre
+  comme le thème. Graisses 400/500/600/700 seulement. Pluriels : `nb(n, "opération")` (jamais « (s) »).
+

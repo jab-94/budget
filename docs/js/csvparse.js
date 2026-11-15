@@ -107,7 +107,7 @@ function parseTradeRepublic(headers, rows) {
     if (fee) st.transactions.push({ date: d, label: `Frais Trade Republic – ${label}`.slice(0, 200), amount_cents: -Math.abs(fee), uncertain_sign: false, hint: "frais" });
     if (tax) st.transactions.push({ date: d, label: `Taxe – ${label}`.slice(0, 200), amount_cents: tax, uncertain_sign: false, hint: "impot" });
   }
-  if (skipped) st.warnings.push(`${skipped} ligne(s) ignorée(s) car illisibles (date ou montant).`);
+  if (skipped) st.warnings.push(`${skipped} ${skipped > 1 ? "lignes ignorées" : "ligne ignorée"} car illisibles (date ou montant).`);
   if (foreign) st.warnings.push(`${foreign} ligne(s) dans une autre devise que l'euro ignorée(s).`);
   if (st.transactions.some((t) => t.hint === "investissement")) {
     st.warnings.push("Les achats et ventes de titres sont marqués « Investissement » : ils ne compteront pas comme des dépenses dans le budget.");
@@ -195,7 +195,7 @@ export function parseCsvStatement(bytes, mapping) {
     const label = String(r[mapping.label] ?? "").split(/\s+/).filter(Boolean).join(" ") || "(sans libellé)";
     st.transactions.push({ date: d, label, amount_cents: cents, uncertain_sign: false, hint: null });
   }
-  if (skipped) st.warnings.push(`${skipped} ligne(s) ignorée(s) car illisibles (date ou montant).`);
+  if (skipped) st.warnings.push(`${skipped} ${skipped > 1 ? "lignes ignorées" : "ligne ignorée"} car illisibles (date ou montant).`);
   setPeriod(st);
   info.needs_mapping = !st.transactions.length;
   return [st, info];

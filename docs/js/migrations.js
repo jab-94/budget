@@ -3,7 +3,7 @@
 import { addDays } from "./core.js";
 import { fingerprints } from "./analytics.js";
 import { categorizeAll } from "./categorize.js";
-import { CATEGORIES_V4, CATEGORIES_V5, DEFAULT_CATEGORIES, DEFAULT_RULES, MOVED_RULES_V5 } from "./defaults.js";
+import { CATEGORIES_V4, CATEGORIES_V5, DEFAULT_CATEGORIES, DEFAULT_RULES, MOVED_RULES_V5, RECOLOR_V6 } from "./defaults.js";
 
 /**
  * Correctif « année LCL » : des opérations de fin décembre importées depuis un relevé de
@@ -94,6 +94,16 @@ export function addCategoriesV5(data) {
   return added.size;
 }
 
+/** v6 : nouvelles couleurs de catégories, seulement là où la couleur d'origine n'a pas été changée. */
+export function recolorCategoriesV6(data) {
+  let n = 0;
+  for (const c of data.categories) {
+    const pair = RECOLOR_V6[c.name];
+    if (pair && String(c.color || "").toLowerCase() === pair[0]) { c.color = pair[1]; n++; }
+  }
+  return n;
+}
+
 export async function migrate(data) {
   data.migrations = data.migrations || {};
   let changed = 0;
@@ -110,6 +120,11 @@ export async function migrate(data) {
   if (!data.migrations.categoriesV5) {
     addCategoriesV5(data);
     data.migrations.categoriesV5 = true;
+    changed += 1;
+  }
+  if (!data.migrations.colorsV6) {
+    recolorCategoriesV6(data);
+    data.migrations.colorsV6 = true;
     changed += 1;
   }
   return changed;

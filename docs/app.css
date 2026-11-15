@@ -11,22 +11,21 @@
   --faint: #94a3b8;
   --border: #e5e8ee;
   --grid: #edf0f4;               /* quadrillage des graphiques : un cran au-dessus de la surface */
-  --accent: #2563eb;
-  --accent-soft: #e8efff;
+  /* Couleur d'accent unique : bleu iOS (liens, curseurs, onglet actif, champ actif, icônes de réglage). */
+  --accent: #007aff;
+  --accent-soft: #e5f1ff;
   --accent-text: #ffffff;
-  /* Séries de graphique (palette validée daltonisme, voir docs) */
-  --series-1: #2a78d6;           /* revenus */
-  --series-2: #eb6834;           /* dépenses */
-  /* États : toujours accompagnés d'un texte ou d'une icône */
-  --good: #0ca30c;
-  --good-text: #067a06;
-  --good-soft: #e7f6e7;
+  /* États : un seul vert et un seul rouge pour toute l'app (mêmes que les pastilles des graphiques).
+     Toujours accompagnés d'un texte ou d'une icône. */
+  --good: #059669;
+  --good-text: #047857;
+  --good-soft: rgb(16 185 129 / .12);
   --warn: #fab219;
   --warn-text: #8a5a00;
   --warn-soft: #fff4dc;
-  --bad: #d03b3b;
-  --bad-text: #b42323;
-  --bad-soft: #fdeaea;
+  --bad: #e11d48;
+  --bad-text: #be123c;
+  --bad-soft: rgb(244 63 94 / .11);
   --shadow: 0 1px 2px rgb(16 24 40 / .04), 0 2px 8px rgb(16 24 40 / .05);
   --radius: 20px;
   --radius-s: 12px;
@@ -42,16 +41,16 @@
     --faint: #6b7584;
     --border: #262c35;
     --grid: #232830;
-    --accent: #4f8cf5;
-    --accent-soft: #1b2a45;
-    --series-1: #3987e5;
-    --series-2: #d95926;
-    --good-text: #4cc94c;
-    --good-soft: #14281a;
+    --accent: #0a84ff;
+    --accent-soft: rgb(10 132 255 / .16);
+    --good: #34d399;
+    --good-text: #34d399;
+    --good-soft: rgb(52 211 153 / .14);
     --warn-text: #f3c35a;
     --warn-soft: #2d2410;
-    --bad-text: #f07171;
-    --bad-soft: #321718;
+    --bad: #fb7185;
+    --bad-text: #fb7185;
+    --bad-soft: rgb(251 113 133 / .15);
     --shadow: 0 1px 2px rgb(0 0 0 / .3);
   }
 }
@@ -65,16 +64,16 @@
   --faint: #6b7584;
   --border: #262c35;
   --grid: #232830;
-  --accent: #4f8cf5;
-  --accent-soft: #1b2a45;
-  --series-1: #3987e5;
-  --series-2: #d95926;
-  --good-text: #4cc94c;
-  --good-soft: #14281a;
+  --accent: #0a84ff;
+  --accent-soft: rgb(10 132 255 / .16);
+  --good: #34d399;
+  --good-text: #34d399;
+  --good-soft: rgb(52 211 153 / .14);
   --warn-text: #f3c35a;
   --warn-soft: #2d2410;
-  --bad-text: #f07171;
-  --bad-soft: #321718;
+  --bad: #fb7185;
+  --bad-text: #fb7185;
+  --bad-soft: rgb(251 113 133 / .15);
   --shadow: 0 1px 2px rgb(0 0 0 / .3);
 }
 
@@ -127,7 +126,7 @@ body.locked .sidebar { position: static; height: auto; background: transparent; 
   padding: 8px 10px; font: inherit; font-weight: 500; text-align: left; cursor: pointer;
 }
 .nav button:hover { background: var(--surface-2); }
-.nav button.active { background: var(--surface-2); font-weight: 650; }
+.nav button.active { background: var(--surface-2); font-weight: 600; }
 .nav button.active .ico { stroke: var(--accent); }
 .ico { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
@@ -150,7 +149,7 @@ main { min-width: 0; display: flex; flex-direction: column; gap: 16px; }
 }
 .card.narrow { max-width: 460px; width: 100%; margin: 6vh auto 0; }
 .card-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 6px; }
-h2 { font-size: 16px; font-weight: 650; margin: 0 0 8px; letter-spacing: -.01em; }
+h2 { font-size: 16px; font-weight: 700; margin: 0 0 8px; letter-spacing: -.01em; }
 .card-head h2 { margin: 0; }
 h3 { font-size: 15px; margin: 16px 0 4px; }
 .empty { text-align: center; padding: 40px 20px; }
@@ -274,7 +273,7 @@ dialog::backdrop { background: rgb(0 0 0 / .45); }
 .span-all { grid-column: 1 / -1; }
 
 /* Montants : partie entière en grand, centimes en petit */
-.amount-xl, .amount-l { margin: 4px 0; font-weight: 750; letter-spacing: -.03em; line-height: 1.05; white-space: nowrap; }
+.amount-xl, .amount-l { margin: 4px 0; font-weight: 700; letter-spacing: -.03em; line-height: 1.05; white-space: nowrap; }
 .amount-xl { font-size: clamp(36px, 5vw, 58px); }
 .amount-l { font-size: 32px; }
 .amount-xl .cents, .amount-l .cents { font-size: .42em; font-weight: 600; letter-spacing: 0; color: var(--muted); }
@@ -283,7 +282,7 @@ dialog::backdrop { background: rgb(0 0 0 / .45); }
 .hero-row { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; margin: 8px 0 18px; }
 .hero-note { border-left: 1px solid var(--border); padding-left: 18px; min-width: 200px; flex: 1; }
 .hero-note p { margin: 2px 0; }
-.rate { font-weight: 650; }
+.rate { font-weight: 600; }
 .rate.good { color: var(--good-text); }
 .rate.bad { color: var(--bad-text); }
 
@@ -296,7 +295,7 @@ dialog::backdrop { background: rgb(0 0 0 / .45); }
 .stack-legend { display: flex; flex-wrap: wrap; gap: 14px 28px; margin-top: 14px; }
 .stack-legend li { min-width: 120px; }
 .stack-legend .lg-name { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
-.stack-legend .lg-val { font-weight: 650; font-size: 15px; }
+.stack-legend .lg-val { font-weight: 600; font-size: 15px; }
 .stack-legend .lg-pct { color: var(--faint); font-size: 12px; font-weight: 500; margin-left: 4px; }
 .stack-legend .lg-rest .lg-val { color: var(--good-text); }
 .stack-legend .lg-over .lg-val { color: var(--bad-text); }
@@ -372,7 +371,7 @@ dialog::backdrop { background: rgb(0 0 0 / .45); }
 .suggestion-list li:last-child { border-bottom: 0; }
 .suggestion-list.compact li { padding: 10px 0; }
 .suggestion-list.compact .sg-detail { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.sg-icon { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; font-weight: 800; font-size: 14px; }
+.sg-icon { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; font-weight: 700; font-size: 14px; }
 .sg-bad { background: var(--bad-soft); color: var(--bad-text); }
 .sg-warn { background: var(--warn-soft); color: var(--warn-text); }
 .sg-info { background: var(--accent-soft); color: var(--accent); }
@@ -386,7 +385,7 @@ dialog::backdrop { background: rgb(0 0 0 / .45); }
 .upcoming-list li:last-child { border-bottom: 0; }
 .day-chip { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 42px; border-radius: 12px; background: var(--surface-2); line-height: 1.1; }
 .day-chip strong { font-size: 16px; }
-.day-chip span { font-size: 10px; color: var(--muted); text-transform: uppercase; }
+.day-chip span { font-size: 11px; color: var(--muted); text-transform: uppercase; }
 .up-label { min-width: 0; }
 .up-label div:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
 .remaining-box { background: var(--surface-2); border-radius: var(--radius-s); padding: 12px 14px; margin: 6px 0 8px; }
@@ -462,7 +461,7 @@ dialog::backdrop { background: rgb(0 0 0 / .45); }
 .sub-list > li > details > summary::-webkit-details-marker { display: none; }
 .sub-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .sub-main strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sub-amount { text-align: right; white-space: nowrap; font-weight: 650; }
+.sub-amount { text-align: right; white-space: nowrap; font-weight: 600; }
 .sub-body { display: grid; gap: 10px; padding: 0 0 14px 18px; }
 .sub-body p { margin: 0; }
 .sub-edit input { flex: 1 1 140px; min-width: 0; }
@@ -495,7 +494,7 @@ button.op-label:hover { color: var(--accent); text-decoration: underline; }
 /* ----- Carte « Dépenses » animée (accueil) ----- */
 .stat-card .sc-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
 .sc-lab { margin: 0; font-size: 14px; color: var(--muted); line-height: 18px; }
-.sc-big { margin: 2px 0 0; font-size: 34px; line-height: 40px; font-weight: 750; letter-spacing: -.02em;
+.sc-big { margin: 2px 0 0; font-size: 34px; line-height: 40px; font-weight: 700; letter-spacing: -.02em;
   font-variant-numeric: tabular-nums; color: var(--text); white-space: nowrap; }
 .stat-card .sc-top > div { min-width: 0; }
 .sc-lab, .sc-cmp { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -515,7 +514,7 @@ button.op-label:hover { color: var(--accent); text-decoration: underline; }
   box-shadow: 0 0 0 3px var(--surface); will-change: transform; }
 .sc-seg { position: relative; display: flex; padding: 3px; border-radius: 999px; background: var(--surface-2); }
 .sc-seg button { position: relative; z-index: 1; flex: 1; padding: 7px 0; border: 0; background: none; cursor: pointer;
-  font: inherit; font-size: 14px; font-weight: 550; color: var(--muted); transition: color .2s; box-shadow: none; }
+  font: inherit; font-size: 14px; font-weight: 600; color: var(--muted); transition: color .2s; box-shadow: none; }
 .sc-seg button.on { color: var(--text); }
 .sc-pill { position: absolute; left: 0; top: 3px; bottom: 3px; border-radius: 999px; background: var(--surface);
   box-shadow: 0 1px 3px rgb(16 24 40 / .12); will-change: transform, width; }
@@ -619,20 +618,18 @@ button.op-label:hover { color: var(--accent); text-decoration: underline; }
   --series-1: #6d7cff; --series-2: #ffb44c;
   --chart-3: #34d1bf; --chart-4: #ff6b8b; --chart-5: #a78bfa; --chart-6: #5ac8fa;
   --chart-track: rgb(0 0 0 / .06); --chart-grid: rgb(0 0 0 / .07); --chart-hover: rgb(0 0 0 / .03);
-  --chart-pos: #059669; --chart-pos-bg: rgb(16 185 129 / .1); --chart-neg: #e11d48; --chart-neg-bg: rgb(244 63 94 / .1);
+  --chart-pos: var(--good-text); --chart-pos-bg: var(--good-soft); --chart-neg: var(--bad-text); --chart-neg-bg: var(--bad-soft);
   --chart-ease: cubic-bezier(.23, 1, .32, 1);
 }
 :root[data-theme="dark"] {
   --series-1: #6d7cff; --series-2: #ffb44c;
   --chart-track: rgb(255 255 255 / .07); --chart-grid: rgb(255 255 255 / .08); --chart-hover: rgb(255 255 255 / .04);
-  --chart-pos: #34d399; --chart-neg: #fb7185;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --series-1: #6d7cff; --series-2: #ffb44c;
     --chart-track: rgb(255 255 255 / .07); --chart-grid: rgb(255 255 255 / .08); --chart-hover: rgb(255 255 255 / .04);
-    --chart-pos: #34d399; --chart-neg: #fb7185;
-  }
+    }
 }
 /* Barre empilée « où partent les revenus » : segments séparés, arrondis ; survol = les autres s'effacent. */
 .stack { gap: 3px; background: none; overflow: visible; border-radius: 0; }
@@ -647,7 +644,7 @@ button.op-label:hover { color: var(--accent); text-decoration: underline; }
 .track > span { background: var(--fill, var(--series-2)); }
 /* Pastilles d'évolution */
 .trend-up, .trend-down { display: inline-flex; align-items: center; gap: 3px; padding: 1px 8px; border-radius: 999px;
-  font-size: 11.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .trend-up { background: var(--chart-neg-bg); color: var(--chart-neg); }
 .trend-down { background: var(--chart-pos-bg); color: var(--chart-pos); }
 .sc-delta.bad { background: var(--chart-neg-bg); color: var(--chart-neg); }
@@ -716,7 +713,7 @@ body.has-bg { background: #05040c; }
 .donut-readout { max-width: 70%; animation: donut-in .16s var(--chart-ease); }
 @keyframes donut-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 .donut-label { margin: 0; font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.donut-value { margin: 0; font-size: var(--value-size, 30px); font-weight: 650; letter-spacing: -.03em; line-height: 1.15;
+.donut-value { margin: 0; font-size: var(--value-size, 30px); font-weight: 600; letter-spacing: -.03em; line-height: 1.15;
   font-variant-numeric: tabular-nums; color: var(--text); }
 .donut-pct { margin: 0; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .donut-legend { list-style: none; margin: 0; padding: 0; width: 100%; max-width: 384px; }
@@ -795,3 +792,65 @@ body.has-bg { background: #05040c; }
 @media (max-width: 860px) {
   input, select, textarea, #dash-account, .glass-search input { font-size: 16px !important; }
 }
+
+/* ===================== Harmonisation (v32) =====================
+   Une seule couleur d'accent (bleu iOS), un seul vert / rouge, 3 sortes de boutons, un seul style de pastille,
+   un seul style de choix entre options. Échelle de texte : 11 · 12 · 13 · 14 · 15 · 17 (+ grands chiffres) ;
+   graisses : 400 · 500 · 600 · 700. */
+
+/* Verre (barre d'onglets, curseurs) : même bleu que le reste de l'app. */
+:root { --lg-tab-accent: var(--accent); --lg-fill: var(--accent); }
+
+/* Boutons : 1) plein noir/blanc (action principale) ; 2) secondaire gris ; 3) suppression en rouge. */
+button.ghost { background: var(--surface-2); color: var(--text); border-color: transparent; }
+@media (hover: hover) { button.ghost:hover { background: color-mix(in srgb, var(--text) 8%, var(--surface-2)); } }
+button.ghost.danger-text { background: var(--bad-soft); }
+.small-btn { padding: 6px 12px; font-size: 14px; border-radius: 10px; }
+button.link { font-weight: 500; }
+.icon-btn { background: var(--surface-2); color: var(--muted); border: 0; width: 28px; height: 28px; padding: 0; border-radius: 50%;
+  font-size: 15px; line-height: 1; }
+.icon-del { display: inline-grid; place-items: center; width: 34px; height: 34px; padding: 0; border-radius: 10px; border: 0;
+  background: var(--bad-soft); color: var(--bad-text); box-shadow: none; flex: none; }
+.icon-del svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+/* Champ « fichier » : le bouton du navigateur prend le style secondaire. */
+input[type=file] { padding: 6px; font-size: 14px; color: var(--muted); }
+input[type=file]::file-selector-button { font: inherit; font-weight: 600; color: var(--text); background: var(--surface);
+  border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; margin-right: 10px; cursor: pointer; }
+
+/* Lignes de liste façon Réglages (comptes, catégories, règles) : texte à gauche, actions côte à côte à droite. */
+ul.list li.set-item { align-items: center; padding: 12px 0; }
+.li-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.li-title { display: flex; align-items: center; min-width: 0; }
+.li-title strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.li-main code { font-size: 13px; }
+.row-actions { display: flex; align-items: center; gap: 6px; flex: none; }
+
+/* Pastilles : une seule forme (12 px, graisse 600, coins ronds), couleur selon le sens. */
+.pill, .tag, .sc-delta, .trend-up, .trend-down {
+  display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 999px;
+  font-size: 12px; font-weight: 600; line-height: 18px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sc-delta { align-self: flex-start; }
+
+/* Choix entre options : même rail gris et même pastille blanche partout (Semaine/Mois, Côte à côte/Empilé,
+   fond d'écran, thème sur ordinateur). */
+.sc-seg, .seg-mini, .bg-choices, .theme-switch { background: var(--surface-2); border-radius: 999px; padding: 3px; gap: 0; }
+.sc-seg button, .seg-mini button, .bg-choice, .theme-switch button { font-weight: 600; color: var(--muted); }
+.seg-mini button { font-size: 13px; padding: 5px 12px; }
+.bg-choices { display: inline-flex; flex-wrap: nowrap; margin: 4px 0 12px; }
+.bg-choice { background: none; border: 0; padding: 7px 16px; font-size: 14px; border-radius: 999px; }
+.bg-choice.active, .seg-mini button.on, .theme-switch button.active { background: var(--surface); color: var(--text);
+  border: 0; box-shadow: 0 1px 3px rgb(16 24 40 / .12); }
+:root[data-theme="dark"] :is(.bg-choice.active, .seg-mini button.on, .theme-switch button.active, .sc-pill) { background: #3a3f48; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) :is(.bg-choice.active, .seg-mini button.on, .theme-switch button.active, .sc-pill) { background: #3a3f48; }
+}
+
+/* Titre de carte + texte gris à droite : le texte passe dessous plutôt que de couper le titre en deux. */
+.card-head { flex-wrap: wrap; row-gap: 2px; }
+.card-head > h2 { flex: 1 1 auto; }
+
+/* Budgets : la pastille d'état ne recouvre plus le texte. */
+.cat-sub { gap: 8px; align-items: flex-start; }
+.cat-sub > :first-child { min-width: 0; }
+.cat-sub .pill { flex: none; }
+.glass-bg-seg { margin: 4px 0 12px; display: flex; }

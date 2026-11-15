@@ -16,10 +16,11 @@ export async function setupGlassUi() {
   document.body.classList.add("has-glass-ui");
   header(lg);
   theme(lg);
+  background(lg);
   transparency(lg);
   rangeAsSlider(lg, $("bg-speed"), "Vitesse du fond d'écran");
   search(lg);
-  for (const [id, label] of [["ops-account", "Compte"], ["ops-category", "Catégorie"]]) selectAsMenu(lg, $(id), label);
+  for (const [id, label] of [["ops-account", "Compte"], ["ops-category", "Catégorie"], ["dash-range", "Période"]]) selectAsMenu(lg, $(id), label);
   // Accueil : choix du compte réduit à une icône de banque (on garde presque toujours « Tous les comptes ») ;
   // le nom du compte s'affiche en petit seulement quand un compte précis est choisi.
   selectAsMenu(lg, $("dash-account"), "Compte", { compact: true });
@@ -61,6 +62,29 @@ function theme(lg) {
       value: current(),
       onValueChange: (v) => { document.querySelector(`[data-theme-choice="${v}"]`).click(); seg.update({ value: current() }); } });
   };
+  mountNow();
+  document.addEventListener("tab-shown", (e) => { if (e.detail === "settings") requestAnimationFrame(mountNow); });
+}
+
+/** Choix du fond d'écran : même sélecteur en verre que le thème, juste au-dessus (les pastilles d'origine
+ *  restent la source : un choix en verre « clique » la pastille correspondante). */
+function background(lg) {
+  const choices = $("bg-choices");
+  if (!choices) return;
+  const box = document.createElement("div");
+  box.className = "glass-bg-seg";
+  choices.after(box);
+  choices.classList.add("glass-native-hidden");
+  let seg = null;
+  const items = () => [...choices.querySelectorAll(".bg-choice")].map((b) => ({ value: b.dataset.bg, label: b.textContent }));
+  const current = () => (choices.querySelector(".bg-choice.active") || {}).dataset?.bg;
+  const mountNow = () => {
+    if (seg || !box.offsetParent || !items().length) return;
+    seg = lg.mount(box, "SegmentedControl", { "aria-label": "Fond d'écran", items: items(), value: current(),
+      onValueChange: (v) => { const b = choices.querySelector(`[data-bg="${v}"]`); if (b) b.click(); } });
+  };
+  // Les pastilles sont redessinées à chaque choix (et par « Par défaut ») : on recale le verre.
+  new MutationObserver(() => { if (seg) seg.update({ value: current() }); else mountNow(); }).observe(choices, { childList: true });
   mountNow();
   document.addEventListener("tab-shown", (e) => { if (e.detail === "settings") requestAnimationFrame(mountNow); });
 }

@@ -124,7 +124,7 @@ export function mountStatCard(root, { format, describe, upIsGood = false, pointL
       }
       big.textContent = format(Math.max(0, val.x));
       const pctVal = Math.abs(dv.x).toFixed(1).replace(".", ",");
-      delta.textContent = `${dv.t > 0 ? "+" : dv.t < 0 ? "−" : ""}${pctVal} %`;
+      delta.textContent = `${dv.t > 0 ? "▲ +" : dv.t < 0 ? "▼ −" : ""}${pctVal} %`; // même forme que les autres pastilles
       pill.style.transform = `translateX(${px.x.toFixed(2)}px)`;
       pill.style.width = `${pw.x.toFixed(2)}px`;
     },

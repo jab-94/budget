@@ -321,3 +321,15 @@ test("nouvelles catégories de dépenses (v5) : vêtements, maison, voyages… e
   assert.equal(old.categories.find((c) => c.id === old.transactions[0].category_id).name, "Vêtements");
   assert.equal(addCategoriesV5(old), 0);
 });
+
+test("couleurs de catégories v6 : seules les couleurs d'origine changent", async () => {
+  const { recolorCategoriesV6 } = await import("../docs/js/migrations.js");
+  const d = { categories: [
+    { name: "Alimentation", color: "#5b8def" },   // couleur d'origine → nouvelle palette
+    { name: "Logement", color: "#123456" },       // choisie à la main → intacte
+    { name: "Ma catégorie", color: "#5b8def" },   // pas une catégorie par défaut → intacte
+  ] };
+  assert.equal(recolorCategoriesV6(d), 1);
+  assert.deepEqual(d.categories.map((c) => c.color), ["#6d7cff", "#123456", "#5b8def"]);
+  assert.equal(recolorCategoriesV6(d), 0);
+});
