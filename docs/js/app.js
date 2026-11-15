@@ -229,13 +229,21 @@ function showTab(name) {
   if (name === "insights") loadInsightsTab();
   if (name === "income") loadIncomeTab();
   if (name === "subs") loadSubsTab();
+  if (name === "settings") $("set-about").textContent = `Budget v${APP_VERSION} · chiffré de bout en bout${user && user.email ? ` · connecté : ${user.email}` : ""}`;
   window.scrollTo(0, 0);
 }
 for (const b of document.querySelectorAll("#tabs button")) b.addEventListener("click", () => showTab(b.dataset.tab));
 // Boutons « Importer », « Gérer »… qui mènent à une autre page.
 document.addEventListener("click", (ev) => {
   const b = ev.target.closest("[data-goto]");
-  if (b) showTab(b.dataset.goto);
+  if (!b) return;
+  showTab(b.dataset.goto);
+  if (b.dataset.scroll) requestAnimationFrame(() => $(b.dataset.scroll)?.scrollIntoView({ block: "center" }));
+});
+$("set-lock").addEventListener("click", () => $("lock-btn").click());
+$("set-logout").addEventListener("click", async () => {
+  if (await askConfirm("Se déconnecter de ce compte ? Il faudra retaper l'e-mail et le mot de passe du compte, puis celui du coffre.",
+    { confirmLabel: "Se déconnecter", destructive: true })) $("logout-btn").click();
 });
 
 // ---------- Thème clair / sombre / auto (préférence d'affichage gardée dans ce navigateur) ----------

@@ -48,7 +48,7 @@ function theme(lg) {
   $("glass-theme-row").hidden = false;
   const current = () => document.documentElement.dataset.theme || "auto";
   let seg = null;
-  // Monté seulement quand la page Comptes est visible : la pastille se mesure sur l'option choisie
+  // Monté seulement quand la page Réglages est visible : la pastille se mesure sur l'option choisie
   // (montée dans une page masquée, elle resterait sous « Clair »).
   const mountNow = () => {
     if (seg || !box.offsetParent) return;
@@ -58,7 +58,7 @@ function theme(lg) {
       onValueChange: (v) => { document.querySelector(`[data-theme-choice="${v}"]`).click(); seg.update({ value: current() }); } });
   };
   mountNow();
-  document.addEventListener("tab-shown", (e) => { if (e.detail === "accounts") requestAnimationFrame(mountNow); });
+  document.addEventListener("tab-shown", (e) => { if (e.detail === "settings") requestAnimationFrame(mountNow); });
 }
 
 function transparency(lg) {

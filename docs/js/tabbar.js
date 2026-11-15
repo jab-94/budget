@@ -1,9 +1,12 @@
 // Barre d'onglets « Liquid Glass » en bas de l'écran, sur téléphone seulement (le paquet
 // @onlymoein/liquidglass et React ne sont chargés que dans ce cas : l'ordinateur garde le menu latéral).
-// 4 onglets principaux + « Plus » qui ouvre une feuille avec les autres pages.
+// 3 onglets principaux + « Plus » qui ouvre une feuille avec les autres pages (dont Réglages).
+// « Importer » n'est plus dans la barre : le bouton de l'accueil y mène (et il reste dans « Plus »).
+// Comptes et Catégories sont rangés dans Réglages.
 
-const MAIN = ["dashboard", "ops", "subs", "import"];
-const SHORT = { dashboard: "Accueil", ops: "Opérations", subs: "Abonnements", import: "Importer" };
+const MAIN = ["dashboard", "ops", "subs"];
+const SHORT = { dashboard: "Accueil", ops: "Opérations", subs: "Abonnements" };
+const IN_SETTINGS = ["accounts", "categories"];
 const MORE_ICON = "M5 12h.01M12 12h.01M19 12h.01";
 
 import { loadGlass } from "./glass.js";
@@ -27,7 +30,7 @@ export async function setupGlassTabBar({ showTab, current }) {
   const list = document.createElement("ul");
   list.className = "more-list";
   let sheet = null;
-  for (const b of navButtons.filter((x) => !MAIN.includes(x.dataset.tab))) {
+  for (const b of navButtons.filter((x) => !MAIN.includes(x.dataset.tab) && !IN_SETTINGS.includes(x.dataset.tab))) {
     const li = document.createElement("li");
     const btn = document.createElement("button");
     btn.type = "button";

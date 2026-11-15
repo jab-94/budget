@@ -52,9 +52,12 @@ l'utilisateur ; encore visible dans l'historique Git). Ne pas la recréer.
   (React) embarqué dans `docs/vendor/liquidglass.js` + `.css` par `tools/web-vendor/build-liquidglass.mjs`
   (l'injection de balises <style> de la bibliothèque est coupée à la construction : CSP style-src 'self').
   Chargé seulement sur téléphone (`docs/js/tabbar.js`) ; l'ordinateur garde le menu latéral. Onglets :
-  Accueil, Opérations, Abonnements, Importer, Plus (feuille avec les autres pages). CSP : worker-src 'self' blob:
+  Accueil, Opérations, Abonnements, Plus (feuille : Budgets, Revenus, Suggestions, Importer, Réglages ; Importer
+  retiré de la barre à la demande de l'utilisateur, accessible par le bouton de l'accueil). CSP : worker-src 'self' blob:
   (dessin des lentilles dans un worker ; reste limité par connect-src).
-  Réglage « Apparence » (onglet Comptes, téléphone) : curseur de transparence → `--lg-transparency` sur <html>
+  Page « Réglages » (`#tab-settings`, aussi dans le menu latéral) : Apparence (téléphone), liens Comptes bancaires,
+  Sauvegarde et export, Catégories et règles (avec « ‹ Réglages » sur téléphone), Verrouiller, Se déconnecter.
+  Réglage « Apparence » (page Réglages, téléphone) : curseur de transparence → `--lg-transparency` sur <html>
   (0 teintée, 0,5 normale, 1 transparente), gardé en localStorage `glass-transparency`, appliqué tôt par theme.js.
 - Autres éléments en verre (téléphone seulement, `docs/js/glass.js` + `docs/js/glassui.js`) : en-tête collant
   (remplace la barre latérale), fenêtres « Modifier / Classer l'opération » en feuilles (`openModal`/`closeModal` :

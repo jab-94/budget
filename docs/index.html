@@ -40,6 +40,7 @@
       <button data-tab="import"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 19h14"/></svg>Importer</button>
       <p class="nav-title">Réglages</p>
       <button data-tab="categories"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h7v7H4zM15.5 5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7zM4 15h7v5H4zM14 15h6v5h-6z"/></svg>Catégories</button>
+      <button data-tab="settings"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M17 7h3M4 12h3M11 12h9M4 17h11M19 17h1M15 5v4M9 10v4M17 15v4"/></svg>Réglages</button>
       <button data-tab="accounts"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9l9-5 9 5M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/></svg>Comptes</button>
     </nav>
     <div class="sidebar-foot">
@@ -453,6 +454,7 @@
 
     <!-- ===== Onglet Catégories et règles ===== -->
     <section id="tab-categories" class="tab" hidden>
+      <button type="button" class="link back-link phone-only" data-goto="settings">‹ Réglages</button>
       <div class="card">
         <div class="row space">
           <h2>Catégories</h2>
@@ -505,17 +507,43 @@
       </div>
     </section>
 
-    <!-- ===== Onglet Comptes ===== -->
-    <section id="tab-accounts" class="tab" hidden>
+    <!-- ===== Réglages ===== -->
+    <section id="tab-settings" class="tab" hidden>
       <div class="card phone-only">
         <div class="card-head"><h2>Apparence</h2><button type="button" id="glass-reset" class="link">Par défaut</button></div>
         <div id="glass-theme-row" class="glass-theme-row" hidden><span>Thème</span><div id="glass-theme"></div></div>
-        <label for="glass-range">Transparence de la barre d'onglets : <strong id="glass-value"></strong></label>
+        <label for="glass-range">Transparence du verre : <strong id="glass-value"></strong></label>
         <input type="range" id="glass-range" min="0" max="100" step="5" value="50">
         <div id="glass-slider" class="glass-slider"></div>
         <div class="range-labels small muted"><span>Teintée</span><span>Normale</span><span>Transparente</span></div>
         <p class="muted small">Réglage gardé sur ce téléphone seulement.</p>
       </div>
+      <div class="card">
+        <h2>Réglages</h2>
+        <ul class="set-list">
+          <li><button type="button" class="set-row" data-goto="accounts"><span class="set-ico"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9l9-5 9 5M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/></svg></span>
+            <span class="set-txt"><strong>Comptes bancaires</strong><span class="muted small">Ajouter ou supprimer un compte</span></span><svg class="ico chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button></li>
+          <li><button type="button" class="set-row" data-goto="accounts" data-scroll="exp-backup"><span class="set-ico"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 19h14"/></svg></span>
+            <span class="set-txt"><strong>Sauvegarde et export</strong><span class="muted small">Copie chiffrée, export CSV, tout supprimer</span></span><svg class="ico chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button></li>
+          <li><button type="button" class="set-row" data-goto="categories"><span class="set-ico"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h7v7H4zM15.5 5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7zM4 15h7v5H4zM14 15h6v5h-6z"/></svg></span>
+            <span class="set-txt"><strong>Catégories et règles</strong><span class="muted small">Types dépense / revenu, classement automatique</span></span><svg class="ico chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2>Sécurité</h2>
+        <ul class="set-list">
+          <li><button type="button" class="set-row" id="set-lock"><span class="set-ico"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 11V8a5 5 0 0 1 10 0v3M5 11h14v9H5z"/></svg></span>
+            <span class="set-txt"><strong>Verrouiller maintenant</strong><span class="muted small">Le coffre se verrouille aussi seul après 15 min</span></span><svg class="ico chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button></li>
+          <li><button type="button" class="set-row" id="set-logout"><span class="set-ico"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"/></svg></span>
+            <span class="set-txt"><strong>Se déconnecter</strong><span class="muted small">Retire aussi la copie chiffrée de cet appareil</span></span><svg class="ico chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button></li>
+        </ul>
+        <p class="muted small" id="set-about"></p>
+      </div>
+    </section>
+
+    <!-- ===== Onglet Comptes ===== -->
+    <section id="tab-accounts" class="tab" hidden>
+      <button type="button" class="link back-link phone-only" data-goto="settings">‹ Réglages</button>
       <div class="card">
         <h2>Mes comptes</h2>
         <ul id="acc-list" class="list"></ul>
